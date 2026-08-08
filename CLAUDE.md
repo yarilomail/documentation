@@ -55,6 +55,19 @@ GitHub). Apply these conventions to every page:
 - `npm run docs:build` must pass before every commit; it fails on dead links
   and Vue parse errors.
 
+## How changes reach the site
+
+Every change goes through a pull request — direct pushes to `main` are
+blocked by branch protection:
+
+1. Branch from fresh `main` (`feat/...`, `docs/...`, `chore/...`).
+2. Edit pages; run `npm run docs:build` locally — it must pass.
+3. Push the branch and open a PR (title and description in English).
+4. The user reviews and merges. Never merge yourself.
+5. Merge to `main` triggers the `Deploy docs` GitHub Actions workflow, which
+   builds the site and publishes it to GitHub Pages at
+   https://doc.yarilomail.org — no manual deploy step exists.
+
 ## Structure
 
 - `docs/*.md` — the pages; sidebar groups and nav live in
