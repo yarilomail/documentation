@@ -6,18 +6,19 @@ short-description; the repo avatar is uploaded once in the Docker Hub UI from
 docs/icon.png (SVG is not accepted). Category: Networking (+ Security).
 -->
 
-# Docker Hub Images
+<table><tr>
+<td><img src="/icon.png" width="180" alt="yarilo logo"/></td>
+<td>
 
-<img src="/icon.png" width="120" alt="yarilo logo"/>
+# yarilo
 
-Production-grade IMAP / POP3 / LMTP / ManageSieve / Submission mail server
-written in Go, with built-in full-text search. Multi-binary architecture —
-each protocol component is a separate process — Kubernetes-native via a Helm
-chart.
+**Production-grade IMAP / POP3 / LMTP / ManageSieve / Submission mail server written in Go, with built-in full-text search.** Multi-binary architecture — each protocol component is a separate process — Kubernetes-native via a Helm chart.
 
-- **Source:** https://github.com/yarilomail/yarilo
-- **License:** AGPL-3.0
-- **Platform:** `linux/amd64`
+**Source & docs:** https://github.com/yarilomail/yarilo
+**License:** AGPL-3.0 · **Platform:** `linux/amd64`
+
+</td>
+</tr></table>
 
 ## Architecture
 
