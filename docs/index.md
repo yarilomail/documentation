@@ -1,31 +1,19 @@
----
-layout: home
+# Yarilo Documentation
 
-hero:
-  name: Yarilo
-  text: Cloud-native mail server
-  tagline: IMAP, POP3, LMTP, Submission, JMAP and Sieve — built in Go for Kubernetes.
-  image:
-    src: /icon.svg
-    alt: Yarilo
-  actions:
-    - theme: brand
-      text: Get Started
-      link: /INSTALL
-    - theme: alt
-      text: Architecture
-      link: /ARCHITECTURE
-    - theme: alt
-      text: GitHub
-      link: https://github.com/yarilomail
+Yarilo is a cloud-native mail server written in Go: IMAP, POP3, LMTP, Submission, JMAP and Sieve, designed for Kubernetes.
 
-features:
-  - title: Full protocol suite
-    details: IMAP4rev1/rev2, POP3, LMTP, Submission and JMAP, with SASL mechanisms including SCRAM, OAuth2 and more.
-  - title: Horizontally scalable
-    details: Director ring routes users to backends; every deployment shape is a config change, never a different binary.
-  - title: Familiar storage
-    details: maildir, mdbox and sdbox mailbox formats with quota, namespaces, shared folders and full-text search.
-  - title: Kubernetes-first
-    details: Helm chart, Prometheus metrics, admin API and CLI tooling for day-2 operations.
----
+## Where to start
+
+- [Installation](./INSTALL) — get a working instance up.
+- [General Configuration](./GENERAL) — `yarilo.yaml` structure and core settings.
+- [Architecture Overview](./ARCHITECTURE) — services, deployment topologies, the director ring.
+- [Deployment](./DEPLOYMENT) — Helm chart and production layouts.
+
+## Highlights
+
+- **Full protocol suite** — IMAP4rev1/rev2, POP3, LMTP, Submission and JMAP, with SASL mechanisms including SCRAM and OAuth2.
+- **Horizontally scalable** — the director ring routes users to backends; every deployment shape is a config change, never a different binary.
+- **Familiar storage** — maildir, mdbox and sdbox mailbox formats with quota, namespaces, shared folders and full-text search.
+- **Kubernetes-first** — Helm chart, Prometheus metrics, admin API and CLI tooling for day-2 operations.
+
+Browse the full documentation using the sidebar. Source code and issues live on [GitHub](https://github.com/yarilomail).
