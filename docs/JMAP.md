@@ -237,14 +237,51 @@ about whether it is there.
 ### The message is opened only when it is needed
 
 A request naming only index-backed properties — `id`, `mailboxIds`, `keywords`,
-`size`, `receivedAt` — never opens the message. Everything else, envelope fields
-included, comes from the parsed message, so naming any of them reads it.
-A request naming no properties gets the full default set, which reads it.
+`size`, `receivedAt` — never opens the message. Everything else comes from the
+parsed message, so naming any of them reads it — except the envelope fields
+listed below, which are served from the index cache once something has parsed
+them. A request naming no properties gets the full default set, which reads
+the message.
 
 Body *values* are separate again: they are returned only for
 `fetchTextBodyValues` / `fetchHTMLBodyValues` / `fetchAllBodyValues`. The
 structural lists (`textBody`, `htmlBody`, `attachments`) are metadata and cost
 the parse but not the content.
+
+### Envelope fields come from the index cache
+
+Envelope fields are parsed once per message and kept in the per-folder index
+cache, so a second request for them does not open the message again. The
+cache is shared with IMAP: one file, one set of invalidation rules, and a
+message cached by an IMAP `FETCH (ENVELOPE)` is already cached for
+`Email/get`.
+
+What it covers, and what it does not:
+
+| property | served from the cache |
+|:---|:---|
+| `subject`, `sentAt`, `messageId`, `inReplyTo`, `from`, `sender`, `to`, `cc`, `bcc`, `replyTo` | yes |
+| `references` | no |
+| `headers`, `header:*` | no |
+
+The covered set is exactly what a mailbox listing asks for — `id`, `subject`,
+`from`, `receivedAt` — which is the request a client repeats most.
+
+**A request that mixes covered and uncovered properties opens the message.**
+Serving one message's answer from two sources costs the complexity of both
+and saves nothing: the message is opened either way. So `subject` alone is
+served from the cache, and `subject` with `references` is parsed whole.
+
+**Why the cache holds a parsed envelope rather than the raw header block.**
+Raw headers would cover everything above, including `references` and
+`header:*`. The choice is asymmetric: a parsed envelope can gain a raw-header
+field later — the format carries a field table, so a new field is an
+addition — while starting from raw headers makes "parse from memory" the
+base semantics for both protocols, and going back to parsed values means
+migrating what is already stored. The reference caches parsed values too, and
+our format is byte-compatible with that model. Uncovered properties parse
+exactly as they did before the cache existed, so nothing is slower than it
+was.
 
 ### Body value size
 
