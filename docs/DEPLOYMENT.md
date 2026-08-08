@@ -1,4 +1,8 @@
-# yarilo — deployment topology, sizing, and HA
+# Deployment
+
+Deployment topology, sizing, and high availability. This is a design-level
+reference; for step-by-step setup see the
+[Installation Guide](./INSTALL).
 
 ## Architecture model
 
@@ -94,15 +98,17 @@ backend tag (the shards live on the tag's RWX PV), `"local"` for a standalone
 on a local PV. It is a declaration, not a detection, and it decides where a
 durability call is real — see the setting's own note in `helm/values.yaml`.
 
-**The NFS export must be `sync`.** This is a server setting no code path can
-compensate for. NFSv3/v4 require metadata operations (`RENAME`, `REMOVE`,
-`RMDIR`) to be committed to stable storage before the reply, and every atomic
-write in yarilo — index and cache tmp+rename, maildir delivery, FTS shard
-compaction — rests on that. An `async` export answers before committing, so a
-crash can lose a rename the client was told had succeeded; a client-side
-`fsync` cannot repair it (there is no commit-a-directory operation, and
-`fsync` on a directory is a no-op over NFS). The cost of `async` is paid in
-silently rolled-back metadata, not in a visible error (#1176).
+::: warning The NFS export must be `sync`
+This is a server setting no code path can compensate for. NFSv3/v4 require
+metadata operations (`RENAME`, `REMOVE`, `RMDIR`) to be committed to stable
+storage before the reply, and every atomic write in yarilo — index and cache
+tmp+rename, maildir delivery, FTS shard compaction — rests on that. An `async`
+export answers before committing, so a crash can lose a rename the client was
+told had succeeded; a client-side `fsync` cannot repair it (there is no
+commit-a-directory operation, and `fsync` on a directory is a no-op over NFS).
+The cost of `async` is paid in silently rolled-back metadata, not in a visible
+error (#1176).
+:::
 
 **Login proxies are not needed inside the backend** — it accepts plain TCP from the director
 with auth state in the YARILO preamble. The login pods (`yarilo-imap-login`, …,
@@ -861,7 +867,7 @@ algorithmic defect twice, by two people, before the limit was found. A wrong
 limit does not fail; it produces numbers that look like a code problem.
 
 **So measure under your own load before trusting any of them.** The method is in
-[TESTING.md](TESTING.md#check-for-cpu-throttling-before-believing-a-latency-number):
+[Testing](./TESTING#check-for-cpu-throttling-before-believing-a-latency-number):
 run the matching job from `hack/loadtest/`, read `cpu.stat` inside the container,
 and establish the appetite with a second run at a different limit — one run only
 tells you the limit you chose, not where the workload stops asking.
