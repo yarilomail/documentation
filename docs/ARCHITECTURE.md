@@ -786,8 +786,8 @@ exposes:
 
 Both speak JSON over HTTPS with Bearer-token auth + IP allow-list.
 The `yarctl` CLI is a thin HTTP client over both — operator
-runs `yarctl director <command>` or `yarctl backend
-\\<service> \\<command>`. Each plane has its own URL + token
+runs `yarctl director <command>` or
+`yarctl backend <service> <command>`. Each plane has its own URL + token
 (`--url`/`--token` vs `--backend-url`/`--backend-token`); their
 defaults work out of the box when running inside the respective
 pod.

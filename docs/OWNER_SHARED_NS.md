@@ -195,7 +195,7 @@ dispatch(name):
 
 ### 3.5 ACL owner tier
 
-The `nsHandle` for an owner-templated namespace carries `owner = \\<resolved
+The `nsHandle` for an owner-templated namespace carries `owner = <resolved
 owner>` (unlike fixed shared/public, whose owner is `""`). Then:
 
 - `isOwner(h) := (h.spec owner-templated) && (s.userInfo.Username == h.owner)`
@@ -576,8 +576,8 @@ file restores the owner's subscriptions exactly, and the only imprecision is
 that the owner inherits rows a peer created -- all pointing at mailboxes the
 owner already sees. Deleting the files instead would have removed the owner's
 own subscriptions silently, with folders vanishing from their client and no
-trace: the one outcome with no signal. `yarctl backend subscriptions migrate
-\\<user> --namespace NS` folds them, dry run unless `--apply`.
+trace: the one outcome with no signal.
+`yarctl backend subscriptions migrate <user> --namespace NS` folds them, dry run unless `--apply`.
 
 ### 7.2 The bootstrap grant — why `k` alone leaves a namespace nobody can clean up
 
