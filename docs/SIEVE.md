@@ -12,7 +12,7 @@ processing: `foreverypart { … }` walks the parts depth-first (with `break
 `:type` / `:subtype` / `:contenttype` / `:param` / `:anychild` selectors, and
 `extracttext [:first N] [MODIFIER] var` captures the current part's UTF-8 text
 (with the RFC 5229 value modifiers) into a variable. `replace [:mime] [:subject
-s] [:from s] \\<text>` rewrites the current part (or the whole message outside a
+s] [:from s] <text>` rewrites the current part (or the whole message outside a
 loop); `enclose [:subject s] [:headers list] <text>` wraps the message in a
 multipart/mixed cover plus the original as `message/rfc822`. A rewritten message
 is delivered in place of the original. Octet-exact preservation of a pre-existing

@@ -822,7 +822,7 @@ different pods for different protocols.
 
 **Admin per-user ops reach the owning pod the same way (#792).** `yarilo-backend-api`
 listens on the pod IP only, so a per-user admin op (`yarctl backend fts
-rescan \\<user>`, folder/quota/index/… on a user) must hit the user's pod.
+rescan <user>`, folder/quota/index/… on a user) must hit the user's pod.
 `yarctl` does the routing **client-side**: it asks the director
 `GET /api/director/map?user=X` — which resolves with the *same* precedence a
 login LOOKUP uses (sticky userDir pin → ring hash, the director owning the

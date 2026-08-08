@@ -286,8 +286,8 @@ without an operator deleting `fts-flatcurve/` on disk.
 **Engine-independent (framework level, applies to both):**
 
 - **Per-mailbox checkpoint** (`last_indexed_uid`, `uidvalidity`, `settings_checksum`)
-  in the engine metadata (flatcurve on-disk file format `2 \\<uidvalidity> \\<last_uid>
-  \\<settings_checksum>`, tolerant of the legacy v1 `1 \\<last_uid> \\<settings_checksum>`
+  in the engine metadata (flatcurve on-disk file format `2 <uidvalidity> <last_uid>
+  <settings_checksum>`, tolerant of the legacy v1 `1 <last_uid> <settings_checksum>`
   which reads `uidvalidity` back as 0). A **checksum mismatch** rebuilds the mailbox
   (tokenizer/filter config changed); a **UIDVALIDITY mismatch** means the mailbox was
   recreated, so the checkpoint is stale and its `last_indexed_uid` can sit above the
@@ -1063,8 +1063,8 @@ Implementation: `pkg/fts` (engine contract, score merges),
 `internal/fts/buildmail` (MIME → build keys),
 `internal/fts/flatcurve` (Xapian engine + cgo shim).
 
-External: Xapian (\\<https://xapian.org/docs/>), Bleve v2
-(\\<https://github.com/blevesearch/bleve>).
+External: Xapian (\<https://xapian.org/docs/>), Bleve v2
+(\<https://github.com/blevesearch/bleve>).
 
 ## Prefix search
 
