@@ -1,6 +1,52 @@
 import { defineConfig } from 'vitepress'
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const SITE = 'https://doc.yarilomail.org'
+
+/* First H1 and first prose paragraph of a page, for the llms.txt index. */
+function pageMeta(text: string): { title: string; desc: string } {
+  const title = text.match(/^# (.+)$/m)?.[1] ?? ''
+  let desc = ''
+  for (const block of text.split(/\n{2,}/)) {
+    const t = block.trim()
+    if (!t || t.startsWith('#') || t.startsWith('```') || t.startsWith('|') ||
+        t.startsWith(':::') || t.startsWith('---') || t.startsWith('<')) continue
+    desc = t.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    break
+  }
+  return { title, desc }
+}
+
+function buildLlmsTxt(srcDir: string, outDir: string) {
+  const pages = readdirSync(srcDir).filter(f => f.endsWith('.md')).sort()
+  const index: string[] = [
+    '# Yarilo',
+    '',
+    '> Yarilo is a cloud-native mail server written in Go: IMAP, POP3, LMTP,',
+    '> Submission, JMAP and Sieve, designed for Kubernetes.',
+    '',
+    `Full documentation as a single file: ${SITE}/llms-full.txt`,
+    '',
+    '## Documentation',
+    '',
+  ]
+  const full: string[] = []
+  for (const f of pages) {
+    const text = readFileSync(join(srcDir, f), 'utf8')
+    const { title, desc } = pageMeta(text)
+    const slug = f === 'index.md' ? '' : f.replace(/\.md$/, '')
+    index.push(`- [${title || slug || 'Home'}](${SITE}/${slug})${desc ? ': ' + desc : ''}`)
+    full.push(`<!-- source: ${SITE}/${slug} -->\n\n${text.trim()}`)
+  }
+  writeFileSync(join(outDir, 'llms.txt'), index.join('\n') + '\n')
+  writeFileSync(join(outDir, 'llms-full.txt'), full.join('\n\n---\n\n') + '\n')
+}
 
 export default defineConfig({
+  buildEnd(siteConfig) {
+    buildLlmsTxt(siteConfig.srcDir, siteConfig.outDir)
+  },
   title: 'Yarilo',
   description: 'Yarilo mail server documentation',
   srcDir: 'docs',
