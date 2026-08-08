@@ -83,6 +83,26 @@ escaping in the committed values â€” it changes on-disk names for every folder â
 but to add one gate run with `--set storage.mailbox_list_storage_escape_char=^`
 alongside the default run.
 
+## A tagged run is tree-wide, or it is not a tagged run
+
+`go test ./...` does not compile code behind a build tag at all, so a green
+plain run says nothing about the tagged one. Both are required before a
+change lands:
+
+```
+go test ./... -count=1
+go test -tags flatcurve ./... -count=1
+```
+
+The second must cover the **whole tree**, not the package being edited.
+Tagged code is not confined to the engine package: its consumers and the
+benchmark harness are behind the same tag, and their fixtures are where a
+changed contract surfaces. Keying the FTS index path by the folder GUID
+(#1183) passed a tagged run of `internal/fts/flatcurve` and failed CI on five
+fixtures elsewhere that built a mailbox reference with no GUID, plus a test
+that computed the shard path with the layout the change had just removed.
+Those are exactly the places a package-scoped run cannot reach.
+
 ## Load tests
 
 [yarilo-loadtest](https://github.com/yarilomail/yarilo-loadtest) is the load
