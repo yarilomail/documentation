@@ -76,8 +76,7 @@ export default defineConfig({
           { text: 'Installation', link: '/INSTALL' },
           { text: 'General Configuration', link: '/GENERAL' },
           { text: 'Deployment', link: '/DEPLOYMENT' },
-          { text: 'Docker Compose', link: '/DOCKER-COMPOSE' },
-          { text: 'Docker Hub Images', link: '/DOCKERHUB' }
+          { text: 'Docker Compose', link: '/DOCKER-COMPOSE' }
         ]
       },
       {
