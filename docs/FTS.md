@@ -504,6 +504,14 @@ In `session.Search` (`internal/imap/server.go:2157`):
 the core; the engine flags what it handled so the core does not needlessly
 re-scan.
 
+::: warning JMAP has no scan to fall back to
+Steps 4 and 5 above describe IMAP. `Email/query` never reads message bodies, so
+on the JMAP surface there is no sequential scan behind the index:
+`fts_search_read_fallback` cannot choose a fallback there, and a failed lookup
+is refused instead. A lagging index answers `serverUnavailable`, which tells the
+client to retry; a broken lookup answers `serverFail`. See [JMAP](./JMAP).
+:::
+
 ---
 
 ## 12. Where this is better than the reference stack
