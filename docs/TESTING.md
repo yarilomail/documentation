@@ -58,6 +58,56 @@ docker run --rm dovecot/imaptest \
   count=5
 ```
 
+### Reading the gate report
+
+Most `app/smoketest` checks are enabled by the flag that configures them:
+`-fts-user` enables the FTS search check, `-jmap` enables the JMAP ones. A
+check the run was not given credentials for is **skipped, not dropped** — it
+stays in the report by name, with the flag that would enable it:
+
+```
+{"msg":"smoke: summary","checks":28,"passed":19,"failed":0,"skipped":9}
+
+9 smoke check(s) skipped:
+  - jmap session resource (/.well-known/jmap) (needs -jmap)
+  ...
+```
+
+This matters because the earlier gate counted only what it ran, and a rollout
+that lost a flag reported `11/11` green with fewer checks than the one before
+it (#1197). A count of what ran cannot describe what was not asked for, so the
+report always describes the whole intended gate.
+
+### Demanding the whole gate
+
+A deployment that expects every check to be configured says so once, instead of
+diffing the skipped list by hand on each rollout:
+
+| Flag | Effect |
+|:---|:---|
+| `-require-all` | a check disabled by a missing flag is a failure |
+| `-require-all-except=<areas>` | comma-separated areas `-require-all` does not demand |
+
+Every check belongs to an area — `telemetry`, `smtp`, `pop3s`, `lmtp-login`,
+`managesieve`, `sieve`, `imap`, `director`, `jmap` — and an exemption names
+areas, so `-require-all -require-all-except=jmap` demands everything the
+deployment runs while forgiving a service it does not.
+
+Three properties are worth knowing before relying on it:
+
+- An exemption forgives **an unconfigured check only**. A check in an exempt
+  area that ran and failed still fails: the flag says "we do not run this", not
+  "ignore errors from here".
+- An area no check declares is rejected (exit 2, with the known areas listed).
+  A misspelled area would otherwise read as a narrowed gate that quietly still
+  demands everything.
+- `-require-all-except` without `-require-all` is rejected for the same reason:
+  alone it reads as "demand everything except this" while demanding nothing.
+
+`components.jmap` ships disabled, which is why the nine JMAP checks are the
+usual exemption — and why `-require-all` is off by default. Which areas a
+deployment owes is an operator decision, not a property of the binary.
+
 ## What the deployment gate does not cover, on purpose
 
 `mailbox_list_storage_escape_char` is unset in the committed sandbox values, so
