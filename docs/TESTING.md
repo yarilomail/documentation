@@ -108,6 +108,50 @@ Three properties are worth knowing before relying on it:
 usual exemption — and why `-require-all` is off by default. Which areas a
 deployment owes is an operator decision, not a property of the binary.
 
+### Where the gate injects mail
+
+The Sieve and FTS checks both need a message delivered into a user's mailbox
+before they can look for it, so they share one endpoint, named for that role:
+
+| Flag | Meaning |
+|:---|:---|
+| `-delivery-host` | host that accepts the injected mail (defaults to `-smtp-host`, then `-host`) |
+| `-delivery-port` | port that accepts it (default `25`) |
+| `-delivery-proto` | `smtp` (greets with EHLO) or `lmtp` (LHLO). Default `smtp` |
+
+Set the protocol to match the listener you point at. An LMTP server answers
+EHLO with `500 5.5.1 This is a LMTP server, use LHLO`, and both checks then
+fail with that message rather than with anything about Sieve or search:
+
+```
+- sieve plugins: plugin failures:
+    fileinto: EHLO: 500 5.5.1 This is a LMTP server, use LHLO
+- imap FTS (SEARCH BODY/TEXT/HEADER/FROM): lmtp deliver: EHLO: 500 5.5.1 ...
+```
+
+A deployment whose only ingress is `yarilo-lmtp-login` — which is what the
+chart ships — therefore runs both checks like this:
+
+```sh
+smoketest -host mail.example.com \
+  -delivery-host yarilo-lmtp-login -delivery-port 24 -delivery-proto lmtp \
+  -sieve -fts-user u1@example.com -fts-pass ...
+```
+
+Delivering through submission or the MX port is equally valid and is the
+configuration that exercises the end-to-end path alongside the MTA; there the
+default `-delivery-proto smtp` is correct and nothing needs saying.
+
+The protocol is **declared, not inferred from the port number**. Reading 24 as
+LMTP and 25 as SMTP is a guess about the topology: a site running LMTP on 2424,
+or submission on 587, would be greeted wrongly and told so in a message that
+points somewhere else. A value that is neither `smtp` nor `lmtp` stops the run
+rather than falling back, so a typo cannot read as a deliberate choice.
+
+`checkLMTPLogin` is separate and unaffected: it builds its own address from
+`-host` and `-lmtp-login-port`, because it tests the login proxy's handshake
+rather than delivery.
+
 ## What the deployment gate does not cover, on purpose
 
 `mailbox_list_storage_escape_char` is unset in the committed sandbox values, so
