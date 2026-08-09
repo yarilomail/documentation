@@ -71,6 +71,8 @@ clients batch against what is published.
 | `jmap_max_size_request` | `10M` | One API request body. |
 | `jmap_max_body_value_bytes` | `256K` | Server ceiling on one returned `Email` body value. A smaller client `maxBodyValueBytes` wins; truncated values are marked `isTruncated`. |
 | `jmap_query_max_limit` | `256` | Server ceiling on ids returned by one query. A smaller client `limit` wins; the response reports the limit applied. |
+| `jmap_max_query_folders` | `64` | Mailboxes one full-text `Email/query` may search. A query over more is refused, never answered from part of them. |
+| `jmap_snippet_max_chars` | `256` | Visible characters in a `SearchSnippet` preview. Markup and HTML escapes are not counted; the subject is never cut. |
 | `jmap_push_timeout` | `90` | Idle timeout for a push connection, seconds. Unused until the push phase. |
 | `jmap_cors_allow_origins` | `[]` | Browser origins allowed to call the endpoint. Empty denies every cross-origin request. Exact match, scheme included. |
 
@@ -318,13 +320,85 @@ is the response, and with it the memory held per request.
 breaks every tie, so two runs of the same query agree and a client paging with
 `position` never sees a message twice or misses one.
 
-**Full-text conditions are refused, by name.** `text`, `from`, `to`, `cc`,
-`bcc`, `subject`, `body` and `header` need the full-text index, which this phase
-does not reach. The refusal is `unsupportedFilter` with the offending conditions
-listed in `description`, so a client can drop exactly those and retry — or fall
-back to its own filtering over a server-side list. Answering them by ignoring
-them would return a confidently wrong result set, which a client has no way to
-detect.
+**Full-text conditions are answered from the search index.** `text`, `body`,
+`subject`, `from`, `to`, `cc`, `bcc` and `header` are resolved by asking
+yarilo-fts once per mailbox in scope. Without a search service configured they
+are still refused by name — `unsupportedFilter` listing the offending
+conditions, so a client can drop exactly those and retry rather than receive a
+confidently wrong result set.
+
+A candidate the engine can only over-approximate is confirmed against the
+message before it reaches the client, the same invariant IMAP `SEARCH` holds,
+and with the same substring semantics — so the two surfaces agree on what a
+match is.
+
+### How wide a search may go
+
+`jmap_max_query_folders` (default 64) bounds one request's fan-out. It counts
+only the mailboxes a full-text condition would search: a query without one does
+not fan out and never sees the limit.
+
+Exceeding it is `invalidArguments` naming both numbers — the count and the
+limit — so a client knows how far to narrow `inMailbox`. The alternative,
+searching the first 64 and answering, would return part of an account's mail in
+a shape indistinguishable from all of it.
+
+This is not the same budget as `fts_max_conns`, which bounds how many
+connections one **process** keeps to yarilo-fts. One is what a request may take,
+the other what a process may take; a single query uses at most half the pool, so
+a second concurrent query is not starved by the first.
+
+### When the index cannot answer
+
+Three outcomes, deliberately distinct, because a client is entitled to treat
+`serverFail` as final and show an empty result:
+
+| Condition | Answer | Meaning |
+|:---|:---|:---|
+| The index is behind the mailbox | `serverUnavailable` | Retry: indexing is catching up and will finish. |
+| No connection to yarilo-fts is free | `serverUnavailable` | Retry: the service is alive, the local pool is busy. |
+| The lookup failed, or a mailbox has no GUID | `serverFail` | Retry will not help. |
+
+A lagging mailbox is queued for priority indexing when `fts_search_add_missing`
+is set, and the query waits — one budget for the whole request, not one per
+mailbox — before answering `serverUnavailable`.
+
+::: warning fts_search_read_fallback does not apply here
+On IMAP that setting falls back to an exact scan when the index cannot answer.
+`Email/query` never reads message bodies, so there is no scan to fall back to:
+on this surface a failed lookup is refused whatever the setting says. See
+[FTS](./FTS).
+:::
+
+## Search snippets
+
+`SearchSnippet/get` returns the highlighted fragments for a list of message ids
+and the filter they were found with.
+
+The search engine reports no term positions, so the highlighting is produced by
+the server: the message is read again and whole tokens whose expansion meets the
+query's are wrapped in `<mark>`. Whole tokens, never substrings — the terms are
+stems, and marking whatever begins with one would cut unrelated words in half.
+
+The `preview` is a window around the first hit, not the head of the message: a
+match at character 5000 would otherwise return the opening lines with nothing
+highlighted in them, stated as a search result. The window opens at a word
+boundary and carries `…` at whichever end is not the message's own.
+
+Either field may be `null`, per field rather than per message: a hit in the
+subject returns a highlighted subject and a `null` preview. That is what RFC
+8621 §5.1 allows and it is the honest answer — an invented fragment would claim
+a match that is not in it.
+
+The fragment is escaped **before** the markup is added, so a message carrying
+`<script>` or a literal `<mark>` cannot smuggle either into a client. The
+preview is taken from `text/plain`, or from HTML with its tags stripped;
+matching still searches every text part, since a hit may be anywhere the index
+looked.
+
+The id count is bounded by `jmap_max_objects_in_get` — every id costs a message
+read, which is the budget that key already names — and exceeding it is
+`requestTooLarge`.
 
 ### Result size
 
@@ -377,10 +451,10 @@ crafted message can never render in the origin that serves the API.
 | Core — request envelope, back-references, `Core/echo` | RFC 8620 §3–§4 | served |
 | Mail — `Mailbox/get`, `Mailbox/query` | RFC 8621 §2 | served, read-only |
 | Mail — `Email/get` (envelope, bodies, preview) | RFC 8621 §4 | served, read-only |
-| Mail — `Email/query` (index conditions), blob download | RFC 8621 §4.4, RFC 8620 §6.2 | served, read-only |
+| Mail — `Email/query` (index and full-text conditions), blob download | RFC 8621 §4.4, RFC 8620 §6.2 | served, read-only |
+| Mail — `SearchSnippet/get` | RFC 8621 §5 | served |
 | Mail — `Thread/get` | RFC 8621 §3 | served, one message per thread |
 | Mail — `Mailbox/set`, `Mailbox/changes` | RFC 8621 §2 | later phase |
-| Mail — full-text conditions, `SearchSnippet` | RFC 8621 §4.4.1, §5 | later phase |
 | Mail — `Email/set`, `Mailbox/set` | RFC 8621 | later phase |
 | Push over WebSocket | RFC 8887 | later phase |
 
@@ -410,9 +484,15 @@ Four checks:
    batch resolves to that mailbox;
 7. `Email/query` finds an id, a back-referenced `Email/get` reads it, and the
    blob it names downloads as a non-empty `application/octet-stream`;
-8. a download for another account's blob is refused with `404`.
+8. a download for another account's blob is refused with `404`;
+9. a delivered message is found by a `text` condition and read back, and a
+   marker that was never delivered finds nothing — the second half is what
+   makes the first mean the condition was applied.
 
-Check 7 needs at least one message in the account.
+Check 7 needs at least one message in the account. Check 9 needs `-fts-user`,
+which states that full-text search is configured, and delivery flags —
+`-delivery-host`, `-delivery-port`, `-delivery-proto`; see
+[Testing](./TESTING).
 
 Check 4 sends `-jmap-max-size-request` + 1 bytes; pass the deployment's own
 value if it differs from the 10M default.
