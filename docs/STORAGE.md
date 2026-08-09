@@ -6,6 +6,47 @@ cross-process mailbox lock (`yarilo-locks`); sessions sharing a pod serialise on
 in-process `sync.RWMutex` — the Redis lock is only ever contested across pods, not within
 a single pod. See also [MDBOX_ALT.md](MDBOX_ALT.md).
 
+## Path templates
+
+Every path setting that can differ per user — `mail_home_template`, `mail_path`,
+`mail_inbox_path`, `index_dir`, `control_dir`, `volatile_dir`, `alt_dir`,
+`mdbox_alt_storage_path` — is a template expanded against the user. Two spellings are
+accepted, and nothing else is.
+
+| short form | expression form | expands to |
+|:---|:---|:---|
+| `%u` | `%{user}` | the full username, `alice@example.com` |
+| `%n` | `%{user \| username}` | the local part, `alice` |
+| `%d` | `%{user \| domain}` | the domain, `example.com` |
+| `%h`, or a leading `~/` | `%{home}` | the user's home directory |
+| `%2.256Nu` | `%{user \| sha1 % 256 \| hex(2)}` | a hash bucket, `d5` |
+| `%%` | — | a literal `%` |
+
+The expression form is a variable followed by filters: `username`, `domain`, `lower`,
+`upper`, `md5`, `sha1`, and `hex(n)`. A hash becomes a number through a modulo
+(`sha1 % 256`) and a number becomes text through `hex(n)`, which zero-pads to `n` digits
+and keeps the low ones; a negative width pads on the right and keeps the high ones.
+
+**The two forms do not hash the same way, deliberately.** An expression names its
+algorithm, so `%{user | sha1 % 256}` is SHA-1 while the older `%2.256Nu` stays MD5. Each
+does what it says, and neither changes where an existing deployment's users already live.
+The expression form matches the reference implementation byte for byte, including reading
+the digest as a big-endian integer from its **last** eight bytes — so a config migrated
+from it keeps every user in the bucket they already had.
+
+**A template that cannot be expanded stops startup**, naming the key and the sequence that
+was not understood. There is no pass-through: a template copied from a newer reference
+config used to produce a directory literally named `%{user | sha1 % 256 | hex(2)}` —
+created, written to, and never mentioned.
+
+Hash buckets matter once a directory holds one entry per user. The shipped
+`volatile_dir` uses one:
+
+```yaml
+storage:
+  volatile_dir: "/tmp/yarilo-volatile/%{user | sha1 % 256 | hex(2)}/%{user}"
+```
+
 ## Maildir sync-on-open
 
 **Maildir sync-on-open** (`storage.maildir_sync_on_select`, default `true`): on
@@ -92,11 +133,11 @@ On-disk `m.<N>` files follow the **dbox v2 layout**: the ASCII file-header line
 first message, then each message is `[32-byte header][body][trailer]`. The reader is
 self-describing — at each record it tells a file-header line (starts with the ASCII version
 digit) apart from a raw message header (starts with the `\x01\x02` magic) by the first
-byte, so a real the reference instance parses past the first message in a multi-message file, and
+byte, so a reference-format store parses past the first message in a multi-message file, and
 legacy yarilo stores that stamped the header before every record still read back unchanged
 (no migration).
 
-Three the reference-parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
+Three parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
 under `storage:`, mdbox only):
 
 | Key | Default | Effect |
@@ -104,6 +145,7 @@ under `storage:`, mdbox only):
 | `mdbox_rotate_size` | `10485760` (10 MiB) | Max bytes per `m.<N>` before the next save rolls to a fresh file. `0` selects the 10 MiB default. |
 | `mdbox_rotate_interval` | `0` (disabled) | Seconds; roll the append file once it is older than this, regardless of size. |
 | `mdbox_preallocate_space` | `false` | `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a no-op elsewhere). |
+| `mdbox_map_format` | `v2` | On-disk format of the per-user map index; see [mdbox map index format](#mdbox-map-index-format). |
 
 The age check reads a **persisted per-file create-time** stored in the map header (not a
 filesystem `btime`, which is unreliable over NFS), so it survives restarts. Unlike the reference
@@ -122,6 +164,29 @@ another session clears the marker. The **POP3** path carries no such bound: a PO
 heals at most once, at login, not in a command loop, so it cannot spin; a rapidly
 reconnecting client during a purge could still reproduce the storm across logins, but POP3
 sessions are short and a cross-login bound would need persistent state — an accepted gap.
+
+## mdbox map index format
+
+The per-user map index (`yarilo.map.index`) is what makes an mdbox COPY O(1): every folder
+record points at a `map_uid`, and the map resolves that to `(file_id, offset, size)` plus a
+reference count. Two on-disk formats exist, selected by `storage.mdbox_map_format`:
+
+| Value | Layout |
+|:---|:---|
+| `v2` (default) | A fixed 80-byte header and 36-byte records sorted by `map_uid`. A record is addressed by offset arithmetic and found by binary search over the file bytes, so opening the map parses nothing and builds no lookup table. The header also records which append log the base already folded in, and how far. |
+| `v1` | The older mail-index-backed format: a record stream with per-record extensions that has to be parsed into objects before anything can be looked up. |
+
+**Changing the value converts the map on the next open, in either direction**, preserving
+every `map_uid`. Both writers are atomic (temp file + rename), so an interrupted conversion
+leaves the previous format readable and the next open converts again. A base carrying a
+version this binary does not know is refused rather than guessed at — the map decides which
+bytes belong to which message and which file a purge may unlink.
+
+Choose `v1` only to keep the map readable by an older yarilo image; it is the reason the
+setting exists. It gives up what its header cannot hold: with no log lineage and no record
+digest, a v1 map re-reads its base whenever the file moves and replays its log from the
+start, and the window between writing the base and dropping the log is unprotected, so a
+reference-count delta in it can be applied twice.
 
 ## Moving a user between mailbox formats
 
