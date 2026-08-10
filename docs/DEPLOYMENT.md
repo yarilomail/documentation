@@ -282,6 +282,9 @@ Two switches, because two levels of exposure:
 | `telemetry.pprof.enabled` | `/debug/pprof/profile`, `trace`, `allocs`, `goroutine`, `block`, `mutex`, `threadcreate`, `cmdline`, `symbol` | stacks and counts — where time and allocations go |
 | `telemetry.pprof.heapEnabled` | `/debug/pprof/heap` | **live objects of a process that has just parsed other people's mail** — a dump can contain message bodies |
 
+`block` and `mutex` are in that first list but stay silent until a sampling rate
+is set; see below.
+
 They are separate on purpose. Finding where CPU and allocations go — which is
 almost always the question — needs only the first. Turn the heap dump on when
 the question is specifically what is *retained*, and turn it off again after.
@@ -294,6 +297,41 @@ While either switch is on, every component logs a warning **at every start**
 naming what is exposed. That is deliberate — the failure this guards against is
 not enabling profiling, it is enabling it for an afternoon's investigation and
 leaving it on for a year.
+
+### Profiles that need a sampling rate
+
+`/debug/pprof/block` and `/debug/pprof/mutex` are served by the switch above,
+but they answer with an **empty profile** until sampling is turned on — a
+diagnostic that returns 200 and says nothing. Two more values do that:
+
+| Value | Default | Sets |
+|:---|:---|:---|
+| `telemetry.pprof.blockProfileRate` | `0` (off) | one sample per this many nanoseconds of blocked time |
+| `telemetry.pprof.mutexProfileFraction` | `0` (off) | one sample per this many mutex contention events |
+
+They are separate from `enabled` because serving a route and collecting samples
+are different costs. The route is free while nobody fetches it; the sampling is
+paid by **every blocking operation and every contended mutex in the process**,
+whether or not anyone ever takes the profile.
+
+This is the instrument for time spent *waiting* — a CPU profile cannot see it,
+because a goroutine asleep on a lock or a socket burns nothing. Turn the rates
+on for the measurement window, take the capture, set them back to `0`:
+
+```yaml
+telemetry:
+  pprof:
+    enabled: true
+    blockProfileRate: 10000      # ns of blocked time per sample
+    mutexProfileFraction: 100    # one in N contention events
+```
+
+```sh
+go tool pprof -http=: http://localhost:8080/debug/pprof/block
+```
+
+Both rates warn at every start while they are on, for the same reason the
+switches above do.
 
 Taking a profile, with the telemetry port reachable only inside the cluster:
 
