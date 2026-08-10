@@ -39,6 +39,11 @@ was not understood. There is no pass-through: a template copied from a newer ref
 config used to produce a directory literally named `%{user | sha1 % 256 | hex(2)}` —
 created, written to, and never mentioned.
 
+The same templates are accepted in the matching userdb fields, and expanded the same way
+on every path — a delivery and an interactive session resolve one user to one set of
+directories. (Before 2.3.133 the delivery path resolved `~/` in `mail_path` /
+`mail_inbox_path` but left `%u` alone, so the two could disagree.)
+
 Hash buckets matter once a directory holds one entry per user. The shipped
 `volatile_dir` uses one:
 

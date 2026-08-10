@@ -328,6 +328,24 @@ configuration key — `%u` / `%{user}`, `%h` / `~/`, hash buckets, and the rest.
 > An explicit field always beats the modifier, whichever spelling the field uses — so
 > moving a userdb query from one spelling to the other never changes which source wins.
 
+**How a userdb answer is applied.** One order, for every protocol — IMAP, POP3 and
+delivery (LMTP, JMAP, FTS, quota-status) share the code that does it:
+
+1. the separate path fields are expanded against the user and written onto the session;
+2. `mail` / `mail_location` is parsed: its driver prefix is stamped, and its modifiers
+   fill in only the paths step 1 left blank;
+3. the explicit driver field (`mail_driver` / `mailbox_format`) is stamped last, so it
+   wins over the prefix.
+
+A `mail_location` that cannot be parsed leaves the user on the globally configured backend
+rather than failing the login, and a driver name yarilo does not implement is refused with
+the stamped one left in place. Both are logged.
+
+> **`mailbox_format` used to be inert.** Before 2.3.133 the field was parsed, carried and
+> reported by the backend API — and never consulted. A userdb answering `mdbox` opened the
+> user with the globally configured driver. If you set it and saw no effect, that is why;
+> it works now, so check that its value is the one you want before upgrading.
+
 **Quota**
 
 | Field | Meaning |
