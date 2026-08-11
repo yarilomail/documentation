@@ -282,6 +282,55 @@ switched on is never on when the incident starts.
 
 ---
 
+## Prometheus metrics (mailbox index)
+
+A read of a folder's state is timed as a whole and in named parts, so a slow
+command can be attributed instead of guessed at. The parts are observed only
+inside the whole, and **what the whole holds beyond them is the finding** — it
+cannot be negative, and a test asserts it.
+
+| Metric | What it answers |
+|:---|:---|
+| `fileindex_read_seconds` | what one read of a folder cost, whole |
+| `fileindex_read_part_seconds{part="lock"}` | of that, the round trips to the lock service — acquisition, the already-ours check, and the release |
+| `…{part="reload"}` | the freshness check |
+| `…{part="build"}` | materialising the answer |
+| `fileindex_lock_acquired_total{mode,site}` | how often a read or write left the process, and from where |
+| `fileindex_lock_wait_seconds{mode,site}` / `fileindex_lock_release_seconds{mode,site}` | the two round trips an operation makes; the release costs about what the acquisition does |
+| `fileindex_lock_reentrant_total{mode,site}` | operations already holding the lock — no round trip |
+| `fileindex_reload_total{result}` | `adopt` means a rewritten base was proven to hold what memory already held, and its records were not read |
+| `fileindex_lineage_stamped_total` | folders given the freshness extension on first open after an upgrade |
+
+The `site` label is what turns the acquisition count into an answer:
+
+| site | meaning |
+|:---|:---|
+| `open-probe` | a folder being opened or repaired — legitimate, bounded by sessions |
+| `reload-fallback` | a read that wanted the lock-free path and **could not prove freshness**: the folder has no lineage yet |
+| `read` | a read locked on purpose — its answer decides a write |
+| `write` | a mutation |
+
+`open-probe` and `reload-fallback` cost the same and mean opposite things. A
+rising `reload-fallback` says the freshness extension has not reached those
+folders, which is a migration that did not finish rather than a cost to accept.
+
+`fileindex_lineage_stamped_total` should rise once per folder shortly after an
+upgrade and then stay flat. Two pods racing the same first open can each stamp
+a folder, so it may count twice; if it keeps rising, stamping is not sticking.
+
+For mdbox there is one more structure, opened once per session:
+
+| Metric | What it answers |
+|:---|:---|
+| `mdbox_map_open_seconds` | opening the per-user map, whole |
+| `mdbox_map_open_part_seconds{part="base"\|"replay"}` | reading the base against replaying its log |
+
+A large `replay` share means the map log has not been folded. On a read-only
+workload nothing folds it — see
+[Folding indexes before a measurement](STORAGE.md#folding-indexes-before-a-measurement).
+
+---
+
 ## Log verbosity
 
 `logLevel` sets the level for the whole installation (default `info`); it reaches
