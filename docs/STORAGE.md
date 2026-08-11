@@ -193,6 +193,54 @@ digest, a v1 map re-reads its base whenever the file moves and replays its log f
 start, and the window between writing the base and dropping the log is unprotected, so a
 reference-count delta in it can be applied twice.
 
+## Durability: what a save promises
+
+An mdbox save appends the message to `m.<N>` and records it in the map. Neither
+write is followed by an `fsync`: durability is delegated to the filesystem and
+its mount options, as it is in the reference implementation. A message
+acknowledged to the client is therefore in the page cache and on its way to
+disk, not proven to be on it.
+
+That is the trade every dbox-family store makes, and it is stated here because
+it is the kind of property an operator discovers at the worst possible moment
+otherwise. A deployment that needs the stronger guarantee gets it from the
+mount (`sync`, or a filesystem whose journal covers data), not from a setting
+here.
+
+Index writes are a separate matter: the base is replaced atomically (temp file
++ rename) and the log is append-only, so a crash costs the tail of the log
+rather than the folder. The `volatile_dir` setting moves the index's temporary
+file — and its fsync — off the mail volume, which is why it is worth setting on
+NFS deployments (see [Path templates](#path-templates)).
+
+## Folding indexes before a measurement
+
+`yarctl backend index optimize <user> --all` folds every folder index of the
+account **and**, for mdbox, the per-user map. Both are structures a session
+replays when it opens; folding them is what makes an open cost what it will
+cost in steady state.
+
+This matters for benchmarking specifically, and the reason is worth stating
+because it is not obvious: **a read-only workload never folds anything.** The
+map log is folded by writes, and a FETCH-only profile performs none — so a
+freshly seeded account replays the entire seed on every session open, in every
+window, and discarding the first run does not help because the state is not
+warming up, it is stationary. One measured account showed 36.8 ms per map open
+against 0.23 ms after a fold.
+
+So the sequence for any comparative run is:
+
+```sh
+# seed the account, then
+yarctl backend index optimize <user> --all
+# and only then start the measurement window
+```
+
+Do not use `rebuild` for this. A rebuild scans storage and reconciles state; a
+fold writes the base and drops the log. They are different operations, and the
+expensive one standing in for the cheap one is how a seeding script ends up
+doing eleven full storage scans to get the effect of eleven folds.
+
 ## Moving a user between mailbox formats
 
 One folder name is legal under one format and not under another: **`dbox-Mails`**.

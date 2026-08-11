@@ -348,6 +348,39 @@ improvements:
   silently dropped on contention — there is no lock retry-then-give-up path
   at all (fixes L4).
 
+### What a damaged message costs the index
+
+A message whose MIME cannot be parsed does not stop indexing and does not
+silently disappear from search. The builder degrades in steps, and each step
+says what was kept and what was lost:
+
+| Damage | What is indexed | Counted as |
+|:---|:---|:---|
+| header line malformed | the message, with that line dropped and the rest re-parsed | `degraded{reason="parse"}` |
+| no blank line between headers and body | the body, recovered whole | `degraded{reason="parse"}` |
+| an attachment cannot be decoded | every other part; that attachment's text is missing | `degraded{reason="attachment"}` |
+| nothing recoverable at all | nothing — the message is skipped | `fts_index_skipped_total{reason}` |
+
+Repair is reported per message, with the identity needed to find it again —
+folder, mailbox GUID, UID, message GUID, file — because "some message was
+damaged" is not an answer anyone can act on. Open the message with
+`yarctl mailbox message get mime <user> <folder> --uid N` (or `--guid`) to see
+what the parser saw.
+
+**A skip advances the checkpoint.** The alternative — halting the folder on one
+bad message — stops indexing everything behind it, which is a larger outage
+than the missing message it protects. So indexing continues, the skip is
+counted and logged at `Warn`, and the cure is a rescan once the message is
+repaired or removed:
+
+```sh
+yarctl backend fts rescan <user> <folder>
+```
+
+> `fts_index_skipped_total` is a labelled counter, so a series with no
+> observations is **absent**, not zero. "No such metric" means nothing was ever
+> skipped on that pod; do not read it as a scrape failure.
+
 ---
 
 ## 9. Engines
