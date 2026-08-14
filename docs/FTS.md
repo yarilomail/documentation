@@ -614,11 +614,11 @@ fts:
   fts_language_filters_override: {} # per-language override, e.g. {uk: [lowercase, stopwords]} (#726)
   fts_detection_sample_bytes: 0     # 0 = default 1024; bytes sampled per part
   fts_detection_min_runes: 0        # 0 = default 10; reliability threshold
-  fts_language_tokenizer_generic_token_maxlen: 0   # 0 = default 30 (#726)
-  fts_language_tokenizer_address_token_maxlen: 0   # 0 = default 250 (#726)
-  fts_language_tokenizer_generic_algorithm: simple # tr29 errors at startup, not yet implemented (#726)
-  fts_language_tokenizer_generic_wb5a: false        # TR29-only, errors if true (#726)
-  fts_language_tokenizer_generic_explicit_prefix: false # TR29-only, errors if true (#726)
+  language_tokenizer_generic_token_maxlen: 0   # 0 = default 30 (#726)
+  language_tokenizer_address_token_maxlen: 0   # 0 = default 250 (#726)
+  language_tokenizer_generic_algorithm: simple # tr29 errors at startup, not yet implemented (#726)
+  language_tokenizer_generic_wb5a: false        # TR29-only, errors if true (#726)
+  language_tokenizer_generic_explicit_prefix: false # TR29-only, errors if true (#726)
 
   ## Decoder (Phase 3).
   fts_decoder_driver: ""            # "" | script | tika
@@ -843,7 +843,7 @@ literal copy:
   the same byte count.
 - **Time values**: the reference uses TIME strings (`"30s"`, `"5s"`, …).
   yarilo uses bare integers with the unit fixed in the key name —
-  `fts_search_timeout_secs` (seconds), `fts_flatcurve_rotate_time`
+  `fts_search_timeout` (seconds), `fts_flatcurve_rotate_time`
   (milliseconds). Strip the unit suffix and convert if the reference value
   used a different unit than the yarilo key expects (e.g. reference
   `"5s"` → yarilo `fts_flatcurve_rotate_time: 5000`, not `5`).
@@ -1033,13 +1033,13 @@ evaluated and accepted — not gaps to close silently:
    existing mailboxes through the settings-drift rebuild path.
    **Config parity ✅ (#726)**: four gaps between what's configurable in
    the reference and what was hard-coded here.
-   1. `fts_language_tokenizer_generic_token_maxlen` /
-      `fts_language_tokenizer_address_token_maxlen` (0 = defaults 30/250)
+   1. `language_tokenizer_generic_token_maxlen` /
+      `language_tokenizer_address_token_maxlen` (0 = defaults 30/250)
       now reach `NewMultiChain` instead of being hard-coded `0, 0` at both
       call sites (`yarilo-fts` indexing, session-side query expansion).
-   2. `fts_language_tokenizer_generic_algorithm` accepts `simple`
+   2. `language_tokenizer_generic_algorithm` accepts `simple`
       (implemented, default) and `tr29` — `tr29` (and its TR29-only
-      companions `fts_language_tokenizer_generic_wb5a` /
+      companions `language_tokenizer_generic_wb5a` /
       `..._explicit_prefix`) reject at startup with a clear error via
       `language.ValidateTokenizerConfig`, rather than silently falling
       back to `simple` or no-op'ing. Investigated what `explicit_prefix`

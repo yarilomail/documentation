@@ -24,31 +24,31 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | Key | Default | Description |
 |:---|:---|:---|
 | `login_greeting` | `Yarilo ready.` | Text appended to the `220` banner. |
-| `add_received_header` | `true` | Prepend a `Received:` header to every delivered message. |
-| `save_to_detail_mailbox` | `false` | When `true`, `user+folder@domain` delivers to the `folder` mailbox instead of `INBOX`. |
-| `hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
-| `verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
-| `user_concurrency_limit` | `0` | Maximum concurrent deliveries per user. `0` = unlimited. |
+| `lmtp_add_received_header` | `true` | Prepend a `Received:` header to every delivered message. |
+| `lmtp_save_to_detail_mailbox` | `false` | When `true`, `user+folder@domain` delivers to the `folder` mailbox instead of `INBOX`. |
+| `lmtp_hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
+| `lmtp_verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
+| `lmtp_user_concurrency_limit` | `0` | Maximum concurrent deliveries per user. `0` = unlimited. |
 | `read_timeout` | `300` | Per-command read timeout in seconds. |
 | `write_timeout` | `300` | Per-command write timeout in seconds. |
-| `client_workarounds` | — | List of client compatibility workarounds (see below). |
+| `lmtp_client_workarounds` | — | List of client compatibility workarounds (see below). |
 
 ```yaml
 protocol:
   lmtp:
     login_greeting: "Yarilo ready."
-    add_received_header: true
-    save_to_detail_mailbox: false
-    hdr_delivery_address: final
-    verbose_replies: false
-    user_concurrency_limit: 5
+    lmtp_add_received_header: true
+    lmtp_save_to_detail_mailbox: false
+    lmtp_hdr_delivery_address: final
+    lmtp_verbose_replies: false
+    lmtp_user_concurrency_limit: 5
     read_timeout: 300
     write_timeout: 300
 ```
 
 ---
 
-## `hdr_delivery_address`
+## `lmtp_hdr_delivery_address`
 
 Controls the `Delivered-To:` header prepended before storing the message.
 
@@ -60,7 +60,7 @@ Controls the `Delivered-To:` header prepended before storing the message.
 
 ---
 
-## `client_workarounds`
+## `lmtp_client_workarounds`
 
 A list of compatibility shims for non-conformant MTA clients. Unknown entries are silently ignored (the reference behaviour).
 
@@ -72,7 +72,7 @@ A list of compatibility shims for non-conformant MTA clients. Unknown entries ar
 ```yaml
 protocol:
   lmtp:
-    client_workarounds:
+    lmtp_client_workarounds:
       - whitespace-before-path
       - mailbox-for-path
 ```
@@ -123,9 +123,9 @@ services:
 
 protocol:
   lmtp:
-    add_received_header: true
-    hdr_delivery_address: final
-    user_concurrency_limit: 5
+    lmtp_add_received_header: true
+    lmtp_hdr_delivery_address: final
+    lmtp_user_concurrency_limit: 5
     read_timeout: 300
     write_timeout: 300
 ```

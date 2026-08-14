@@ -12,11 +12,11 @@ A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters �
 |:---|:---|
 | `driver` | Backend type: `sqlite` \| `mysql` \| `postgres` \| `passwd-file`. |
 | `dsn` | SQL drivers: driver-specific connection string. `${ENV_VAR}` is expanded at startup. |
-| `passwd_file` | `passwd-file` driver: path to the user file. `${ENV_VAR}` is expanded at startup. |
-| `password_query` | SQL: optional custom SELECT for authentication. Defaults to the built-in `yarilo_users` schema. See [Custom queries](#custom-queries). |
-| `user_query` | SQL: optional separate userdb lookup (`home`, `mail`). When unset, userdb fields come from `password_query`. |
-| `iterate_query` | SQL: optional list-users query for admin tooling. |
-| `default_pass_scheme` | Assumed scheme when stored password has no `{SCHEME}` prefix and no crypt(3) marker. Default: `PLAIN` (SQL), `CRYPT` (passwd-file). |
+| `passwd_file_path` | `passwd-file` driver: path to the user file. `${ENV_VAR}` is expanded at startup. |
+| `passdb_sql_query` | SQL: optional custom SELECT for authentication. Defaults to the built-in `yarilo_users` schema. See [Custom queries](#custom-queries). |
+| `userdb_sql_query` | SQL: optional separate userdb lookup (`home`, `mail`). When unset, userdb fields come from `passdb_sql_query`. |
+| `userdb_sql_iterate_query` | SQL: optional list-users query for admin tooling. |
+| `passdb_default_password_scheme` | Assumed scheme when stored password has no `{SCHEME}` prefix and no crypt(3) marker. Default: `PLAIN` (SQL), `CRYPT` (passwd-file). |
 | `skip_schema` | SQL: `true` to skip `CREATE TABLE IF NOT EXISTS yarilo_users` on startup — use when connecting to an existing schema. |
 
 ```yaml
@@ -89,8 +89,8 @@ and resolve mail storage without any database.
 auth:
   passdb:
     - driver: passwd-file
-      passwd_file: /etc/yarilo-passwd/passwd
-      default_pass_scheme: CRYPT
+      passwd_file_path: /etc/yarilo-passwd/passwd
+      passdb_default_password_scheme: CRYPT
 ```
 
 > **Kubernetes note.** Mount the file from a Secret/ConfigMap into its **own**
@@ -98,7 +98,7 @@ auth:
 > rendered-config mount. A `subPath` file mounted inside that directory fails
 > with `not a directory` and crash-loops every pod. With the Helm chart, supply
 > the content via `extraVolumes` / `extraVolumeMounts` at a distinct path
-> (e.g. `/etc/yarilo-passwd`) and point `passwd_file` at it:
+> (e.g. `/etc/yarilo-passwd`) and point `passwd_file_path` at it:
 >
 > ```yaml
 > extraVolumeMounts:
@@ -131,7 +131,7 @@ user:password:uid:gid:gecos:home:shell:extra_fields
 - The file is reloaded automatically when its mtime or size changes.
 
 Passwords carry a `{SCHEME}` prefix or a crypt(3) marker; unmarked values assume
-`default_pass_scheme` (default `CRYPT` = crypt(3) autodetection). The same
+`passdb_default_password_scheme` (default `CRYPT` = crypt(3) autodetection). The same
 scheme set as the SQL passdb applies, including `{SCRAM-SHA-256}` verifiers.
 
 ```
@@ -156,7 +156,7 @@ auth:
       dsn: /var/lib/yarilo/users.db
     - driver: static            # catch-all — last in the chain
       static_password: "${YARILO_STATIC_PASSWORD}"
-      default_pass_scheme: BCRYPT
+      passdb_default_password_scheme: BCRYPT
       fields:
         userdb_home: "/var/vmail/%d/%n"
         userdb_mail: "maildir:/var/vmail/%d/%n/Maildir"
@@ -164,7 +164,7 @@ auth:
 
 | Key | Description |
 |:---|:---|
-| `static_password` | Shared password (`{SCHEME}` prefix or `default_pass_scheme`). `${ENV_VAR}` expanded at startup. |
+| `static_password` | Shared password (`{SCHEME}` prefix or `passdb_default_password_scheme`). `${ENV_VAR}` expanded at startup. |
 | `nopassword` | `true` accepts **any** password — for proxy front-ends where the upstream authenticates. Mutually exclusive with `static_password`. |
 | `fields` | Templated user fields. Values expand `%u` / `%n` / `%d`. `userdb_`-prefixed keys populate the userdb; bare keys are forwarded on the passdb path (`allow_nets`, `proxy`, …). |
 
@@ -248,7 +248,7 @@ auth:
 
 ## Custom queries
 
-`password_query`, `user_query`, and `iterate_query` accept any SELECT and can connect yarilo to an existing schema. The query may reference these variables, which are substituted **as parameterised values** (no string interpolation, no injection risk):
+`passdb_sql_query`, `userdb_sql_query`, and `userdb_sql_iterate_query` accept any SELECT and can connect yarilo to an existing schema. The query may reference these variables, which are substituted **as parameterised values** (no string interpolation, no injection risk):
 
 | Variable | Meaning | Example |
 |:---|:---|:---|
@@ -260,22 +260,22 @@ auth:
 
 ### Contract
 
-- **`password_query` must return a `password` column.** Columns are matched **by name, not position**, so the order is free; use `AS` aliases to map an existing schema (`pw_hash AS password`). `home`, `mail` and `enabled` are optional — an absent `enabled` counts as active. `password` is the only value used downstream when `user_query` is also set.
-- **`user_query` must return:** `home`, `mail`. Called after a successful auth to fill in mailbox location from an authoritative source.
-- **`iterate_query` must return one column:** `username`.
+- **`passdb_sql_query` must return a `password` column.** Columns are matched **by name, not position**, so the order is free; use `AS` aliases to map an existing schema (`pw_hash AS password`). `home`, `mail` and `enabled` are optional — an absent `enabled` counts as active. `password` is the only value used downstream when `userdb_sql_query` is also set.
+- **`userdb_sql_query` must return:** `home`, `mail`. Called after a successful auth to fill in mailbox location from an authoritative source.
+- **`userdb_sql_iterate_query` must return one column:** `username`.
 
 > **PostgreSQL with a `BOOLEAN` enabled column.** The built-in `yarilo_users`
 > schema declares `enabled` as `INTEGER`, so the default queries filter with
 > `WHERE enabled = 1`. Point yarilo at an existing Postgres schema that types
 > the column `BOOLEAN` and that clause fails with `operator does not exist:
 > boolean = integer` — write `WHERE enabled = true` in your own
-> `password_query` / `user_query`. MySQL is unaffected: its `BOOLEAN` is
+> `passdb_sql_query` / `userdb_sql_query`. MySQL is unaffected: its `BOOLEAN` is
 > `TINYINT(1)`, so `= 1` is valid. The Go-side check is dialect-agnostic and
 > accepts `1` / `true` / `t` / `yes` / `on` either way.
 
 ### Userdb / passdb extra fields
 
-Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column alias, `user_query` output, or an auth-socket `key=value` / `userdb_*` pair — that tune per-user mailbox, access, and proxying behaviour. Unset fields fall back to the global config. Comma-separated fields (`groups`, `acl_groups`, `quota_rule`, `allow_nets`) accept multiple values and merge across repeated assignments. Boolean fields accept `1` / `yes` / `y` / `true` / `t` / `on` (case-insensitive). Unknown keys are preserved in `Extra`; `forward_*` keys populate the proxy forward map.
+Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column alias, `userdb_sql_query` output, or an auth-socket `key=value` / `userdb_*` pair — that tune per-user mailbox, access, and proxying behaviour. Unset fields fall back to the global config. Comma-separated fields (`groups`, `acl_groups`, `quota_rule`, `allow_nets`) accept multiple values and merge across repeated assignments. Boolean fields accept `1` / `yes` / `y` / `true` / `t` / `on` (case-insensitive). Unknown keys are preserved in `Extra`; `forward_*` keys populate the proxy forward map.
 
 **Identity**
 
@@ -402,15 +402,15 @@ auth:
     - driver: postgres
       dsn: "postgres://yarilo:${DB_PASSWORD}@db.internal:5432/mailapp"
       skip_schema: true
-      password_query: |
+      passdb_sql_query: |
         SELECT pw_hash AS password, maildir AS home, mail_path AS mail, active AS enabled
         FROM mailbox_users WHERE email = %u
-      user_query: |
+      userdb_sql_query: |
         SELECT maildir AS home, mail_path AS mail
         FROM mailbox_users WHERE email = %u
-      iterate_query: |
+      userdb_sql_iterate_query: |
         SELECT email FROM mailbox_users WHERE active = true
-      default_pass_scheme: BCRYPT
+      passdb_default_password_scheme: BCRYPT
 ```
 
 Every column an existing schema names differently needs an `AS` alias:
@@ -424,7 +424,7 @@ types the column `BOOLEAN`; see the note above.
 PostfixAdmin's `mailbox` table already names its password column `password`, so
 only `active` needs an alias. `skip_schema` keeps yarilo-auth from creating its
 own `yarilo_users` table alongside it. A single `passdb` entry serves both roles:
-`password_query` answers authentication, `user_query` answers the userdb lookup,
+`passdb_sql_query` answers authentication, `userdb_sql_query` answers the userdb lookup,
 and every column the latter returns is mapped by name onto a userdb field, so
 `quota_rule` and the rest arrive as aliases.
 
@@ -434,12 +434,12 @@ auth:
     - driver: mysql
       dsn: "${YARILO_DB_DSN}"
       skip_schema: true
-      default_pass_scheme: BCRYPT
-      password_query: |
+      passdb_default_password_scheme: BCRYPT
+      passdb_sql_query: |
         SELECT password, active AS enabled, allow_nets
         FROM mailbox
         WHERE username = %u
-      user_query: |
+      userdb_sql_query: |
         SELECT CONCAT(home, mpath) AS home,
                CONCAT(mbtype, ':~/', maildir,
                       ':INDEX=~/index',
@@ -447,7 +447,7 @@ auth:
                CONCAT('*:bytes=', quota_bytes, ':messages=', quota_messages) AS quota_rule
         FROM mailbox
         WHERE username = %u
-      iterate_query: |
+      userdb_sql_iterate_query: |
         SELECT username
         FROM mailbox
         WHERE active = 1
@@ -464,11 +464,11 @@ bound parameter.
 **On PostgreSQL the same queries work with one token changed:**
 
 ```sql
--- password_query, user_query: unchanged. CONCAT() exists in PostgreSQL and
+-- passdb_sql_query, userdb_sql_query: unchanged. CONCAT() exists in PostgreSQL and
 -- takes non-text arguments, and a BOOLEAN arriving as "enabled" is read as
 -- active either way, because that check happens in Go rather than in SQL.
 
--- iterate_query: PostfixAdmin types active as BOOLEAN on PostgreSQL and
+-- userdb_sql_iterate_query: PostfixAdmin types active as BOOLEAN on PostgreSQL and
 -- TINYINT(1) on MySQL, and PostgreSQL rejects boolean = integer outright.
 SELECT username
 FROM mailbox
@@ -488,7 +488,7 @@ auth:
     - driver: postgres
       dsn: "postgres://yarilo:${DB_PASSWORD}@cache.internal:5432/auth"
       skip_schema: true
-      password_query: |
+      passdb_sql_query: |
         SELECT pw_hash AS password, '/srv/' || %n AS home, '' AS mail, 1 AS enabled
         FROM auth_cache WHERE email = %u
 
@@ -496,7 +496,7 @@ auth:
     - driver: mysql
       dsn: "yarilo:${DB_PASSWORD}@tcp(db.internal:3306)/billing"
       skip_schema: true
-      password_query: |
+      passdb_sql_query: |
         SELECT password, mail_home AS home, '' AS mail, enabled
         FROM users WHERE email = %u
 ```
