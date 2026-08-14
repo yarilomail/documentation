@@ -248,7 +248,7 @@ MySQL is the default wired by `values-sandbox.yaml`; Postgres is an
 alternative.
 
 Both put login (passdb) and storage/quota/routing (userdb) in the same store.
-The split into `password_query` / `user_query` / `iterate_query` lives in
+The split into `passdb_sql_query` / `userdb_sql_query` / `userdb_sql_iterate_query` lives in
 `values-sandbox.yaml`, so migrating to a production layout only changes the
 queries.
 
@@ -313,7 +313,7 @@ kubectl -n yarilo-sb get pods,svc,pvc
 To use Postgres instead of MySQL, point `yarilo-auth` at this store and
 switch the passdb block in `values-sandbox.yaml` to `driver: postgres` with
 the `users`-table queries. The `postgres-sandbox.yaml` header documents the
-columns and the expected `password_query` / `user_query` / `iterate_query`.
+columns and the expected `passdb_sql_query` / `userdb_sql_query` / `userdb_sql_iterate_query`.
 
 Seed a user:
 

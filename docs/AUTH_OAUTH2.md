@@ -34,30 +34,30 @@ Four validation modes:
 
 | Mode | Required fields | Notes |
 |:---|:---|:---|
-| `local` | `jwks_url` | JWT signature verify against a cached JWKS. No HTTP call per login. RECOMMENDED when the IdP issues signed JWTs (Google, Microsoft, most OIDC providers). |
-| `introspection` | `introspection_url`, usually `client_id` + `client_secret` | RFC 7662 introspection. Supports opaque (non-JWT) tokens. Slower (one HTTP call per login). |
-| `tokeninfo` | `tokeninfo_url` | Google-style endpoint (`?access_token=…`). Pre-OIDC providers. |
-| `discovery` | `issuer_url` | Auto-resolves `jwks_uri` + `introspection_endpoint` from `<issuer>/.well-known/openid-configuration`. PREFERRED for new deployments — least operator config. |
+| `local` | `oauth2_jwks_url` | JWT signature verify against a cached JWKS. No HTTP call per login. RECOMMENDED when the IdP issues signed JWTs (Google, Microsoft, most OIDC providers). |
+| `introspection` | `oauth2_introspection_url`, usually `oauth2_client_id` + `oauth2_client_secret` | RFC 7662 introspection. Supports opaque (non-JWT) tokens. Slower (one HTTP call per login). |
+| `tokeninfo` | `oauth2_tokeninfo_url` | Google-style endpoint (`?access_token=…`). Pre-OIDC providers. |
+| `discovery` | `oauth2_issuer_url` | Auto-resolves `jwks_uri` + `introspection_endpoint` from `<issuer>/.well-known/openid-configuration`. PREFERRED for new deployments — least operator config. |
 
 ### Common fields (apply across modes)
 
 | Field | Default | Notes |
 |:---|:---|:---|
-| `issuers` | `[]` | Allow-list of `iss` claim values. Empty disables the check. In `discovery` mode the document's `issuer` is auto-added for `local` mode. |
-| `audience` | `""` | Required `aud` claim value. Empty disables. JWT spec allows `aud` to be a string array — match against any entry passes. |
-| `scopes` | `[]` | Scopes every token MUST carry (intersection check). |
-| `username_attribute` | `email` | Claim name resolving to the mail user. |
-| `username_validation_format` | `%{user}` | Template applied to the SASL authzid before comparison. Supports `%u`, `%{user}`, `%Lu`, `%n`, `%Ln`, `%d`, `%Ld`. |
-| `active_attribute` | `""` | Optional claim name that must be present. Disables check when empty. |
-| `active_value` | `""` | When non-empty, the claim's value must equal this string. |
-| `extra_fields` | `[]` | Claim names whose values are projected onto the auth response as `userdb_<claim>` fields. |
-| `token_expire_grace_seconds` | `60` | Clock-skew tolerance after the token's `exp`. |
-| `http_timeout_ms` | `5000` | Round-trip cap for introspection / tokeninfo / discovery / JWKS refresh. |
+| `oauth2_issuers` | `[]` | Allow-list of `iss` claim values. Empty disables the check. In `discovery` mode the document's `issuer` is auto-added for `local` mode. |
+| `oauth2_audience` | `""` | Required `aud` claim value. Empty disables. JWT spec allows `aud` to be a string array — match against any entry passes. |
+| `oauth2_scope` | `[]` | Scopes every token MUST carry (intersection check). |
+| `oauth2_username_attribute` | `email` | Claim name resolving to the mail user. |
+| `oauth2_username_validation_format` | `%{user}` | Template applied to the SASL authzid before comparison. Supports `%u`, `%{user}`, `%Lu`, `%n`, `%Ln`, `%d`, `%Ld`. |
+| `oauth2_active_attribute` | `""` | Optional claim name that must be present. Disables check when empty. |
+| `oauth2_active_value` | `""` | When non-empty, the claim's value must equal this string. |
+| `oauth2_fields` | `[]` | Claim names whose values are projected onto the auth response as `userdb_<claim>` fields. |
+| `oauth2_token_expire_grace_seconds` | `60` | Clock-skew tolerance after the token's `exp`. |
+| `oauth2_http_timeout_ms` | `5000` | Round-trip cap for introspection / tokeninfo / discovery / JWKS refresh. |
 
 ### Introspection sub-modes
 
-When `mode: introspection` (or `discovery` with introspection
-selected), `introspection_mode` picks the transport:
+When `oauth2_mode: introspection` (or `discovery` with introspection
+selected), `oauth2_introspection_mode` picks the transport:
 
 | Value | Transport |
 |:---|:---|
@@ -143,20 +143,20 @@ expect, but no client we've tested misbehaves on this.
 ```yaml
 auth:
   oauth2:
-    - mode: discovery
-      issuer_url: https://accounts.google.com
-      audience: "1234567890-abcdef.apps.googleusercontent.com"
-      scopes: [openid, email]
-      username_attribute: email
-      username_validation_format: "%Lu"
-      extra_fields: [sub, hd]
+    - oauth2_mode: discovery
+      oauth2_issuer_url: https://accounts.google.com
+      oauth2_audience: "1234567890-abcdef.apps.googleusercontent.com"
+      oauth2_scope: [openid, email]
+      oauth2_username_attribute: email
+      oauth2_username_validation_format: "%Lu"
+      oauth2_fields: [sub, hd]
 ```
 
-- `issuers` auto-resolved from the discovery document.
-- `audience` is the OAuth client ID from Google Cloud Console.
-- `username_validation_format: %Lu` accepts a mixed-case SASL
+- `oauth2_issuers` auto-resolved from the discovery document.
+- `oauth2_audience` is the OAuth client ID from Google Cloud Console.
+- `oauth2_username_validation_format: %Lu` accepts a mixed-case SASL
   authzid against a lowercased `email` claim.
-- `extra_fields: [hd]` projects the Google "hosted domain" claim
+- `oauth2_fields: [hd]` projects the Google "hosted domain" claim
   as `userdb_hd` so downstream rules (ACL, quota presets) can
   branch on it.
 
@@ -165,19 +165,19 @@ auth:
 ```yaml
 auth:
   oauth2:
-    - mode: local
-      jwks_url: https://login.microsoftonline.com/<tenant>/discovery/v2.0/keys
-      issuers:
+    - oauth2_mode: local
+      oauth2_jwks_url: https://login.microsoftonline.com/<tenant>/discovery/v2.0/keys
+      oauth2_issuers:
         - https://login.microsoftonline.com/<tenant>/v2.0
-      audience: "<azure-app-id>"
-      scopes: [openid, email, profile]
-      username_attribute: preferred_username
-      extra_fields: [oid, tid, roles]
+      oauth2_audience: "<azure-app-id>"
+      oauth2_scope: [openid, email, profile]
+      oauth2_username_attribute: preferred_username
+      oauth2_fields: [oid, tid, roles]
 ```
 
-- `username_attribute: preferred_username` — Microsoft's email is
+- `oauth2_username_attribute: preferred_username` — Microsoft's email is
   in this claim, not `email`.
-- `extra_fields: [roles]` projects Azure AD app roles for
+- `oauth2_fields: [roles]` projects Azure AD app roles for
   downstream policy.
 
 ### Keycloak / Authelia (introspection mode)
@@ -185,22 +185,22 @@ auth:
 ```yaml
 auth:
   oauth2:
-    - mode: introspection
-      introspection_url: https://keycloak.example/realms/yarilo/protocol/openid-connect/token/introspect
-      introspection_mode: post
-      client_id: yarilo-auth
-      client_secret: "{{ .Values.secrets.keycloakClient }}"
-      issuers: [https://keycloak.example/realms/yarilo]
-      audience: yarilo-auth
-      username_attribute: email
-      active_attribute: active
-      active_value: "true"
-      extra_fields: [sub, realm_access]
+    - oauth2_mode: introspection
+      oauth2_introspection_url: https://keycloak.example/realms/yarilo/protocol/openid-connect/token/introspect
+      oauth2_introspection_mode: post
+      oauth2_client_id: yarilo-auth
+      oauth2_client_secret: "{{ .Values.secrets.keycloakClient }}"
+      oauth2_issuers: [https://keycloak.example/realms/yarilo]
+      oauth2_audience: yarilo-auth
+      oauth2_username_attribute: email
+      oauth2_active_attribute: active
+      oauth2_active_value: "true"
+      oauth2_fields: [sub, realm_access]
 ```
 
 - Keycloak's introspection endpoint requires client credentials
   HTTP Basic auth.
-- `active_attribute: active` + `active_value: "true"` enforces the
+- `oauth2_active_attribute: active` + `oauth2_active_value: "true"` enforces the
   RFC 7662 `active` field explicitly even when client + server
   versions disagree on the default.
 
@@ -213,12 +213,12 @@ first:
 ```yaml
 auth:
   oauth2:
-    - mode: local        # try cached JWKS first
-      jwks_url: https://idp.example/jwks.json
-    - mode: introspection  # fall through to introspection for opaque tokens
-      introspection_url: https://idp.example/introspect
-      client_id: yarilo
-      client_secret: …
+    - oauth2_mode: local        # try cached JWKS first
+      oauth2_jwks_url: https://idp.example/jwks.json
+    - oauth2_mode: introspection  # fall through to introspection for opaque tokens
+      oauth2_introspection_url: https://idp.example/introspect
+      oauth2_client_id: yarilo
+      oauth2_client_secret: …
   passdb:
     - driver: sqlite     # SQL fallback for app passwords
       dsn: /var/lib/yarilo/users.db
@@ -262,7 +262,7 @@ mixes OAuth and legacy SQL accounts handles both with one chain.
   transparently.
 - For `introspection` / `tokeninfo` / `discovery`, pair with
   `auth.cache` to avoid one HTTP call per IMAP IDLE reconnect.
-- `token_expire_grace_seconds: 60` covers normal clock skew. Set
+- `oauth2_token_expire_grace_seconds: 60` covers normal clock skew. Set
   higher (300+) when the IdP and the auth pod are in different
   data centres with poor NTP discipline.
 

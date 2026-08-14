@@ -83,7 +83,7 @@ services:
 protocol:
   submission:
     hostname: mail.smoke.local
-    max_message_size: 41943040
+    submission_max_mail_size: 41943040
   lmtp:
     add_received_header: true
 
