@@ -327,7 +327,7 @@ answers "which owners may this caller discover" for the bare user plus
 admin plane does not have — the reply says so). `rebuild` reprojects one
 owner's rows from their namespace index; `acl rebuild --all` does the same as
 a side effect, since the registry hangs off the index write. Both answer 400
-when `acl_shared_dict` is not configured.
+when `acl_sharing_map` is not configured.
 
 CLI: `yarctl backend acl registry list <user>`,
 `yarctl backend acl registry rebuild <owner> --namespace NS`.

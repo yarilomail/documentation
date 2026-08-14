@@ -222,7 +222,7 @@ All director settings live under `components.director` in `helm/values.yaml`.
 | `components.director.tls.secretName` | — | k8s Secret for the external (client-facing) TLS cert. |
 | `components.director.listeners.*` | `services.*` | Per-protocol listener ports and enable flags. |
 | `general.haproxy.enabled` | `services.*.haproxy_protocol` | Enable HAProxy PROXY protocol on all listeners. |
-| `general.haproxy.trustedNets` | `general.haproxy.trusted_nets` | Source IPs trusted to send PROXY headers. |
+| `general.haproxy.trustedNets` | `general.haproxy.haproxy_trusted_networks` | Source IPs trusted to send PROXY headers. |
 | `general.haproxy.timeout` | `general.haproxy.timeout` | Seconds to wait for PROXY header. |
 | `general.xclient.enabled` | `services.*.xclient_protocol` | Enable XCLIENT forwarding on all listeners. |
 | `general.xclient.trustedNets` | `general.xclient.trusted_nets` | CIDRs written to backend config as trusted XCLIENT sources. |

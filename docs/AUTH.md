@@ -313,7 +313,7 @@ Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column ali
 | `mail` / `mail_location` | Per-user mail location (`maildir:~/Maildir`, `mdbox:…`), with `:INDEX=`, `:CONTROL=`, `:ALT=`, `:VOLATILEDIR=` modifiers. |
 | `mail_path` | Base mailbox path (derived from `mail` when unset). |
 | `mail_inbox_path` | Explicit INBOX path override. |
-| `volatile_dir` / `index_dir` / `control_dir` / `alt_dir` | Direct overrides for the corresponding mail-location modifier (win over modifiers embedded in `mail`). |
+| `mail_volatile_path` / `mail_index_path` / `mail_control_path` / `mail_alt_path` | Direct overrides for the corresponding mail-location modifier (win over modifiers embedded in `mail`). |
 | `mail_volatile_path` / `mail_index_path` / `mail_control_path` / `mail_alt_path` | The reference implementation's names for exactly those four fields, accepted so a userdb query written for it works unchanged. |
 | `mail_uid` / `mail_gid` | Ownership for mail files, distinct from the system `uid`/`gid`. |
 | `mailbox_format` / `mail_driver` | `maildir` \| `sdbox` \| `mdbox` — the storage backend that opens this user's mail. Wins over the driver prefix in `mail`. A name yarilo does not implement is refused and the prefix stands. |
@@ -324,7 +324,7 @@ configuration key — `%u` / `%{user}`, `%h` / `~/`, hash buckets, and the rest.
 [Path templates](STORAGE.md#path-templates).
 
 > **One value, three places.** The four path fields can arrive as a modifier inside `mail`
-> (`:INDEX=…`), as our field name (`index_dir`), or as the reference's (`mail_index_path`).
+> (`:INDEX=…`) or as the explicit field (`mail_index_path` — one spelling now, ours and the reference's alike).
 > An explicit field always beats the modifier, whichever spelling the field uses — so
 > moving a userdb query from one spelling to the other never changes which source wins.
 

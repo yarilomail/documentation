@@ -354,7 +354,7 @@ Discovery never overrides the gate (7.1/#1138): a registry row is a hint,
 and each discovered owner still resolves through `ownerHandle` + ACL
 filtering — a stale row (revoked grant, unreconciled dict) and an invented
 owner produce byte-identical silence. Negative and empty-rights entries
-register nobody. Configured via `acl_shared_dict` naming a dict from the
+register nobody. Configured via `acl_sharing_map` naming a dict from the
 `dicts:` section; unset disables discovery and `user/*` lists nobody, as
 before.
 

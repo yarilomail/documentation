@@ -8,9 +8,9 @@ a single pod. See also [MDBOX_ALT.md](MDBOX_ALT.md).
 
 ## Path templates
 
-Every path setting that can differ per user — `mail_home_template`, `mail_path`,
-`mail_inbox_path`, `index_dir`, `control_dir`, `volatile_dir`, `alt_dir`,
-`mdbox_alt_storage_path` — is a template expanded against the user. Two spellings are
+Every path setting that can differ per user — `mail_home`, `mail_path`,
+`mail_inbox_path`, `mail_index_path`, `mail_control_path`, `mail_volatile_path`, `mail_alt_path`,
+`mail_alt_path` — is a template expanded against the user. Two spellings are
 accepted, and nothing else is.
 
 | short form | expression form | expands to |
@@ -45,11 +45,11 @@ directories. (Before 2.3.133 the delivery path resolved `~/` in `mail_path` /
 `mail_inbox_path` but left `%u` alone, so the two could disagree.)
 
 Hash buckets matter once a directory holds one entry per user. The shipped
-`volatile_dir` uses one:
+`mail_volatile_path` uses one:
 
 ```yaml
 storage:
-  volatile_dir: "/tmp/yarilo-volatile/%{user | sha1 % 256 | hex(2)}/%{user}"
+  mail_volatile_path: "/tmp/yarilo-volatile/%{user | sha1 % 256 | hex(2)}/%{user}"
 ```
 
 ## Maildir sync-on-open
@@ -209,7 +209,7 @@ here.
 
 Index writes are a separate matter: the base is replaced atomically (temp file
 + rename) and the log is append-only, so a crash costs the tail of the log
-rather than the folder. The `volatile_dir` setting moves the index's temporary
+rather than the folder. The `mail_volatile_path` setting moves the index's temporary
 file — and its fsync — off the mail volume, which is why it is worth setting on
 NFS deployments (see [Path templates](#path-templates)).
 

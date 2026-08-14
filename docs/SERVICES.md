@@ -115,6 +115,6 @@ services:
     port: 993
     ssl_mode: ssl
     ssl:
-      tls_cert: /etc/ssl/mail.example.com/cert.pem
-      tls_key:  /etc/ssl/mail.example.com/key.pem
+      ssl_server_cert_file: /etc/ssl/mail.example.com/cert.pem
+      ssl_server_key_file:  /etc/ssl/mail.example.com/key.pem
 ```
