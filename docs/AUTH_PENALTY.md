@@ -102,7 +102,7 @@ The defence-in-depth stack is layered:
 1. **TCP / TLS layer**: HAProxy rate limits, fail2ban — pre-Yarilo
 2. **Connection limits**: `mail_max_userip_connections` enforced
    by `yarilo-warden` (`CONNECT` / `DISCONNECT` verbs)
-3. **Auth failure delay**: `auth.failure_delay` (2s by default)
+3. **Auth failure delay**: `auth.auth_failure_delay` (2s by default)
    equalises timing between unknown-user and wrong-password
 4. **Auth penalty** (this feature): exponential backoff per IP,
    shared cross-pod via `yarilo-warden`
@@ -110,7 +110,7 @@ The defence-in-depth stack is layered:
    pattern-detection logic — see [AUTH_POLICY.md](AUTH_POLICY.md)
 
 Penalty + failure-delay compose additively: an attacker on
-counter=2 facing `failure_delay=2s` waits `4s (penalty) + 2s
+counter=2 facing `auth_failure_delay=2s` waits `4s (penalty) + 2s
 (delay) = 6s` per attempt. Tune the two together.
 
 Penalty + policy compose orthogonally: penalty is built-in and

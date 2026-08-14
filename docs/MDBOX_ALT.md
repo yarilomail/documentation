@@ -10,13 +10,13 @@ directory when a file is not found in primary.
 
 ```yaml
 storage:
-  mailbox: mdbox
-  mail_home_template: "%d/%n"
-  mdbox_alt_storage_path: "/mnt/cold/%d/%n"   # "" = disabled (default)
+  mail_driver: mdbox
+  mail_home: "%d/%n"
+  mail_alt_path: "/mnt/cold/%d/%n"   # "" = disabled (default)
 ```
 
-`mdbox_alt_storage_path` supports the same template variables as
-`mail_home_template`:
+`mail_alt_path` supports the same template variables as
+`mail_home`:
 
 | Variable | Expands to |
 |:---|:---|
@@ -140,6 +140,6 @@ and loop per user.
 
 The on-disk format of moved `m.<N>` files is identical to primary
 files — same dbox v2 record layout. The reference's `mail_alt_path` and
-yarilo's `mdbox_alt_storage_path` are interchangeable at the
+yarilo's `mail_alt_path` are interchangeable at the
 filesystem level, enabling live migration between the two servers
 without data conversion.

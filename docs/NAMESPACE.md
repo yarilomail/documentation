@@ -209,7 +209,7 @@ Examples that work out of the box:
 
 ```yaml
 storage:
-  mailbox: maildir              # personal default (existing layout)
+  mail_driver: maildir              # personal default (existing layout)
 
 namespaces:
   - type: personal

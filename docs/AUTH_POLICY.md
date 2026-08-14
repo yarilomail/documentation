@@ -29,32 +29,32 @@ connection limits, the policy hook is overkill.
 ```yaml
 auth:
   policy:
-    url: "https://wforce.internal:8084/?ctx=imap"
-    api_header: "X-API-Key: change-me"
-    hash_mech: sha256
-    hash_nonce: "deployment-specific-salt-please-rotate"
-    hash_truncate_bits: 12
+    auth_policy_server_url: "https://wforce.internal:8084/?ctx=imap"
+    auth_policy_server_api_header: "X-API-Key: change-me"
+    auth_policy_hash_mech: sha256
+    auth_policy_hash_nonce: "deployment-specific-salt-please-rotate"
+    auth_policy_hash_truncate: 12
     timeout_ms: 5000
-    reject_on_fail: false
-    log_only: false
-    check_before: true
-    check_after: true
-    report_after: true
+    auth_policy_reject_on_fail: false
+    auth_policy_log_only: false
+    auth_policy_check_before_auth: true
+    auth_policy_check_after_auth: true
+    auth_policy_report_after_auth: true
 ```
 
 | Setting | Default | Notes |
 |---|---|---|
-| `url` | `""` | `""` disables the hook. URL may end with `&` to extend an existing query string instead of starting a new one (e.g. `https://w/?tenant=42&`) |
-| `api_header` | `""` | `"Key: value"` → custom header. `"value"` → `X-API-Key: value` |
-| `hash_mech` | `sha256` | `sha256` or `sha512`. Must match the policy server's hash setting |
-| `hash_nonce` | `""` | **Required when `url` is set.** Salt mixed into `pwhash`. Two deployments with different nonces have different hash spaces |
-| `hash_truncate_bits` | `12` | Top N bits of the digest kept. 12 → 4096 buckets — enough for rate-limit patterns, useless for password recovery. `0` disables truncation (sends the full digest) |
+| `auth_policy_server_url` | `""` | `""` disables the hook. URL may end with `&` to extend an existing query string instead of starting a new one (e.g. `https://w/?tenant=42&`) |
+| `auth_policy_server_api_header` | `""` | `"Key: value"` → custom header. `"value"` → `X-API-Key: value` |
+| `auth_policy_hash_mech` | `sha256` | `sha256` or `sha512`. Must match the policy server's hash setting |
+| `auth_policy_hash_nonce` | `""` | **Required when `auth_policy_server_url` is set.** Salt mixed into `pwhash`. Two deployments with different nonces have different hash spaces |
+| `auth_policy_hash_truncate` | `12` | Top N bits of the digest kept. 12 → 4096 buckets — enough for rate-limit patterns, useless for password recovery. `0` disables truncation (sends the full digest) |
 | `timeout_ms` | `5000` | HTTP round-trip cap |
-| `reject_on_fail` | `false` | `true` → reject auth when policy server is unreachable / malformed. `false` (default) → continue without policy guidance |
-| `log_only` | `false` | `true` → the client still POSTs and logs decisions, but the verdict is NOT enforced. Use this to roll out a new policy in shadow-mode before flipping `false` |
-| `check_before` | `true` | POST `?command=allow` BEFORE the chain runs. Reject blocks the passdb call entirely |
-| `check_after` | `true` | POST `?command=allow` AFTER the chain result is known. Reject downgrades a successful auth (account-takeover detection) |
-| `report_after` | `true` | POST `?command=report` fire-and-forget after every decision. Telemetry pipeline; never blocks the wire reply |
+| `auth_policy_reject_on_fail` | `false` | `true` → reject auth when policy server is unreachable / malformed. `false` (default) → continue without policy guidance |
+| `auth_policy_log_only` | `false` | `true` → the client still POSTs and logs decisions, but the verdict is NOT enforced. Use this to roll out a new policy in shadow-mode before flipping `false` |
+| `auth_policy_check_before_auth` | `true` | POST `?command=allow` BEFORE the chain runs. Reject blocks the passdb call entirely |
+| `auth_policy_check_after_auth` | `true` | POST `?command=allow` AFTER the chain result is known. Reject downgrades a successful auth (account-takeover detection) |
+| `auth_policy_report_after_auth` | `true` | POST `?command=report` fire-and-forget after every decision. Telemetry pipeline; never blocks the wire reply |
 
 ## Wire shape
 
@@ -76,7 +76,7 @@ Every request is `POST {url}?command={allow|report}` with header
 }
 ```
 
-- `success` and `policy_reject` appear only in `check_after` and
+- `success` and `policy_reject` appear only in `auth_policy_check_after_auth` and
   `report` calls.
 - Keys are alphabetic so the payload is byte-stable across
   releases — wforce Lua rules that hash the body for caching
@@ -98,7 +98,7 @@ With the default 12-bit truncation:
   password, changes on password change — rate-limiters can count
   reused-vs-novel passwords per IP without ever seeing plain text
 
-If your policy server needs higher precision, set `hash_truncate_bits`
+If your policy server needs higher precision, set `auth_policy_hash_truncate`
 to `24`, `48`, or `0` (full digest). Anything above ~32 bits starts
 to leak which-user-has-which-password information; pick the smallest
 value your detection logic tolerates.
@@ -119,7 +119,7 @@ value your detection logic tolerates.
   proceeding
 
 A 2xx HTTP status with malformed JSON or missing `status` field is
-treated as a failover per `reject_on_fail`.
+treated as a failover per `auth_policy_reject_on_fail`.
 
 ## Master-user exemption
 
@@ -165,25 +165,25 @@ setReport(report)
 
 ## Rollout strategy
 
-1. **Shadow mode** (week 1) — set `log_only: true`, watch the logs
+1. **Shadow mode** (week 1) — set `auth_policy_log_only: true`, watch the logs
    for would-have-rejected events. Tune policy server thresholds
    until false-positive rate is acceptable.
-2. **Soft enforce** (week 2) — flip `log_only: false`, keep
-   `reject_on_fail: false` (fail-open). A policy server outage
+2. **Soft enforce** (week 2) — flip `auth_policy_log_only: false`, keep
+   `auth_policy_reject_on_fail: false` (fail-open). A policy server outage
    does not affect logins.
-3. **Hard enforce** (week 3+) — flip `reject_on_fail: true` once
+3. **Hard enforce** (week 3+) — flip `auth_policy_reject_on_fail: true` once
    the policy server has proven HA. A policy server outage now
    blocks logins; pair this with a monitored healthcheck.
 
 ## Tuning notes
 
-- `check_before` + `check_after` doubles the per-attempt latency.
-  Most operators disable `check_after` once `check_before` is
-  trusted; `report_after` is fire-and-forget so it doesn't add
+- `auth_policy_check_before_auth` + `auth_policy_check_after_auth` doubles the per-attempt latency.
+  Most operators disable `auth_policy_check_after_auth` once `auth_policy_check_before_auth` is
+  trusted; `auth_policy_report_after_auth` is fire-and-forget so it doesn't add
   perceived latency.
 - The HTTP client uses keep-alive — a single yarilo-auth pod
   reuses connections to the policy server across thousands of
   requests.
-- Set `timeout_ms` shorter than `auth.failure_delay` so a slow
+- Set `timeout_ms` shorter than `auth.auth_failure_delay` so a slow
   policy server doesn't push the entire wire response past the
   client timeout.

@@ -252,7 +252,7 @@ mixes OAuth and legacy SQL accounts handles both with one chain.
   the configured endpoint. Use HTTPS endpoints exclusively.
 - The auth-cache (`auth.cache.size_bytes > 0`) caches validated
   tokens as HMAC, not plaintext. Set
-  `auth.cache.ttl_seconds` shorter than the token's typical `exp`
+  `auth.cache.auth_cache_ttl` shorter than the token's typical `exp`
   so revocation propagates within one cache window.
 
 ## Tuning notes

@@ -62,10 +62,10 @@ Uses high ports (9000+) to avoid needing root.
 mode: single
 general:
   ssl:
-    tls_cert: /tmp/yarilo-smoke/tls/cert.pem
-    tls_key:  /tmp/yarilo-smoke/tls/key.pem
+    ssl_server_cert_file: /tmp/yarilo-smoke/tls/cert.pem
+    ssl_server_key_file:  /tmp/yarilo-smoke/tls/key.pem
   haproxy:
-    trusted_nets: ["127.0.0.1/32"]
+    haproxy_trusted_networks: ["127.0.0.1/32"]
   xclient:
     trusted_nets: ["127.0.0.1/32"]
   limits:
@@ -93,7 +93,7 @@ auth:
       dsn: /tmp/yarilo-smoke/data/users.db
 
 storage:
-  mailbox: maildir
+  mail_driver: maildir
   maildir_root: /tmp/yarilo-smoke/mail
 
 log:

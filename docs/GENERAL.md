@@ -10,24 +10,24 @@ Shared TLS certificate. Used by every TLS-enabled listener that does not define 
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `tls_cert` | — | Path to PEM certificate (or full chain). `${ENV_VAR}` expanded at startup. |
-| `tls_key` | — | Path to PEM private key matching `tls_cert`. |
-| `tls_alt_cert` | — | Optional second certificate (e.g. ECDSA) for dual-cert SNI. |
-| `tls_alt_key` | — | Private key for `tls_alt_cert`. |
-| `tls_min_version` | `TLS1.2` | Minimum TLS version: `TLS1.2` \| `TLS1.3`. |
-| `prefer_server_ciphers` | `false` | Use server cipher-suite preference order. |
+| `ssl_server_cert_file` | — | Path to PEM certificate (or full chain). `${ENV_VAR}` expanded at startup. |
+| `ssl_server_key_file` | — | Path to PEM private key matching `ssl_server_cert_file`. |
+| `ssl_server_alt_cert_file` | — | Optional second certificate (e.g. ECDSA) for dual-cert SNI. |
+| `ssl_server_alt_key_file` | — | Private key for `ssl_server_alt_cert_file`. |
+| `ssl_min_protocol` | `TLS1.2` | Minimum TLS version: `TLS1.2` \| `TLS1.3`. |
+| `ssl_prefer_server_ciphers` | `false` | Use server cipher-suite preference order. |
 
 **TLS ALPN matching (the reference parity).** TLS listeners advertise ALPN protocol identifiers per IANA RFC 7301: `imap` for IMAP/IMAPS, `pop3` for POP3/POP3S, `smtp` for Submission/Submissions. Clients that send ALPN must match — mismatching connections are refused. Clients without ALPN are accepted (backward-compatibility). LMTP is internal-only and does not enforce ALPN.
 
 ```yaml
 general:
   ssl:
-    tls_cert: /etc/ssl/yarilo/cert.pem
-    tls_key:  /etc/ssl/yarilo/key.pem
-    tls_alt_cert: /etc/ssl/yarilo/ecdsa.pem   # optional
-    tls_alt_key:  /etc/ssl/yarilo/ecdsa.key
-    tls_min_version: TLS1.2
-    prefer_server_ciphers: false
+    ssl_server_cert_file: /etc/ssl/yarilo/cert.pem
+    ssl_server_key_file:  /etc/ssl/yarilo/key.pem
+    ssl_server_alt_cert_file: /etc/ssl/yarilo/ecdsa.pem   # optional
+    ssl_server_alt_key_file:  /etc/ssl/yarilo/ecdsa.key
+    ssl_min_protocol: TLS1.2
+    ssl_prefer_server_ciphers: false
 ```
 
 `${ENV_VAR}` substitution is supported in all path values — no secrets in config files.
@@ -36,18 +36,18 @@ general:
 
 ## `general.haproxy`
 
-HAProxy PROXY protocol v1/v2. When `haproxy_protocol: true` is set on a service, the real client IP is extracted from the `PROXY` header. Connections from addresses outside `trusted_nets` ignore the header (the TCP source IP is used instead).
+HAProxy PROXY protocol v1/v2. When `haproxy_protocol: true` is set on a service, the real client IP is extracted from the `PROXY` header. Connections from addresses outside `haproxy_trusted_networks` ignore the header (the TCP source IP is used instead).
 
 | Key | Default | Description |
 |:---|:---|:---|
 | `timeout` | `3` | Seconds to wait for the PROXY header. Connection closed if header not received in time. |
-| `trusted_nets` | `["127.0.0.1/32", "10.0.0.0/8"]` | CIDRs whose PROXY headers are accepted. |
+| `haproxy_trusted_networks` | `["127.0.0.1/32", "10.0.0.0/8"]` | CIDRs whose PROXY headers are accepted. |
 
 ```yaml
 general:
   haproxy:
     timeout: 3
-    trusted_nets:
+    haproxy_trusted_networks:
       - 127.0.0.1/32
       - 10.0.0.0/8
       - 172.16.0.0/12
