@@ -38,7 +38,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | Key | Type | Default | Description |
 |:----|:-----|:--------|:------------|
 | `sieve_enabled` | bool | `false` | Activate Sieve execution on LMTP delivery |
-| `sieve_max_script_size` | int | `65536` | Maximum compiled script size in bytes |
+| `sieve_max_script_size` | int | `65536` | Maximum compiled script size in bytes. One limit for delivery and ManageSieve alike — the pre-beta duplicate `protocol.managesieve.max_script_size` is accepted as an alias of this key, and the two set to different values refuse startup. |
 | `sieve_max_redirects` | int | `32` | Maximum `redirect` actions per message (RFC 5228 §6.2) |
 | `sieve_max_actions` | int | `32` | Maximum total actions per script (`fileinto`/`redirect`/`keep`/...). `0` = unlimited. Guards runaway scripts |
 | `sieve_vacation_enabled` | bool | `true` | Permit the `vacation` extension (RFC 5230) |

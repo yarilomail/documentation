@@ -7,7 +7,7 @@ Yarilo runs two submission listeners. MX inbound (port 25) is handled by an exte
 | `submission` | `587` | Outbound submission — AUTH PLAIN required, STARTTLS. |
 | `submissions` | `465` | Outbound submission — AUTH PLAIN required, implicit TLS. |
 
-See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`, `haproxy_protocol`, `disable_plaintext_auth`).
+See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`, `haproxy_protocol`, `auth_allow_cleartext`).
 
 ---
 
@@ -41,7 +41,7 @@ protocol:
 
 Accepts mail from MUAs. AUTH PLAIN is required (the only advertised mechanism). After successful authentication and DATA, the message is forwarded to the configured upstream MTA via `protocol.submission.relay`. If `submission_relay_host` is empty, submission returns `451`.
 
-`disable_plaintext_auth: true` in the service config blocks AUTH on unencrypted connections; pair it with `ssl_mode: starttls` (port 587) or `ssl_mode: ssl` (port 465).
+`auth_allow_cleartext: false` in the service config blocks AUTH on unencrypted connections; pair it with `ssl_mode: starttls` (port 587) or `ssl_mode: ssl` (port 465).
 
 ---
 
