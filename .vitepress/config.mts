@@ -106,6 +106,7 @@ export default defineConfig({
           { text: 'OAuth2', link: '/AUTH_OAUTH2' },
           { text: 'SCRAM', link: '/AUTH_SCRAM' },
           { text: 'Auth Policy', link: '/AUTH_POLICY' },
+          { text: 'Master Users', link: '/MASTER_USERS' },
           { text: 'Auth Penalty', link: '/AUTH_PENALTY' }
         ]
       },
