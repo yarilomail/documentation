@@ -66,6 +66,7 @@ export default defineConfig({
     nav: [
       { text: 'Install', link: '/INSTALL' },
       { text: 'Architecture', link: '/ARCHITECTURE' },
+      { text: 'Parity', link: '/PARITY' },
       { text: 'Admin', link: '/YARILO-ADMIN' }
     ],
     sidebar: [
@@ -83,6 +84,7 @@ export default defineConfig({
         text: 'Architecture',
         items: [
           { text: 'Overview', link: '/ARCHITECTURE' },
+          { text: 'Dovecot parity', link: '/PARITY' },
           { text: 'Services', link: '/SERVICES' },
           { text: 'Director', link: '/DIRECTOR' },
           { text: 'Director API', link: '/DIRECTOR-API' },
