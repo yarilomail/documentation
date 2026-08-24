@@ -84,7 +84,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | passdb/userdb: SQL (MySQL, PostgreSQL, SQLite) | yes | |
 | passdb/userdb: passwd-file, static | yes | |
 | passdb/userdb: LDAP, PAM, Lua, IMAP | no | [#558](https://github.com/yarilomail/yarilo/issues/558) |
-| Password schemes | partial | `PLAIN`, `CLEARTEXT`, `BCRYPT`/`BLF-CRYPT`, `SHA512-CRYPT`, `SCRAM-SHA-1`, `SCRAM-SHA-256`. Dovecot's older MD5 and SHA1 families are not implemented |
+| Password schemes | partial | `PLAIN`, `CLEARTEXT`, `CRYPT`, `BCRYPT`/`BLF-CRYPT`, `SHA512-CRYPT`, `SCRAM-SHA-1`, `SCRAM-SHA-256`. Dovecot's older MD5 and SHA1 families are not implemented |
 | Master users | yes | |
 | Auth policy / penalty (weakforced-style) | yes | |
 
@@ -93,7 +93,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | Feature | yarilo | Notes |
 |:---|:---|:---|
 | Sieve (RFC 5228) | yes | |
-| Sieve extensions | yes | `fileinto`, `reject`, `ereject`, `envelope`, `body`, `date`, `index`, `variables`, `regex`, `vacation`, `vacation-seconds`, `mime`, `foreverypart`, `extracttext`, `encoded-character`, `environment`, `imapsieve`, `mailboxid`, `mboxmetadata`, `servermetadata`, `duplicate` |
+| Sieve extensions | yes | 43 extensions, including `imap4flags`, `editheader`, `enotify`, `imapsieve`, `mailboxid`, `spamtest`/`virustest` and the RFC 5703 MIME set. The full list is on the [Sieve page](/SIEVE) rather than repeated here — one list cannot disagree with itself |
 | Sieve `pipe` / external programs | yes | with a configured binary directory |
 | LDA (`dovecot-lda` equivalent) | partial | delivery is via LMTP; there is no standalone local-delivery binary |
 | Recipient rate limiting | yes | cluster-wide, per (sender IP, recipient) |
