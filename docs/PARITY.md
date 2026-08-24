@@ -16,6 +16,12 @@ This page is maintained in the same change that alters coverage: a row is
 updated by the PR that moves it, not by a later sweep. A matrix that lags is
 worse than none, because every row here is a promise somebody may migrate on.
 
+The IMAP extension table below is **exhaustive for what is advertised**: every
+capability in the server's `CAPABILITY` reply has a row here, and the rows
+marked `no` name the notable extensions that are not advertised. Where this
+page and a protocol page disagree, this one is the one kept current — the
+disagreement is a bug in the other, and both are fixed together.
+
 Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 
 ## Protocols
@@ -34,10 +40,11 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | Extension | yarilo | Notes |
 |:---|:---|:---|
 | IDLE, UNSELECT, LITERAL+, ENABLE, SASL-IR | yes | |
-| UIDPLUS, MOVE, NAMESPACE, SPECIAL-USE | yes | |
+| UIDPLUS, MOVE, NAMESPACE | yes | |
 | CONDSTORE / QRESYNC | yes | RFC 7162 |
 | ESEARCH, SEARCHRES | yes | RFC 4731 |
 | LIST-EXTENDED, LIST-STATUS, STATUS=SIZE | yes | |
+| SPECIAL-USE, CREATE-SPECIAL-USE | yes | RFC 6154 |
 | SORT | yes | RFC 5256, all keys; `SORT=DISPLAY` (RFC 5957) is not implemented |
 | THREAD | yes | RFC 5256, `REFERENCES` and `ORDEREDSUBJECT` |
 | OBJECTID | yes | RFC 8474 — `MAILBOXID`, `EMAILID`, `THREADID` |
@@ -48,6 +55,9 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | QUOTA | yes | RFC 9208 |
 | ID | yes | RFC 2971 |
 | COMPRESS | no | |
+| URLAUTH, CATENATE, BURL | no | RFC 4467 / RFC 4469 / RFC 4468. Until 2026-08-25 the IMAP page listed URLAUTH as supported; it never was, and the claim is removed rather than kept |
+| SEARCH=FUZZY, CONTEXT=SEARCH, CONTEXT=SORT, ESORT | no | |
+| REPLACE, SAVEDATE, PREVIEW | no | |
 | I18NLEVEL | no | collation follows `i;unicode-casemap` in SORT/THREAD, but the extension is not advertised |
 
 ## Storage
