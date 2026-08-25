@@ -251,9 +251,15 @@ deliveries and p99 stays at ~128 ms.
 ### What the floor does not do
 
 The floor only matters when a log grows **slower** than the floor between
-folds. An account taking a hundred deliveries adds roughly 18 KB of log, which
-is more than either 16 or 32 KiB — so it crosses whichever floor is set within
-a single burst, and both settings produce the same "grow, fold, grow" cycle.
+folds — and on an account taking deliveries, it does not.
+
+A fold does not empty the log: it leaves the recent records behind, measured at
+10–18 KB. A hundred deliveries then add roughly 18 KB more, so the log stands
+at 28–36 KB by the end of each window — far past a 16 KiB floor every time, and
+around a 32 KiB one, above it in some windows and just short in others. Either
+way the size condition is met while the log is already older than the 60 s
+gate, so what paces the cycle is the **age**, not the floor.
+
 Nine measured windows at 32 KiB and 16 KiB were indistinguishable: medians 76.0
 and 71.8 ms with overlapping ranges, one fold per window in both.
 
