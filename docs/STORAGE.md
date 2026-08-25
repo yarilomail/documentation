@@ -213,6 +213,66 @@ rather than the folder. The `mail_volatile_path` setting moves the index's tempo
 file — and its fsync — off the mail volume, which is why it is worth setting on
 NFS deployments (see [Path templates](#path-templates)).
 
+## When a log folds, and what it costs not to
+
+Every append to a folder's index goes to a log beside it; the log is folded
+into the base file when it gets big enough or old enough. Three settings decide
+when, and each works on its own — set one and the other two keep their built-in
+values.
+
+| setting | built-in | meaning |
+|:---|:---|:---|
+| `mail_index_log_rotate_min_size` | 32 KiB | below this a log is never folded |
+| `mail_index_log_rotate_min_age` | 60 s | above the floor, fold once the log is this old |
+| `mail_index_log_rotate_max_size` | 1 MiB | fold regardless of age |
+
+The same three govern the mdbox map log, which grows more slowly and therefore
+folds less often. One policy, different rates.
+
+### Why the floor exists
+
+**Every open replays the log tail.** Measured on an account with a real
+mailbox: a folder whose log has just been folded opens in ~7.5 ms, one carrying
+27 KB of log opens in ~17 ms — roughly **0.4 ms per kilobyte of log**. The floor
+is what bounds that: it is the cost of opening a mailbox that sits between
+folds, not a tuning knob for how often folding happens.
+
+### Why the age gate exists, and why it is 60 s
+
+The age gate stops a fold firing inside a burst of appends — a log that is
+still growing is not worth folding, since it will cross the floor again in a
+moment. It only has to outlast a typical delivery burst.
+
+At the 5 min it used to be, an actively delivering account carried its log to
+~110 KB past the floor, and across that interval delivery p50 went 74 → 103 ms
+while **p99 went 127 → 249 ms**. At 60 s the log folds about once per hundred
+deliveries and p99 stays at ~128 ms.
+
+### What the floor does not do
+
+The floor only matters when a log grows **slower** than the floor between
+folds — and on an account taking deliveries, it does not.
+
+A fold does not empty the log: it leaves the recent records behind, measured at
+10–18 KB. A hundred deliveries then add roughly 18 KB more, so the log stands
+at 28–36 KB by the end of each window — far past a 16 KiB floor every time, and
+around a 32 KiB one, above it in some windows and just short in others. Either
+way the size condition is met while the log is already older than the 60 s
+gate, so what paces the cycle is the **age**, not the floor.
+
+Nine measured windows at 32 KiB and 16 KiB were indistinguishable: medians 76.0
+and 71.8 ms with overlapping ranges, one fold per window in both.
+
+So on a busy account the tail is held by the **age gate**, not by the floor.
+Lowering the floor there buys nothing. Raising it is what an operator with a
+**large, quietly-delivering** mailbox might do — there the log grows slower than
+the floor, folds are the rarer cost, and a higher floor means fewer of them.
+
+Delivery p50 still moves within a fold cycle — roughly 55–95 ms on the measured
+account, cheapest just after a fold. That range is the price of a cheap open:
+lowering the floor to flatten it would lengthen every open instead, at the rate
+above.
+
 ## Folding indexes before a measurement
 
 `yarctl backend index optimize <user> --all` folds every folder index of the
