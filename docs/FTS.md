@@ -447,16 +447,19 @@ STATUS  <user> <folder-guid>                          # last_indexed_uid
   genuinely unparseable message) is NOT tolerated the same way: the
   in-progress engine document for that UID is rolled back (it would
   otherwise sit half-built until the NEXT message's first build-key flushes
-  it into the shard — the exact bug #721 fixes), whatever was already fully
-  built before it is committed and checkpointed, and the run halts without
-  advancing past the failed UID — so a later index run naturally retries it
-  (e.g. once a decoder config issue is fixed) instead of it being silently,
-  permanently skipped. This deliberately changes behaviour for a genuinely
-  unparseable top-level message, which used to be tolerated like a fetch
-  error — see #721. Every halt logs at Error and increments
-  `fts_index_build_halts_total`, since a deterministic per-document failure
-  keeps halting on the same UID every retry until fixed and must stay
-  visible, not scroll by once and go quiet.
+  it into the shard — the exact bug #721 fixes), and whatever was already fully
+  built before it is committed and checkpointed. The run then **continues**:
+  the message is skipped, the checkpoint moves past it, and the failure is
+  counted in `fts_index_skipped_total{reason}` and logged at `WARN` naming the
+  folder and the UID. The folder is also marked for a reactive heal.
+
+  An earlier design halted the run instead, so that a later run would retry the
+  message once its decoder configuration was fixed. That was changed in #1219:
+  a message that could never build stopped its folder for ever, and because a
+  search spanning folders fails as a whole, one such message became no search
+  at all for the account. The signal an operator needs — that the index has a
+  hole and a rescan will fill it — is the skip counter and the log line, and
+  neither of them costs the rest of the mailbox.
 - **Write-through at delivery** (improvement): LMTP hands the *already
   in-memory* message to `INDEX` as an inline payload variant, so
   delivery-time indexing does not re-read the message from storage.
