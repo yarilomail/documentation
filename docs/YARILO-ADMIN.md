@@ -99,13 +99,13 @@ that skip the prefix.
 | `backend mdbox` | map purge, alt-storage moves | [below](#backend-mdbox) |
 | `backend subscriptions` | IMAP SUBSCRIBE state | [below](#backend-subscriptions) |
 | `backend specialuse` | RFC 6154 special-use attributes | [below](#backend-specialuse) |
-| `backend metadata` | RFC 5464 annotations | not yet; this row is the record |
-| `backend who` | active sessions | not yet; this row is the record |
-| `backend sessions` | kick a session by id | not yet; this row is the record |
+| `backend metadata` | RFC 5464 annotations | [below](#backend-metadata) |
+| `backend who` | active sessions | [below](#backend-who) |
+| `backend sessions` | kick a session by id | [below](#backend-sessions) |
 | `fts` | search index status, rescan, optimize | [FTS](/FTS) |
-| `auth` | auth-cache flush, SCRAM verifier generation | not yet; this row is the record |
-| `warden` | connection accounting dump | not yet; this row is the record |
-| `wait` | block until endpoints answer | not yet; this row is the record |
+| `auth` | auth-cache flush, SCRAM verifier generation | [below](#auth) |
+| `warden` | connection accounting dump | [below](#warden) |
+| `wait` | block until endpoints answer | [below](#wait) |
 
 Run any family with no command to get its usage; the text there is the same one
 this page documents.
@@ -634,6 +634,141 @@ yarctl backend specialuse set alice@example.com Sent '\Sent'
 ```
 
 **Effect:** `set` and `delete` write.
+
+
+### `backend metadata`
+
+IMAP METADATA annotations (RFC 5464) — the same entries a client reads with
+`GETMETADATA`, and the mechanism a Sieve script is bound to a mailbox through.
+
+```
+yarctl backend metadata list   <user> [<folder>] [--namespace NS] [--scope private|shared] [--as-user U]
+yarctl backend metadata get    <user> [<folder>] --entry /private/comment [--namespace NS] [--as-user U]
+yarctl backend metadata set    <user> [<folder>] --entry /private/comment --value 'literal' | --value-file PATH
+yarctl backend metadata delete <user> [<folder>] --entry /private/comment [--namespace NS] [--as-user U]
+```
+
+Entry names begin with `/private/` or `/shared/`. **An empty folder targets
+server scope**, which is stored vendor-prefixed under INBOX's GUID.
+
+`--as-user` defaults to the account being read and matters only for shared and
+public folders under `/private/` scope, where every user has their own slice of
+the annotations — so reading "the" private entry of a shared mailbox is
+meaningless without saying whose.
+
+`get` prints the value base64-encoded, because an annotation may hold bytes.
+`set` takes either `--value` or `--value-file`.
+
+```sh
+yarctl backend metadata set alice@example.com INBOX \
+  --entry /shared/imapsieve/script --value 'onappend'
+```
+
+**Effect:** `set` and `delete` write.
+
+### `backend who`
+
+Who is connected right now. Reads the accounting `yarilo-warden` keeps, which
+is fed by the login and session processes.
+
+```
+yarctl backend who [list] [--protocol IMAP] [--user U] [--all] [--output table|json]
+yarctl backend who count [proto] [--user U] [--by user|protocol] [--output table|json]
+```
+
+Output is a **human-readable table by default**; `--output json` for a machine.
+`count` aggregates instead of listing, grouped by user or by protocol.
+
+The session ids printed here are what `backend sessions kick` takes.
+
+```sh
+yarctl backend who --protocol IMAP
+yarctl backend who count --by user
+```
+
+**Effect:** none; both read.
+
+### `backend sessions`
+
+```
+yarctl backend sessions kick <sess-id> [--user U] [--protocols imap,pop3,...]
+```
+
+Closes one session. The kick is broadcast to every login and LMTP pod through
+`yarilo-locks`, and only the owner of that id reacts — so the id alone is
+enough, and it comes from `backend who`.
+
+`--protocols` narrows the broadcast (default: all four channels). `--user` is
+recorded for the audit log only; it does not select the session.
+
+**Effect:** closes a live connection.
+
+### `auth`
+
+Queries and utilities against `yarilo-auth`.
+
+```
+yarctl auth cache flush [<user-mask> ...]
+yarctl auth scram-verifier [--mech sha256|sha1] [--iterations N] [--password X]
+```
+
+`cache flush` evicts auth-cache entries matching the masks; **no mask flushes
+everything**. `scram-verifier` derives the verifier blob for a SQL password
+column — `{SCRAM-SHA-256}` by default.
+
+This plane has its own connection flags, because it speaks to the auth master
+socket rather than to an HTTP API:
+
+| Flag | Environment | Meaning |
+|:---|:---|:---|
+| `--auth-addr` | `YARILO_AUTH_ADDR` | master socket, default `localhost:9102` |
+| `--auth-cert` | `YARILO_AUTH_CERT` | mTLS client certificate |
+| `--auth-key` | `YARILO_AUTH_KEY` | mTLS client key |
+| `--auth-ca` | `YARILO_AUTH_CA` | CA bundle signing the server certificate |
+
+With none of the TLS flags set the connection is **plain TCP** — development
+and smoke tests only.
+
+```sh
+yarctl auth cache flush 'alice@*'
+yarctl auth scram-verifier --password 'hunter2'
+```
+
+**Effect:** `cache flush` discards cached lookups; the next authentication goes
+to the userdb.
+
+### `warden`
+
+```
+yarctl warden dump [--output table|json]
+```
+
+The connection accounting `yarilo-warden` holds: who is connected, from where,
+and how the per-user and per-IP limits stand against them. This is the state
+`backend who` is rendered from, shown raw.
+
+**Effect:** none.
+
+### `wait`
+
+```
+yarctl wait [--timeout 2s] URL...
+```
+
+Blocks until every URL answers, or the deadline passes. Takes `http://` and
+`tcp://` targets, and is meant for init containers and scripts that must not
+start before a dependency is up.
+
+The timeout covers **the whole attempt** — DNS, dial and response — which is
+the difference from a shell read timeout that bounds only the read. Every
+failure mode is reported the same way: a refused connection, an HTTP error
+status and a timeout all print what was tried and what happened.
+
+```sh
+yarctl wait --timeout 30s http://yarilo-auth:8080/readyz tcp://redis:6379
+```
+
+**Effect:** none; it only waits.
 
 
 ---
