@@ -83,9 +83,11 @@ exposes — director state lives in director's process; backend state
 
 ## Command index
 
-Every family the tool exposes, and where each is documented. The list is
-checked against the dispatcher by a test in the repository, so a family added
-without a row here fails the build rather than going unnoticed. `yarctl` is
+Every family the tool exposes, and where each is documented. The tool's own
+usage text is checked against its dispatcher by a test in the repository, and
+this index is written from that usage — so a family the tool announces is a
+family this page can list. Nothing checks the page itself: a row missing here
+is a gap, not a build failure. `yarctl` is
 organised as **planes** — `director`, `backend`, `auth` — with a few shorthands
 that skip the prefix.
 
