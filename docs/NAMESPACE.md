@@ -17,7 +17,8 @@ returns `NO "Other Users namespace requires ACL-1 + NS-3"`.
 
 ACL-1 (RFC 4314 access control) lands next — before that, **any
 authenticated user reads and writes everything under Shared/Public**.
-Treat shared/public namespaces as cooperative-trust until ACL-1 lands.
+Treat shared and public namespaces as cooperative-trust: enforcement gaps
+remain ([#544](https://github.com/yarilomail/yarilo/issues/544)).
 
 ---
 
