@@ -99,13 +99,13 @@ that skip the prefix.
 | `backend mdbox` | map purge, alt-storage moves | [below](#backend-mdbox) |
 | `backend subscriptions` | IMAP SUBSCRIBE state | [below](#backend-subscriptions) |
 | `backend specialuse` | RFC 6154 special-use attributes | [below](#backend-specialuse) |
-| `backend metadata` | RFC 5464 annotations | [below](#backend-metadata) |
-| `backend who` | active sessions | [below](#backend-who) |
-| `backend sessions` | kick a session by id | [below](#backend-sessions) |
+| `backend metadata` | RFC 5464 annotations | not yet; this row is the record |
+| `backend who` | active sessions | not yet; this row is the record |
+| `backend sessions` | kick a session by id | not yet; this row is the record |
 | `fts` | search index status, rescan, optimize | [FTS](/FTS) |
-| `auth` | auth-cache flush, SCRAM verifier generation | [below](#auth) |
-| `warden` | connection accounting dump | [below](#warden) |
-| `wait` | block until endpoints answer | [below](#wait) |
+| `auth` | auth-cache flush, SCRAM verifier generation | not yet; this row is the record |
+| `warden` | connection accounting dump | not yet; this row is the record |
+| `wait` | block until endpoints answer | not yet; this row is the record |
 
 Run any family with no command to get its usage; the text there is the same one
 this page documents.
@@ -520,6 +520,121 @@ yarctl backend user usage alice@example.com
 ```
 
 **Effect:** none; all three read.
+
+### `backend index`
+
+The per-folder index: what it holds, and how to rebuild it when it stops
+matching the storage underneath.
+
+```
+yarctl backend index dump            <user> <folder> [--namespace NS] [--limit N]
+yarctl backend index rebuild         <user> <folder> [--namespace NS]
+yarctl backend index rebuild-storage <user> [--namespace NS] [--restore-orphans]
+yarctl backend index optimize        <user> <folder> [--namespace NS]
+yarctl backend index optimize        <user> --all [--namespace NS]
+yarctl backend index cache-purge     <user> <folder> [--namespace NS]
+```
+
+`dump` prints every record — UID, flags, modseq, size, GUID.
+
+`rebuild` regenerates **one folder's** index from the storage on disk, keeping
+the UIDs of filenames the index already knows. It is for maildir and sdbox and
+answers `501` for mdbox, whose storage is folder-agnostic.
+
+`rebuild-storage` is the mdbox equivalent, and it is the heavier tool:
+reconcile the shared map against the physical `m.<N>` files, reset every folder
+index to the surviving messages, recompute reference counts, and drop map
+records whose message is gone. It refuses to run on an incomplete scan or an
+unmounted alt tier. **Run it with delivery to that account quiesced.**
+`--restore-orphans` re-files unreferenced messages carrying an `ORIG_MAILBOX`
+tag back into their folder; off by default, because the tag proves the message
+was once there, not that it is lost now.
+
+`optimize` folds the index log into the base index — no semantic change, safe
+while nothing is reading the folder. With `--all` it folds every folder of the
+account, and the per-user map where the driver keeps one.
+
+`cache-purge` rewrites the message cache as a new generation holding only what
+live messages point at. The cache is append-only and never shrinks by itself;
+there is no automatic trigger, so this is an operator action.
+
+```sh
+yarctl backend index dump alice@example.com INBOX --limit 20
+yarctl backend index optimize alice@example.com --all
+```
+
+**Effect:** everything except `dump` rewrites index state.
+
+### `backend mdbox`
+
+The two mdbox-specific storage operations.
+
+```
+yarctl backend mdbox purge   <user> [--namespace NS]
+yarctl backend mdbox altmove <user> [--namespace NS] [--before RFC3339] [--reverse]
+```
+
+`purge` compacts the storage tree: every `m.<N>` file holding at least one
+zero-reference record is rewritten without those records, or unlinked when all
+of them are dead. The map is rewritten atomically, and folder indexes pointing
+at live records keep working without per-folder I/O.
+
+`altmove` moves messages to the alt (cold) tier, or back with `--reverse`.
+`--before` limits it to messages whose internal date precedes an RFC 3339
+timestamp. Requires `storage.mdbox_alt_storage_path`.
+
+```sh
+yarctl backend mdbox altmove alice@example.com --before 2025-01-01T00:00:00Z
+yarctl backend mdbox purge alice@example.com
+```
+
+**Effect:** both rewrite storage. `purge` is what actually reclaims the space an
+expunge released.
+
+### `backend subscriptions`
+
+IMAP `SUBSCRIBE` state, through the same on-disk format and lock key the IMAP
+command uses — so an admin write is visible to a live session immediately.
+
+```
+yarctl backend subscriptions list    <user> [--namespace NS]
+yarctl backend subscriptions add     <user> <folder> [--namespace NS]
+yarctl backend subscriptions remove  <user> <folder> [--namespace NS]
+yarctl backend subscriptions migrate <user> --namespace NS [--apply]
+```
+
+`migrate` folds a namespace's old per-namespace subscription file into the
+user's own, because subscriptions follow the subscriber rather than the
+namespace. It is a **dry run unless `--apply`** is given.
+
+**Effect:** `add`, `remove`, and `migrate --apply` write.
+
+### `backend specialuse`
+
+RFC 6154 attributes — which folder is Sent, which is Trash — as overrides on
+top of the configured defaults.
+
+```
+yarctl backend specialuse list   <user>
+yarctl backend specialuse get    <user> <folder>
+yarctl backend specialuse set    <user> <folder> <attr>
+yarctl backend specialuse delete <user> <folder>
+```
+
+`get` reports the resolved attribute **and its source**: `override`, `default`
+or `none` — which is the difference between a user's own choice and the
+server's configuration, and the thing to check when a client files into the
+wrong folder. `delete` drops the override so the default applies again.
+
+Only the personal namespace carries overrides; the attributes do not extend to
+shared or public mailboxes.
+
+```sh
+yarctl backend specialuse set alice@example.com Sent '\Sent'
+```
+
+**Effect:** `set` and `delete` write.
+
 
 ---
 
