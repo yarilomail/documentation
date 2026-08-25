@@ -441,7 +441,8 @@ Boundary for item 3:
   backend.
 - When the owner is on a **different farm tag**, return the existing
   `NO "... requires NS-3 (cross-pod routing)"` for IMAP and the INBOX
-  implicit-keep fallback for LMTP, until NS-3 lands.
+  implicit-keep fallback for LMTP. Cross-farm owner access is not implemented
+  ([#544](https://github.com/yarilomail/yarilo/issues/544)).
 
 **Schema/doc updates:**
 

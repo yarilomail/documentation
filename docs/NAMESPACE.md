@@ -15,9 +15,18 @@ Shared/Public** mailboxes carry real storage; **Other Users**
 (`user/<owner>/...`) is declared but `SELECT` under that prefix
 returns `NO "Other Users namespace requires ACL-1 + NS-3"`.
 
-ACL-1 (RFC 4314 access control) lands next — before that, **any
-authenticated user reads and writes everything under Shared/Public**.
-Treat shared/public namespaces as cooperative-trust until ACL-1 lands.
+Access control (RFC 4314) is implemented and enforced on every path — but
+it is **off by default**. With `acl.enabled: false`, which is the chart
+default, **any authenticated user reads and writes everything under
+Shared/Public**; the namespace is cooperative-trust until you turn
+enforcement on.
+
+With `acl.enabled: true`, rights are checked on `SELECT`, on every read
+and write, and on `LIST` — a user without the lookup right does not learn
+the mailbox exists. Some enforcement gaps remain for cross-user delivery
+([#544](https://github.com/yarilomail/yarilo/issues/544)), so treat that
+issue as the list of what is not yet covered rather than as a statement
+that nothing is.
 
 ---
 

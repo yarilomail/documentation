@@ -619,7 +619,7 @@ fts:
   fts_detection_min_runes: 0        # 0 = default 10; reliability threshold
   language_tokenizer_generic_token_maxlen: 0   # 0 = default 30 (#726)
   language_tokenizer_address_token_maxlen: 0   # 0 = default 250 (#726)
-  language_tokenizer_generic_algorithm: simple # tr29 errors at startup, not yet implemented (#726)
+  language_tokenizer_generic_algorithm: simple # tr29 errors at startup; not implemented, blocked on the Bleve engine stream (#733)
   language_tokenizer_generic_wb5a: false        # TR29-only, errors if true (#726)
   language_tokenizer_generic_explicit_prefix: false # TR29-only, errors if true (#726)
 

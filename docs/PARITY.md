@@ -50,7 +50,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | BINARY | yes | RFC 3516 |
 | NOTIFY | partial | RFC 5465; annotation/metadata events are not reported |
 | METADATA | yes | RFC 5464, when a metadata dict is configured |
-| ACL | yes | RFC 4314 |
+| ACL | yes | RFC 4314, enforced on every path — **off by default** (`acl.enabled`), so shared and public mailboxes are open to any authenticated user until it is turned on. See [Namespaces](/NAMESPACE) |
 | QUOTA | yes | RFC 9208 |
 | ID | yes | RFC 2971 |
 | COMPRESS | no | |

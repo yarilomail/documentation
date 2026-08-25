@@ -178,7 +178,7 @@ namespace** only; shared and public namespaces arrive with the namespace phase.
 | `name` | the leaf name; hierarchy travels in `parentId`, so a client never learns the delimiter |
 | `role` | IMAP special-use, per-user overrides layered over `imap_special_use_defaults`; `INBOX` is `inbox` without carrying an attribute |
 | `totalEmails` / `unreadEmails` | the folder's own counters, the same ones `STATUS` reports |
-| `totalThreads` / `unreadThreads` | equal to the message counts: until threading lands each message is its own thread |
+| `totalThreads` / `unreadThreads` | real conversation counts, from the account's threading state. Equal to the message counts on an account the [thread backfill](/MIGRATION#thread-backfill-conversations-for-existing-accounts) has not reached, where every message is still its own conversation |
 | `isSubscribed` | the same subscriptions file IMAP reads, so one `SUBSCRIBE` shows in both protocols |
 | `myRights` | full rights in the personal namespace; a `\NoSelect` container reports no read, add, remove or submit |
 
@@ -216,7 +216,7 @@ would select every message the account has and no limit would bound the cost.
 | JMAP member | Source |
 |:---|:---|
 | `id`, `blobId` | the message GUID — the same identity IMAP reports as `EMAILID` (RFC 8474), so one message is one object whichever protocol reaches it |
-| `threadId` | the message's own id: until threading lands each message is its own thread |
+| `threadId` | the conversation the message belongs to — the id of its first message, so it survives the message being moved, expunged and redelivered, or migrated. On an account the [thread backfill](/MIGRATION#thread-backfill-conversations-for-existing-accounts) has not reached, a message is its own conversation and this is its own id |
 | `mailboxIds`, `keywords`, `size`, `receivedAt` | the index |
 | envelope fields, body parts, `preview` | the message itself, parsed on demand |
 | `keywords` | IMAP system flags translated to the JMAP vocabulary — `\Seen` is `$seen` |
@@ -453,7 +453,7 @@ crafted message can never render in the origin that serves the API.
 | Mail — `Email/get` (envelope, bodies, preview) | RFC 8621 §4 | served, read-only |
 | Mail — `Email/query` (index and full-text conditions), blob download | RFC 8621 §4.4, RFC 8620 §6.2 | served, read-only |
 | Mail — `SearchSnippet/get` | RFC 8621 §5 | served |
-| Mail — `Thread/get` | RFC 8621 §3 | served, one message per thread |
+| Mail — `Thread/get`, `Thread/changes` | RFC 8621 §3 | served from the account's threading state; a merge is reported in `Email/changes` as well, since a client groups by the `threadId` it holds |
 | Mail — `Mailbox/set`, `Mailbox/changes` | RFC 8621 §2 | later phase |
 | Mail — `Email/set`, `Mailbox/set` | RFC 8621 | later phase |
 | Push over WebSocket | RFC 8887 | later phase |
