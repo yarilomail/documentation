@@ -75,6 +75,7 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/' },
           { text: 'Installation', link: '/INSTALL' },
+          { text: 'Migration', link: '/MIGRATION' },
           { text: 'General Configuration', link: '/GENERAL' },
           { text: 'Deployment', link: '/DEPLOYMENT' },
           { text: 'Docker Compose', link: '/DOCKER-COMPOSE' }
