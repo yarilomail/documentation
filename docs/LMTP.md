@@ -32,6 +32,8 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `read_timeout` | `300` | Per-command read timeout in seconds. |
 | `write_timeout` | `300` | Per-command write timeout in seconds. |
 | `lmtp_client_workarounds` | — | List of client compatibility workarounds (see below). |
+| `lmtp_listen` | — | Listen address of the backend LMTP service. |
+| `lmtp_backend_port` | — | Port the login service proxies to on the backend. |
 
 ```yaml
 protocol:
@@ -45,6 +47,47 @@ protocol:
     read_timeout: 300
     write_timeout: 300
 ```
+
+---
+
+## Recipient rate limiting
+
+Caps how many messages one sender may deliver to one recipient inside a moving
+window. Beyond the cap the sender is told `421 4.7.0 Rate limit exceeded for
+recipient` and retries later; nothing is lost, and nothing is bounced.
+
+Counters live in `yarilo-locks`, so the limit is **cluster-wide** — a sender
+does not get a fresh allowance by reaching a different backend pod. The key is
+the pair (sender IP, recipient mailbox), so one noisy sender cannot exhaust
+another's allowance, and one busy mailbox does not throttle its neighbours.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `rate_limit_enabled` | `true` | Gates the whole check. |
+| `rate_limit_per_recipient_burst` | `100` | Messages allowed per (sender IP, recipient) inside one window. |
+| `rate_limit_per_recipient_window_seconds` | `60` | Width of the window, in seconds. |
+
+```yaml
+protocol:
+  lmtp:
+    rate_limit:
+      rate_limit_enabled: true
+      rate_limit_per_recipient_burst: 100
+      rate_limit_per_recipient_window_seconds: 60
+```
+
+In the Helm chart the same settings live under `protocol.lmtp.rate_limit`
+without the prefix (`enabled`, `per_recipient_burst`,
+`per_recipient_window_seconds`).
+
+**When to raise it.** The defaults suit ordinary mail and do not suit bulk
+delivery into a single account — a migration, a load test, a mailing-list
+expansion landing in one mailbox. Those are what the burst and the window are
+for. Turning the check off entirely leaves nothing between a misbehaving sender
+and a mailbox.
+
+If a lock-service call fails, the delivery is **accepted**: the availability of
+the rate limiter is never allowed to block legitimate mail.
 
 ---
 
