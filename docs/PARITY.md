@@ -1,14 +1,13 @@
-# Dovecot parity matrix
+# Feature coverage
 
-What yarilo covers of Dovecot's feature surface, feature by feature, so that
-"drop-in replacement" is something you can check rather than something you have
-to take on faith.
+What yarilo implements, feature by feature, so that planning a migration is a
+matter of reading a list rather than of trying things out.
 
 Three values are used, and **no** is as legitimate an answer as **yes**:
 
 | | meaning |
 |:---|:---|
-| **yes** | implemented and exercised by tests; a Dovecot configuration using it has an equivalent here |
+| **yes** | implemented and exercised by tests; a configuration that uses it has an equivalent here |
 | **partial** | usable, with a stated limit — read the note before relying on it |
 | **no** | not implemented. Where an issue exists it is linked, and that issue is where the plan lives |
 
@@ -67,9 +66,9 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | Maildir | yes | Maildir++, filename and flag conventions match |
 | sdbox | yes | |
 | mdbox | yes | including the map, alt storage, and `purge` |
-| mbox | no | no plan; the format is legacy in Dovecot too |
+| mbox | no | no plan; the format is legacy everywhere it still appears |
 | obox / object storage | no | [#247](https://github.com/yarilomail/yarilo/issues/247) |
-| Index format | yes | Dovecot's on-disk index layout, byte-compatible where documented |
+| Index format | yes | the established on-disk index layout, byte-compatible where documented |
 
 ## Authentication
 
@@ -84,7 +83,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | passdb/userdb: SQL (MySQL, PostgreSQL, SQLite) | yes | |
 | passdb/userdb: passwd-file, static | yes | |
 | passdb/userdb: LDAP, PAM, Lua, IMAP | no | [#558](https://github.com/yarilomail/yarilo/issues/558) |
-| Password schemes | partial | `PLAIN`, `CLEARTEXT`, `CRYPT`, `BCRYPT`/`BLF-CRYPT`, `SHA512-CRYPT`, `SCRAM-SHA-1`, `SCRAM-SHA-256`. Dovecot's older MD5 and SHA1 families are not implemented |
+| Password schemes | partial | `PLAIN`, `CLEARTEXT`, `CRYPT`, `BCRYPT`/`BLF-CRYPT`, `SHA512-CRYPT`, `SCRAM-SHA-1`, `SCRAM-SHA-256`. The older MD5 and SHA1 scheme families are not implemented |
 | Master users | yes | |
 | Auth policy / penalty (weakforced-style) | yes | |
 
@@ -95,7 +94,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | Sieve (RFC 5228) | yes | |
 | Sieve extensions | yes | 43 extensions, including `imap4flags`, `editheader`, `enotify`, `imapsieve`, `mailboxid`, `spamtest`/`virustest` and the RFC 5703 MIME set. The full list is on the [Sieve page](/SIEVE) rather than repeated here — one list cannot disagree with itself |
 | Sieve `pipe` / external programs | yes | with a configured binary directory |
-| LDA (`dovecot-lda` equivalent) | partial | delivery is via LMTP; there is no standalone local-delivery binary |
+| Local delivery agent | partial | delivery is via LMTP; there is no standalone local-delivery binary |
 | Recipient rate limiting | yes | cluster-wide, per (sender IP, recipient) |
 
 ## Search
@@ -123,16 +122,17 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | Replication (dsync) | no | [#249](https://github.com/yarilomail/yarilo/issues/249) |
 | Shared and public namespaces | partial | namespaces and ACLs work; cross-user delivery and some enforcement gaps remain ([#544](https://github.com/yarilomail/yarilo/issues/544)) |
 | imap-hibernate | no | idle IMAP sessions are not parked into a separate process; each holds its own. No issue open yet — this row is the record |
-| Prometheus metrics, health endpoints | yes | beyond Dovecot's own stats surface |
-| `doveadm`-equivalent administration | partial | `yarilo-admin` and `yarctl` cover the operations the services expose; the command set is not a one-to-one map of `doveadm` |
+| Prometheus metrics, health endpoints | yes | per-command latencies, storage and index counters, `/healthz` and `/readyz` |
+| Command-line administration | partial | `yarilo-admin` and `yarctl` cover the operations the services expose; the command set is not a one-to-one map of any other server's |
 
-## What "drop-in" means here
+## What migration involves
 
-Configuration keys keep Dovecot's names where the setting means the same thing,
-so `dovecot.conf` → `yarilo.yaml` is mechanical for the covered surface. The
+Configuration keys keep their established names where the setting means the
+same thing, so translating an existing configuration into `yarilo.yaml` is
+mechanical for the covered surface. The
 on-disk formats — Maildir, dbox, the index — are the same layouts, which is
 what makes a migration a matter of pointing yarilo at existing mail rather than
 converting it.
 
-Where a row above says **no**, a Dovecot configuration using that feature has no
-equivalent yet, and the linked issue is the honest state of the plan.
+Where a row above says **no**, a configuration that relies on that feature has
+no equivalent here yet, and the linked issue is the honest state of the plan.
