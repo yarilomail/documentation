@@ -726,7 +726,8 @@ This is a deliberate divergence from the reference, which merges duplicate
 records (`acl_right_names_merge`, `acl-api.c:262-266`). The histories differ, and
 so the default does: our duplicate corpus is machine-generated — by a CLI that
 appended instead of replacing — where the later line is literally the write the
-operator asked for; a Dovecot file acquires a duplicate only from hand-editing,
+operator asked for; a reference-format file acquires a duplicate only from
+hand-editing,
 where merging is the kinder reading. Union was also the behaviour that made an
 ACL impossible to reduce, so merging would have fixed the accumulation and kept
 the defect.
@@ -734,7 +735,7 @@ the defect.
 The consequence to keep in mind once the write path no longer appends: the only
 remaining source of a duplicate is hand-editing, and there last-wins silently
 drops rights an operator listed on purpose — `user=alice lr` then
-`user=alice s` resolves to `s` here and to `lrs` in Dovecot. That is an accepted
+`user=alice s` resolves to `s` here and to `lrs` in the reference. That is an accepted
 trade today; it is written down so it is not later rediscovered as a bug.
 
 ### 7.5 Evaluation order and the storage-name byte layout
@@ -747,8 +748,8 @@ means, recorded so a migration does not read them as faults:
   the tier boundary once; yarilo keeps them as separate lines and decides the
   boundary once per sign. Same answer, including the owner short-circuit, the
   global-over-local ladder and negative subtraction — but a yarilo ACL file lists
-  a negative on its own line where a Dovecot one carries it in the identifier's
-  record.
+  a negative on its own line where a reference file carries it inside the
+  identifier's record.
 
 - **NFC is applied once, at the name-entry boundary.** The reference normalises
   in `mailbox_alloc`, the single point every protocol funnels through; yarilo
@@ -766,7 +767,8 @@ means, recorded so a migration does not read them as faults:
   (`mailbox-list.c:316-343`), which it can because its escaper is mUTF-7-aware.
   Both are self-consistent, but a folder name containing **both** a non-ASCII
   character and the escape character is stored as different bytes on disk under
-  the two. A store migrated from Dovecot is not byte-identical for such a name;
+  the two. A store migrated from the reference is not byte-identical for such a
+  name;
   it must be re-derived through yarilo, not copied. This belongs in the migration
   runbook, not in a code change.
 

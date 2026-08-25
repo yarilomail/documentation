@@ -1,8 +1,8 @@
 # mdbox Alt Storage (Cold Tiering)
 
 yarilo mdbox supports moving messages to a secondary (cold) storage
-tier — functionally equivalent to the reference's `mail_alt_path` +
-`doveadm altmove`. Messages moved to alt storage remain fully
+tier — functionally equivalent to the reference's alt-path setting and its
+alt-move command. Messages moved to alt storage remain fully
 accessible; the Fetch path transparently falls back to the alt
 directory when a file is not found in primary.
 
