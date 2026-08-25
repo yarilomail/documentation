@@ -123,7 +123,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | Shared and public namespaces | partial | namespaces and ACLs work; cross-user delivery and some enforcement gaps remain ([#544](https://github.com/yarilomail/yarilo/issues/544)) |
 | imap-hibernate | no | idle IMAP sessions are not parked into a separate process; each holds its own. No issue open yet — this row is the record |
 | Prometheus metrics, health endpoints | yes | per-command latencies, storage and index counters, `/healthz` and `/readyz` |
-| Command-line administration | yes | `yarctl` covers every operation the services expose — routing, storage, index, quota, ACL, metadata, sessions, auth — and each family is documented on the [administration page](/YARILO-ADMIN). The command set is not a one-to-one map of any other server's, so a migrated runbook is translated rather than copied |
+| Command-line administration | yes | `yarctl` covers the operations the services expose — routing, storage, index, quota, ACL, metadata, sessions, auth — and each family is documented on the [administration page](/YARILO-ADMIN). The command set is not a one-to-one map of any other server's, so a migrated runbook is translated rather than copied |
 
 ## What migration involves
 
