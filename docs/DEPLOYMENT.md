@@ -161,7 +161,7 @@ Model:
   label (one tag = one NFS PV = one `yarilo-backend` release). Per-user shard
   selection (userdb `director_tag`, #746) is unaffected.
 - **Heartbeat = periodic re-register, gated on the PROTOCOL containers'
-  self-health.** Every `backend_register_interval` the sidecar re-sends
+  self-health.** Every `register_interval` seconds (Helm: `backend_register.register_interval`) the sidecar re-sends
   `BACKEND-UP` — but ONLY while **every protocol** container in the pod is serving
   (each protocol's `/readyz`: listener accepting and not wedged). A heartbeat must
   prove the DATA PATH is alive, not merely that a control goroutine still ticks.
