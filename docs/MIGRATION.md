@@ -25,6 +25,20 @@ source is left alone.
 
 **Effect:** writes the destination tree; reads the source.
 
+### What carries over, and what does not
+
+| | after conversion |
+|:---|:---|
+| message GUIDs | **preserved** — the source id is written into the destination, and only a message that had none gets a fresh one. `EMAILID` and JMAP ids survive, so `--guid-backfill` is not needed afterwards |
+| UIDs | **reallocated** in the destination. Clients resync; this is a new store, not a renamed one |
+| flags, internal dates, folder structure | carried |
+| threading sidecar | **not carried.** Conversion writes messages, not conversations — run `--thread-backfill` afterwards, or the account has no conversations until it is |
+| index | rebuilt from what is written, not copied |
+
+The GUID line is the one that matters for a client: a message keeps its identity
+across the conversion even though its UID changes, which is what lets a JMAP
+client recognise mail it already knows.
+
 ## `--guid-backfill` — stable message identifiers
 
 ```sh
@@ -115,6 +129,18 @@ yarilo-migrate --thread-backfill --config /etc/yarilo/yarilo.yaml
 The rebuild is deterministic: the same mail produces the same sidecar, byte for
 byte, so re-running it is safe and a second pass over an unchanged account
 changes nothing.
+
+### Converting a store to another format
+
+```sh
+yarilo-migrate --src maildir --dst mdbox --from /old/mail --to /new/mail --dry-run
+yarilo-migrate --src maildir --dst mdbox --from /old/mail --to /new/mail
+yarilo-migrate --thread-backfill --config /etc/yarilo/yarilo.yaml
+```
+
+No `--guid-backfill` in that sequence: conversion carries the identifiers it
+finds and mints the rest. The thread backfill **is** needed, because the
+sidecar is not part of what conversion writes.
 
 ### Moving an existing store from another server
 
