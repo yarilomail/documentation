@@ -83,7 +83,11 @@ exposes — director state lives in director's process; backend state
 
 ## Command index
 
-Every family the tool exposes, and where each is documented. `yarctl` is
+Every family the tool exposes, and where each is documented. The tool's own
+usage text is checked against its dispatcher by a test in the repository, and
+this index is written from that usage — so a family the tool announces is a
+family this page can list. Nothing checks the page itself: a row missing here
+is a gap, not a build failure. `yarctl` is
 organised as **planes** — `director`, `backend`, `auth` — with a few shorthands
 that skip the prefix.
 
@@ -100,12 +104,16 @@ that skip the prefix.
 | `backend subscriptions` | IMAP SUBSCRIBE state | [below](#backend-subscriptions) |
 | `backend specialuse` | RFC 6154 special-use attributes | [below](#backend-specialuse) |
 | `backend metadata` | RFC 5464 annotations | [below](#backend-metadata) |
+| `backend mailbox` | message retrieval — the content of a stored message | [below](#backend-mailbox) |
 | `backend who` | active sessions | [below](#backend-who) |
 | `backend sessions` | kick a session by id | [below](#backend-sessions) |
 | `fts` | search index status, rescan, optimize | [FTS](/FTS) |
 | `auth` | auth-cache flush, SCRAM verifier generation | [below](#auth) |
 | `warden` | connection accounting dump | [below](#warden) |
 | `wait` | block until endpoints answer | [below](#wait) |
+
+Several families answer without the plane prefix — `user`, `subs`, `fts`,
+`warden` and `wait` are shorthands for their `backend` equivalents.
 
 Run any family with no command to get its usage; the text there is the same one
 this page documents.
@@ -419,7 +427,7 @@ yarctl backend acl get    <user> <mailbox>
 yarctl backend acl get    --root <user>
 yarctl backend acl set    <user> <mailbox> <identifier> <rights>
 yarctl backend acl set    --root <user> <identifier> <rights>
-yarctl backend acl delete <user> <mailbox> [<identifier>]
+yarctl backend acl delete <user> <mailbox> [<identifier>]        # alias: rm
 yarctl backend acl delete --root <user> [<identifier>]
 ```
 
@@ -471,8 +479,8 @@ yarctl backend folder guid    <user> <folder> [--namespace NS]
 yarctl backend folder stats   <user> <folder> [--namespace NS]
 yarctl backend folder repair  <user> <folder> [--namespace NS]
 yarctl backend folder create  <user> <folder> [--namespace NS] [--special-use ATTR]
-yarctl backend folder delete  <user> <folder> [--namespace NS]
-yarctl backend folder rename  <user> <old> <new> [--namespace NS]
+yarctl backend folder delete  <user> <folder> [--namespace NS]   # alias: rm
+yarctl backend folder rename  <user> <old> <new> [--namespace NS] # alias: mv
 yarctl backend folder expunge <user> <folder> [--namespace NS] [--uids 1,2,3]
 ```
 
@@ -501,7 +509,7 @@ What the server knows about an account.
 ```
 yarctl backend user info    <user>
 yarctl backend user usage   <user>
-yarctl backend user iterate
+yarctl backend user iterate                                       # alias: list
 ```
 
 `info` prints the username, the resolved home, the configured namespaces and —
@@ -599,7 +607,7 @@ command uses — so an admin write is visible to a live session immediately.
 ```
 yarctl backend subscriptions list    <user> [--namespace NS]
 yarctl backend subscriptions add     <user> <folder> [--namespace NS]
-yarctl backend subscriptions remove  <user> <folder> [--namespace NS]
+yarctl backend subscriptions remove  <user> <folder> [--namespace NS]   # alias: rm
 yarctl backend subscriptions migrate <user> --namespace NS [--apply]
 ```
 
@@ -618,7 +626,7 @@ top of the configured defaults.
 yarctl backend specialuse list   <user>
 yarctl backend specialuse get    <user> <folder>
 yarctl backend specialuse set    <user> <folder> <attr>
-yarctl backend specialuse delete <user> <folder>
+yarctl backend specialuse delete <user> <folder>   # alias: del
 ```
 
 `get` reports the resolved attribute **and its source**: `override`, `default`
@@ -645,7 +653,7 @@ IMAP METADATA annotations (RFC 5464) — the same entries a client reads with
 yarctl backend metadata list   <user> [<folder>] [--namespace NS] [--scope private|shared] [--as-user U]
 yarctl backend metadata get    <user> [<folder>] --entry /private/comment [--namespace NS] [--as-user U]
 yarctl backend metadata set    <user> [<folder>] --entry /private/comment --value 'literal' | --value-file PATH
-yarctl backend metadata delete <user> [<folder>] --entry /private/comment [--namespace NS] [--as-user U]
+yarctl backend metadata delete <user> [<folder>] --entry /private/comment [--namespace NS] [--as-user U]   # alias: del
 ```
 
 Entry names begin with `/private/` or `/shared/`. **An empty folder targets
@@ -665,6 +673,32 @@ yarctl backend metadata set alice@example.com INBOX \
 ```
 
 **Effect:** `set` and `delete` write.
+
+### `backend mailbox`
+
+Retrieves the content of a stored message. The only family here that returns
+mail rather than metadata about it.
+
+```
+yarctl backend mailbox message get mime <user> <folder> --uid N | --guid G
+yarctl backend mailbox message get raw  <user> <folder> --uid N | --guid G
+```
+
+`mime` prints the headers as written and each part's headers, with the part
+bodies elided — enough to see how a message is structured without reading it.
+`raw` prints the message byte for byte.
+
+A message is addressed by `--uid` within the folder, or by `--guid`, which
+survives the message being moved.
+
+**Effect:** reads only. No flag is set and no counter moves — a `get` here does
+not mark a message `\Seen` the way a client's `FETCH` would, which is what
+makes it safe to inspect a live mailbox.
+
+**Every call is recorded on the backend**, because it returns the contents of
+someone's mailbox. Treat it as you would any other tool that reads user mail:
+reach for `mime` first, and for `raw` only when the bytes themselves are the
+question.
 
 ### `backend who`
 
