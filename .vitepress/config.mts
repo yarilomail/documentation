@@ -51,6 +51,7 @@ export default defineConfig({
   description: 'Yarilo mail server documentation',
   srcDir: 'docs',
   cleanUrls: true,
+  sitemap: { hostname: 'https://doc.yarilomail.org' },
   lastUpdated: true,
   head: [['link', { rel: 'icon', href: '/icon.svg' }]],
   themeConfig: {

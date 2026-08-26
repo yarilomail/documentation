@@ -1,6 +1,6 @@
-# DNS for a mail domain
+# DNS records for a mail domain: MX, SPF, DKIM, DMARC and PTR
 
-The DNS records a mail domain needs before Yarilo can receive and send mail
+The DNS records a mail domain needs before yarilo can receive and send mail
 reliably, and why the nameservers serving them need redundancy of their own.
 For the cluster-side setup see the [Installation Guide](./INSTALL).
 
@@ -17,7 +17,7 @@ appear, and reputation suffers. A mail domain is only as reachable as its DNS.
 
 ## Required records
 
-The minimum set for a production domain served by Yarilo behind an inbound
+The minimum set for a production domain served by yarilo behind an inbound
 MTA. Replace `example.com` and `mail.example.com` with your own names.
 
 | Record | Name | Purpose |
@@ -50,7 +50,7 @@ example.com.   3600  IN  MX  10 mail.example.com.
 ```
 
 The MX target must be a hostname with an A/AAAA record, never an IP address
-and never a CNAME. In a Yarilo deployment this host runs the inbound MTA that
+and never a CNAME. In a yarilo deployment this host runs the inbound MTA that
 delivers to `yarilo-lmtp` — see [LMTP](./LMTP).
 
 ### SPF
@@ -108,6 +108,10 @@ matching PTR.
 | TXT | `_smtp._tls.example.com` | TLS-RPT reporting address |
 | TLSA | `_25._tcp.mail.example.com` | DANE, only with a DNSSEC-signed zone |
 
+MTA-STS needs more than the TXT record: the policy itself is a text file
+served over HTTPS at `https://mta-sts.example.com/.well-known/mta-sts.txt`,
+so the record alone has no effect until that host is up.
+
 Autodiscovery lets mail clients find the IMAP and submission hosts from the
 address alone:
 
@@ -127,7 +131,7 @@ cannot even resolve `mail.example.com` to log in. The mail server itself may
 be perfectly healthy.
 
 RFC 2182 recommends at least two authoritative nameservers on separate
-networks, and most registrars refuse to delegate a domain to fewer than two.
+networks, and most registries refuse to delegate a domain to fewer than two.
 Running one nameserver and listing it twice under different names does not
 count: both names fail together.
 
@@ -149,7 +153,9 @@ dig @ns2.example.com example.com SOA +short
 ```
 
 Both SOA answers must return the same serial. A lagging serial means zone
-transfers are not reaching the secondary.
+transfers are not reaching the secondary — see
+[Understanding AXFR zone transfers](https://seconddns.com/docs/guides/axfr-zone-transfer)
+for how a transfer is requested and where it typically fails.
 :::
 
 ## Verifying the records
