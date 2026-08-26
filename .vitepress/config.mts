@@ -51,6 +51,7 @@ export default defineConfig({
   description: 'Yarilo mail server documentation',
   srcDir: 'docs',
   cleanUrls: true,
+  sitemap: { hostname: 'https://doc.yarilomail.org' },
   lastUpdated: true,
   head: [['link', { rel: 'icon', href: '/icon.svg' }]],
   themeConfig: {
@@ -75,6 +76,7 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/' },
           { text: 'Installation', link: '/INSTALL' },
+          { text: 'DNS for a mail domain', link: '/DNS' },
           { text: 'Migration', link: '/MIGRATION' },
           { text: 'General Configuration', link: '/GENERAL' },
           { text: 'Deployment', link: '/DEPLOYMENT' },
