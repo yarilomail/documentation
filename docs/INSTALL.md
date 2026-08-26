@@ -196,8 +196,10 @@ mail.example.com  A  <LB-IP>
 ```
 
 ::: note
-For real mail you also need MX, SPF/TXT, DKIM and PTR records. For the
-sandbox an A record is enough — the smoke test connects by hostname.
+For real mail you also need MX, SPF/TXT, DKIM and PTR records, and the zone
+should be served by more than one nameserver — see
+[DNS for a mail domain](./DNS). For the sandbox an A record is enough — the
+smoke test connects by hostname.
 :::
 
 #### cert-manager
