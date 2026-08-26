@@ -275,23 +275,41 @@ default**. They answer questions no metric can: which function a saturated
 worker is actually in, where a component's allocations come from, and why
 adding CPU makes a stage slower rather than faster.
 
-Two switches, because two levels of exposure:
+One switch:
 
 | Value | Serves | Contains |
 |:---|:---|:---|
-| `telemetry.pprof.enabled` | `/debug/pprof/profile`, `trace`, `allocs`, `goroutine`, `block`, `mutex`, `threadcreate`, `cmdline`, `symbol` | stacks and counts — where time and allocations go |
-| `telemetry.pprof.heapEnabled` | `/debug/pprof/heap` | **live objects of a process that has just parsed other people's mail** — a dump can contain message bodies |
+| `telemetry.pprof.enabled` | `/debug/pprof/profile`, `trace`, `allocs`, `heap`, `goroutine`, `block`, `mutex`, `threadcreate`, `cmdline`, `symbol` | stacks, counts and symbol names — which code paths this process runs and what they cost |
 
-`block` and `mutex` are in that first list but stay silent until a sampling rate
-is set; see below.
+`block` and `mutex` are in that list but stay silent until a sampling rate is
+set; see below.
 
-They are separate on purpose. Finding where CPU and allocations go — which is
-almost always the question — needs only the first. Turn the heap dump on when
-the question is specifically what is *retained*, and turn it off again after.
+**What a profile does not contain is the contents of anything.** A pprof profile
+is a set of sampled stack traces with object and byte counts attached; the format
+has no field a message body or a credential could appear in. What it does give
+away is the shape of the workload — which paths run, how often, how much they
+allocate — and the symbol names of the binary. That is worth something to
+someone, which is why the switch is off by default and why every component logs
+a warning at each start while it is on.
 
-There is no `/debug/pprof/` index page: it dispatches any path under it to the
-runtime profile of that name, which would serve the heap dump whatever the
-second switch says.
+`telemetry.pprof.heapEnabled` was a second switch, on the grounds that the heap
+route dumped live objects while the rest were only stacks and counts. It is
+**deprecated and does nothing**; a process that finds it set says so at start.
+Go's `heap` and `allocs` are the same profile with different default sample
+types, so the allocation route always served `inuse_space` as well — the switch
+withheld nothing.
+
+Asking what is *retained* rather than what was allocated is a matter of the
+sample type, not the route:
+
+```sh
+go tool pprof -inuse_space http://localhost:8080/debug/pprof/allocs
+```
+
+There is no `/debug/pprof/` index page. It dispatches any path under it to the
+runtime profile of that name, so the set of routes would be decided by whatever
+any package in the binary registered with `runtime/pprof` rather than by the
+list above.
 
 While either switch is on, every component logs a warning **at every start**
 naming what is exposed. That is deliberate — the failure this guards against is
@@ -341,7 +359,7 @@ kubectl -n <ns> port-forward pod/<pod> 8080:<telemetry-port>
 # 30 seconds of CPU, which is what identifies a hot stage
 go tool pprof -http=: "http://localhost:8080/debug/pprof/profile?seconds=30"
 
-# where allocations are made, no message content involved
+# where allocations are made, and -inuse_space for what is still held
 go tool pprof -http=: http://localhost:8080/debug/pprof/allocs
 ```
 
