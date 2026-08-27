@@ -163,10 +163,10 @@ the body, which is almost never a newline.
 **What this does and does not buy.** The *records* are compatible in both directions: mail
 written by another dbox v2 implementation is read here, and mail written here is read and
 appended to there. The *store* is not: the index that says which message lives at which
-offset is ours (`yarilo.map.index`, `yarilo.index*`), and files such as `dovecot.map.index`
-or `dovecot.index*` are not read. Pointing another implementation at a yarilo tree, or the
-reverse, therefore shows an empty mailbox even though every file in it would parse. Store
-interoperability is a separate piece of work and is not scheduled.
+offset is ours (`yarilo.map.index`, `yarilo.index*`), and another implementation's map index
+and per-folder index files are not read. Pointing another implementation at a yarilo tree,
+or the reverse, therefore shows an empty mailbox even though every file in it would parse.
+Store interoperability is a separate piece of work and is not scheduled.
 
 Three parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
 under `storage:`, mdbox only):
