@@ -25,6 +25,7 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 |:---|:---|:---|
 | `login_greeting` | `Yarilo ready.` | Text appended to the `220` banner. |
 | `lmtp_add_received_header` | `true` | Prepend a `Received:` header to every delivered message. |
+| `lmtp_add_message_id` | `true` | Synthesise a `Message-ID:` when a message arrives without one. An existing header is never rewritten. |
 | `lmtp_save_to_detail_mailbox` | `false` | When `true`, `user+folder@domain` delivers to the `folder` mailbox instead of `INBOX`. |
 | `lmtp_hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
 | `lmtp_verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
@@ -35,11 +36,44 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `lmtp_listen` | — | Listen address of the backend LMTP service. |
 | `lmtp_backend_port` | — | Port the login service proxies to on the backend. |
 
+### `lmtp_add_message_id`
+
+A message stored without a `Message-ID` cannot be replied to and cannot be
+threaded, and that is permanent: the header is part of the stored bytes, so
+nothing can add it afterwards without rewriting mail. Such a message is its own
+root in every conversation, no later reply can name it in `In-Reply-To` or
+`References`, and JMAP reports its `messageId` as `null`.
+
+Behind an MTA the header is already present and this key changes nothing. Fed
+LMTP directly — a script, or a deployment with no MTA in front — delivery is the
+last place the identity can still be given, which is why the default is `true`.
+Set it to `false` if the stored bytes must be exactly what arrived.
+
+The identifier is 128 bits of randomness at the server's hostname:
+
+```
+Message-ID: <9f0c6a1d4b2e8735c1a0d6f4e2b98357@mx.example.com>
+```
+
+Unique among all messages, as RFC 5322 §3.6.4 requires, rather than unique
+within one host or one run.
+
+**An existing `Message-ID` is never rewritten**, not even a malformed one:
+whatever a sender wrote is what a reply quotes back in `References`, so
+replacing it would break the conversation the message already belongs to. Only a
+message whose header section has no `Message-ID` field at all is given one — a
+header inside a forwarded or quoted message is body, and does not count.
+
+The header is added before Sieve runs, before the message is stored and before
+the conversation is recorded, so a script, the stored bytes and the thread all
+see the same identity.
+
 ```yaml
 protocol:
   lmtp:
     login_greeting: "Yarilo ready."
     lmtp_add_received_header: true
+    lmtp_add_message_id: true
     lmtp_save_to_detail_mailbox: false
     lmtp_hdr_delivery_address: final
     lmtp_verbose_replies: false
