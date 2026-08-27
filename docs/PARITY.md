@@ -29,7 +29,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 |:---|:---|:---|
 | IMAP4rev1 / IMAP4rev2 | yes | RFC 3501 / RFC 9051 |
 | POP3 | yes | including `TOP`, `UIDL` |
-| LMTP | yes | delivery, proxying to backends |
+| LMTP | yes | delivery, proxying to backends, a synthesised `Message-ID` when one is missing |
 | Submission (MSA) | yes | separate service, relay to an external MTA |
 | ManageSieve | yes | RFC 5804 |
 | JMAP | partial | **reads and synchronises; does not write.** `Email/get`, `Mailbox/get`, `Thread/get`, `*/changes` with real state strings. `Email/set`, `Mailbox/set` and blob upload are not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)); push is not ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
