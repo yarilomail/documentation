@@ -36,6 +36,21 @@ rather than silently plausible.
 
 ---
 
+## `chart_version` (top level, chart-managed)
+
+Written by the Helm chart, not by an operator. It carries the chart's own
+version so a process can say whether the ConfigMap beside it was rendered by the
+same release it was built from — `helm upgrade --set image.tag=X` pairs a binary
+with whatever chart is on disk, and a chart older than the binary silently fails
+to render keys the binary reads.
+
+**Do not set it.** There is no such value in `values.yaml`, so a Helm deployment
+cannot reach it. A hand-written `yarilo.yaml` that carries a different value gets
+a warning at start and nothing else: refusing to start over a version string
+would be a worse failure than the one being reported.
+
+---
+
 ## `general.ssl`
 
 Shared TLS certificate. Used by every TLS-enabled listener that does not define its own `ssl:` override.

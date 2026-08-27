@@ -21,7 +21,7 @@ marked `no` name the notable extensions that are not advertised. Where this
 page and a protocol page disagree, this one is the one kept current — the
 disagreement is a bug in the other, and both are fixed together.
 
-Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
+Version: **2.4.x line** (stable). Last reviewed 2026-08-27.
 
 ## Protocols
 
@@ -32,7 +32,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-25.
 | LMTP | yes | delivery, proxying to backends, a synthesised `Message-ID` when one is missing |
 | Submission (MSA) | yes | separate service, relay to an external MTA |
 | ManageSieve | yes | RFC 5804 |
-| JMAP | partial | **reads and synchronises; does not write.** `Email/get`, `Mailbox/get`, `Thread/get`, `*/changes` with real state strings. `Email/set`, `Mailbox/set` and blob upload are not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)); push is not ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
+| JMAP | partial | **reads, synchronises, and writes keywords.** `Mailbox/{get,query,changes}`, `Email/{get,query,set,changes}`, `Thread/{get,changes}`, `SearchSnippet/get`, blob download, back-references, real state strings. `Email/set` updates keywords; **create and destroy are refused** with an answer naming what to use instead (append over IMAP, deliver over LMTP, expunge over IMAP). `Mailbox/set` and blob upload are not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)); push is not ([#714](https://github.com/yarilomail/yarilo/issues/714)). `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design — a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false` |
 
 ## IMAP extensions
 
