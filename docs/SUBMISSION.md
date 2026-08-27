@@ -17,7 +17,7 @@ Protocol-level behaviour shared across both submission listeners.
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `hostname` | system hostname | EHLO/HELO banner and `Message-ID` domain. |
+| `hostname` | the top-level `hostname` | EHLO/HELO banner and `Message-ID` domain **for submission only**. Unset means the installation's name; see [General](GENERAL). Setting it here does not rename the LMTP banner, the `Received:` header or a delivered message's `Message-ID`. |
 | `submission_max_mail_size` | `41943040` | Maximum accepted message size in bytes (default 40 MiB). |
 | `max_line_length` | `4096` | Maximum SMTP command or DATA line length in bytes. |
 | `submission_max_recipients` | `0` | Maximum recipients per message. `0` = unlimited. |
