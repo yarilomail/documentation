@@ -4,6 +4,38 @@ The `general` section defines infrastructure settings shared across all listener
 
 ---
 
+## `hostname` (top level)
+
+What this installation calls itself. It is not inside `general:` — it sits at
+the top level of `yarilo.yaml`, because more than one section needs it.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `hostname` | the host's own name (`os.Hostname()`) | The name yarilo answers with and stamps into mail. |
+
+Four things read it:
+
+- the domain part of a `Message-ID` synthesised at delivery (see [LMTP](LMTP)),
+- the LMTP `LHLO` banner,
+- the `Received:` header added at delivery,
+- submission's banner and `Message-ID` domain — unless `protocol.submission.hostname` is set, which overrides **submission alone**.
+
+```yaml
+hostname: mail.example.com
+```
+
+**Set it on a cluster.** The default is each process's own hostname, which is
+right for a single node and wrong for several: every pod would answer with a
+different name, and the identifiers they write would disagree about where the
+mail came from. The correct value is the name your mail is seen under, and it is
+a decision that cannot be defaulted into.
+
+Leaving it explicitly empty is possible and produces a placeholder name in those
+headers. That is deliberate: a missing setting should be visible in the mail
+rather than silently plausible.
+
+---
+
 ## `general.ssl`
 
 Shared TLS certificate. Used by every TLS-enabled listener that does not define its own `ssl:` override.
