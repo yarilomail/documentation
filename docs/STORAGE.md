@@ -135,12 +135,38 @@ fidelity for dropped records, since it rewrites the whole set.
 
 On-disk `m.<N>` files follow the **dbox v2 layout**: the ASCII file-header line
 (`version M<hdr-size> C<create-stamp>`) is written **once per physical file**, before its
-first message, then each message is `[32-byte header][body][trailer]`. The reader is
+first message, then each message is `[header][body][trailer]`. The reader is
 self-describing — at each record it tells a file-header line (starts with the ASCII version
 digit) apart from a raw message header (starts with the `\x01\x02` magic) by the first
-byte, so a reference-format store parses past the first message in a multi-message file, and
-legacy yarilo stores that stamped the header before every record still read back unchanged
-(no migration).
+byte, so a store written by another implementation parses past the first message in a
+multi-message file, and legacy yarilo stores that stamped the header before every record
+still read back unchanged (no migration).
+
+### Record header size
+
+The message header is **30 bytes**, announced as `M1e` in the file-header line: two magic
+bytes, the type byte `N`, spaces, the 16-character hex message size at offsets 13..29, and
+LF as the **last** byte. `u.<UID>` files under sdbox carry the same header.
+
+**The size is read from `M`, never assumed.** Every reader — the fetch path, the compaction
+read, and both rebuild scanners — takes it from the file-header line that introduces the
+record, or from the file's own first line when the record is an appended one that carries
+none. That is what makes records written elsewhere readable: they announce their own size.
+
+Builds before 2.4.1 wrote a 32-byte header and announced it as `M20`. Those stores are
+**read unchanged** — no migration, no rewrite — and nothing writes `M20` again.
+
+A header is rejected when its last byte is not LF. That check is what catches a header read
+at the wrong size: read 32 bytes of a 30-byte header and the last byte is the first byte of
+the body, which is almost never a newline.
+
+**What this does and does not buy.** The *records* are compatible in both directions: mail
+written by another dbox v2 implementation is read here, and mail written here is read and
+appended to there. The *store* is not: the index that says which message lives at which
+offset is ours (`yarilo.map.index`, `yarilo.index*`), and files such as `dovecot.map.index`
+or `dovecot.index*` are not read. Pointing another implementation at a yarilo tree, or the
+reverse, therefore shows an empty mailbox even though every file in it would parse. Store
+interoperability is a separate piece of work and is not scheduled.
 
 Three parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
 under `storage:`, mdbox only):
