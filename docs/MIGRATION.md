@@ -144,8 +144,19 @@ sidecar is not part of what conversion writes.
 
 ### Moving an existing store from another server
 
-Point yarilo at the store, then fill in what it does not carry — **in this
-order**, because the second depends on the first:
+**Maildir only.** Pointing yarilo at a Maildir tree works, because a Maildir
+mailbox *is* its files: the message is the file, and the directory is the index.
+A dbox tree — mdbox `m.<N>` or sdbox `u.<UID>` — is a different case: the
+records parse, but the index saying which message sits at which offset is not
+read, so the mailbox comes up **empty**. See
+[Storage](STORAGE#record-header-size) for what does and does not interoperate.
+
+Moving a dbox store from another server therefore means moving the mail rather
+than adopting the tree: deliver it over LMTP, or upload it over IMAP, into a
+store yarilo has written itself.
+
+For a Maildir tree, point yarilo at the store, then fill in what it does not
+carry — **in this order**, because the second depends on the first:
 
 ```sh
 # 1. Stable identifiers. Threading keys on these.
