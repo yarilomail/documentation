@@ -344,6 +344,34 @@ A large `replay` share means the map log has not been folded. On a read-only
 workload nothing folds it — see
 [Folding indexes before a measurement](STORAGE.md#folding-indexes-before-a-measurement).
 
+### `imap_unreadable_messages_total`
+
+The one metric that says the server answered a client with less than the
+mailbox holds.
+
+| Label | Values |
+|:---|:---|
+| `command` | `search`, `sort`, `thread`, `fetch` |
+
+**One unit is one message a command could not read, and therefore left out of
+its answer.** Not one attribute and not one section: a FETCH that loses the
+envelope, the structure and the body of a single message counts once.
+
+It matters because the answer itself is silent. A message whose stored record
+cannot be read comes back as `* n FETCH ()` — the message is in the mailbox,
+`SELECT` counts it, `RFC822.SIZE` is served from the index, and every content
+section is empty. Nothing in that response distinguishes it from a message that
+really is empty, and the protocol has no way to say so. This counter is the only
+place it surfaces.
+
+**Alert on any increase.** There is no healthy rate: a server that cannot read
+stored mail is either looking at a store written by something else, or at one it
+has damaged.
+
+```
+increase(imap_unreadable_messages_total[15m]) > 0
+```
+
 ---
 
 ## Log verbosity
