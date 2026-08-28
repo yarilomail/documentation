@@ -324,6 +324,21 @@ For mdbox there is one more structure, opened once per session:
 |:---|:---|
 | `mdbox_map_open_seconds` | opening the per-user map, whole |
 | `mdbox_map_open_part_seconds{part="base"\|"replay"}` | reading the base against replaying its log |
+| `mdbox_map_lock_acquire_seconds` | the round trip that takes the cross-process map lock, retries included |
+| `mdbox_map_lock_hold_seconds` | work done while holding it |
+| `yarilo_locks_acquire_busy_retries_total` | acquisitions that found a resource held and backed off |
+
+The two lock timings answer different questions and the difference between them
+is not contention. **Acquire** is a call to the lock service: it is paid on every
+acquisition, including when nothing holds the lock, and on a healthy deployment
+it runs tens of times longer than the hold — the service answers in about 1.5 ms
+and the rest is transport and scheduling. **Hold** is this process's own work
+under the lock, and is the one to watch when map operations slow down.
+
+Contention is the retry counter, not the ratio. A rising
+`yarilo_locks_acquire_busy_retries_total` means callers are finding resources
+held; a large acquire-over-hold ratio on its own means only that a network call
+costs more than a local one.
 
 A large `replay` share means the map log has not been folded. On a read-only
 workload nothing folds it — see
