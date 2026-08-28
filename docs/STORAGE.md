@@ -160,9 +160,22 @@ A header is rejected when its last byte is not LF. That check is what catches a 
 at the wrong size: read 32 bytes of a 30-byte header and the last byte is the first byte of
 the body, which is almost never a newline.
 
-**What this does and does not buy.** The *records* are compatible in both directions: mail
-written by another dbox v2 implementation is read here, and mail written here is read and
-appended to there. The *store* is not: the index that says which message lives at which
+**What this does and does not buy.** The *records* parse in both directions, and the claim
+rests on files another implementation actually wrote rather than on files built to match the
+description: a storage file carrying three records, only the first of them preceded by a
+file-header line, plus two single-message files, are held in the server tree and read by the
+tests on every run. In the other direction the record this server writes is held against one
+of those — the file-header line and the message header byte for byte, since those are the
+parts the other implementation reads before it appends, and the metadata trailer by its keys
+and values, since the two implementations write those lines in different orders.
+
+Parsing is the whole of the claim. **Serving** a record another implementation wrote back to a
+client in CRLF is not done today: such a record can be stored with bare LF, and the body is
+returned as it lies on disk. That is [#1527](https://github.com/yarilomail/yarilo/issues/1527),
+and it is not in 2.4.1 — reaching it requires placing another implementation's files under this
+server's index by hand, which is the store question below.
+
+The *store* is not: the index that says which message lives at which
 offset is ours (`yarilo.map.index`, `yarilo.index*`), and another implementation's map index
 and per-folder index files are not read. Pointing another implementation at a yarilo tree,
 or the reverse, therefore shows an empty mailbox even though every file in it would parse.
