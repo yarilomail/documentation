@@ -352,6 +352,7 @@ mailbox holds.
 | Label | Values |
 |:---|:---|
 | `command` | `search`, `sort`, `thread`, `fetch` |
+| `reason` | `unreadable`, `gone` |
 
 **One unit is one message a command could not read, and therefore left out of
 its answer.** Not one attribute and not one section: a FETCH that loses the
@@ -364,19 +365,35 @@ section is empty. Nothing in that response distinguishes it from a message that
 really is empty, and the protocol has no way to say so. This counter is the only
 place it surfaces.
 
-**Do not alert on any increase yet.** The counter does not currently separate
-two different things: a message whose stored record could not be read, and a
-message removed by one connection while another was fetching it. The second is
-ordinary — a clean load run produced 239 of them — so an alert on the bare
-counter fires on healthy traffic.
+### `reason="unreadable"` — the one to alert on
 
-Watch the rate instead, and read a change against what the server was doing. A
-step on an idle server, or a rise that does not track expunge traffic, is the
-signal; a level that moves with client load is not.
+The message is on disk and could not be served. There is no healthy rate for
+this: a server that cannot read stored mail is either looking at a store
+written by something else, or at one it has damaged.
 
 ```
-rate(imap_unreadable_messages_total[15m])
+increase(imap_unreadable_messages_total{reason="unreadable"}[15m]) > 0
 ```
+
+### `reason="gone"` — the index and the store disagree
+
+The index lists a message the store does not have.
+
+**This is normal at a low level and rises with client activity.** One connection
+expunging a message while another is fetching it produces exactly this: the
+second was working from a view taken before the expunge. A load run against a
+healthy server produced 239 of them, which is why the alert above is on the
+other reason and not on the bare counter.
+
+It is worth watching all the same, because a real divergence looks identical
+per event and different in the aggregate. What distinguishes them:
+
+- it rises while nothing is expunging — an idle server, or a mailbox nobody is
+  writing to;
+- it does not fall back to its usual level when client activity does;
+- it concentrates on one user or folder rather than following the load.
+
+Compare it against expunge traffic rather than reading it alone.
 
 ---
 
