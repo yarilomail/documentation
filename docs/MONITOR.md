@@ -324,10 +324,59 @@ For mdbox there is one more structure, opened once per session:
 |:---|:---|
 | `mdbox_map_open_seconds` | opening the per-user map, whole |
 | `mdbox_map_open_part_seconds{part="base"\|"replay"}` | reading the base against replaying its log |
+| `mdbox_map_lock_acquire_seconds` | the round trip that takes the cross-process map lock, retries included |
+| `mdbox_map_lock_hold_seconds` | work done while holding it |
+| `yarilo_locks_acquire_busy_retries_total` | acquisitions that found a resource held and backed off |
+
+The two lock timings answer different questions and the difference between them
+is not contention. **Acquire** is a call to the lock service: it is paid on every
+acquisition, including when nothing holds the lock, and on a healthy deployment
+it runs tens of times longer than the hold — the service answers in about 1.5 ms
+and the rest is transport and scheduling. **Hold** is this process's own work
+under the lock, and is the one to watch when map operations slow down.
+
+Contention is the retry counter, not the ratio. A rising
+`yarilo_locks_acquire_busy_retries_total` means callers are finding resources
+held; a large acquire-over-hold ratio on its own means only that a network call
+costs more than a local one.
 
 A large `replay` share means the map log has not been folded. On a read-only
 workload nothing folds it — see
 [Folding indexes before a measurement](STORAGE.md#folding-indexes-before-a-measurement).
+
+### `imap_unreadable_messages_total`
+
+The one metric that says the server answered a client with less than the
+mailbox holds.
+
+| Label | Values |
+|:---|:---|
+| `command` | `search`, `sort`, `thread`, `fetch` |
+
+**One unit is one message a command could not read, and therefore left out of
+its answer.** Not one attribute and not one section: a FETCH that loses the
+envelope, the structure and the body of a single message counts once.
+
+It matters because the answer itself is silent. A message whose stored record
+cannot be read comes back as `* n FETCH ()` — the message is in the mailbox,
+`SELECT` counts it, `RFC822.SIZE` is served from the index, and every content
+section is empty. Nothing in that response distinguishes it from a message that
+really is empty, and the protocol has no way to say so. This counter is the only
+place it surfaces.
+
+**Do not alert on any increase yet.** The counter does not currently separate
+two different things: a message whose stored record could not be read, and a
+message removed by one connection while another was fetching it. The second is
+ordinary — a clean load run produced 239 of them — so an alert on the bare
+counter fires on healthy traffic.
+
+Watch the rate instead, and read a change against what the server was doing. A
+step on an idle server, or a rise that does not track expunge traffic, is the
+signal; a level that moves with client load is not.
+
+```
+rate(imap_unreadable_messages_total[15m])
+```
 
 ---
 
