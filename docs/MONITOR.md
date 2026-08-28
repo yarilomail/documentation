@@ -364,12 +364,18 @@ section is empty. Nothing in that response distinguishes it from a message that
 really is empty, and the protocol has no way to say so. This counter is the only
 place it surfaces.
 
-**Alert on any increase.** There is no healthy rate: a server that cannot read
-stored mail is either looking at a store written by something else, or at one it
-has damaged.
+**Do not alert on any increase yet.** The counter does not currently separate
+two different things: a message whose stored record could not be read, and a
+message removed by one connection while another was fetching it. The second is
+ordinary — a clean load run produced 239 of them — so an alert on the bare
+counter fires on healthy traffic.
+
+Watch the rate instead, and read a change against what the server was doing. A
+step on an idle server, or a rise that does not track expunge traffic, is the
+signal; a level that moves with client load is not.
 
 ```
-increase(imap_unreadable_messages_total[15m]) > 0
+rate(imap_unreadable_messages_total[15m])
 ```
 
 ---
