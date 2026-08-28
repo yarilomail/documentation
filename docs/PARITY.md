@@ -21,7 +21,7 @@ marked `no` name the notable extensions that are not advertised. Where this
 page and a protocol page disagree, this one is the one kept current — the
 disagreement is a bug in the other, and both are fixed together.
 
-Version: **2.4.x line** (stable). Last reviewed 2026-08-27.
+Version: **2.4.x line** (beta). Last reviewed 2026-08-28.
 
 ## Protocols
 
