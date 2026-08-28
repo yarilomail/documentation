@@ -21,7 +21,18 @@ marked `no` name the notable extensions that are not advertised. Where this
 page and a protocol page disagree, this one is the one kept current — the
 disagreement is a bug in the other, and both are fixed together.
 
-Version: **2.4.x line** (stable). Last reviewed 2026-08-27.
+Version: **2.4.x line** (beta). Last reviewed 2026-08-28.
+
+Beta, and stated here rather than left to be inferred: defects are still being
+found in the field faster than their causes are understood. The most recent
+were found by running the server, not by reading it — a record written by
+another implementation served with bare LF, a counter that stayed silent
+through the two faults it exists to catch and then fired 239 times on ordinary
+traffic. None of them were reachable by reasoning about the code first.
+
+What that means for a reader of this page: the feature rows are accurate about
+what is implemented and exercised. They are not a claim that the implementation
+is settled.
 
 ## Protocols
 
