@@ -160,9 +160,20 @@ A header is rejected when its last byte is not LF. That check is what catches a 
 at the wrong size: read 32 bytes of a 30-byte header and the last byte is the first byte of
 the body, which is almost never a newline.
 
-**What this does and does not buy.** The *records* are compatible in both directions: mail
-written by another dbox v2 implementation is read here, and mail written here is read and
-appended to there. The *store* is not: the index that says which message lives at which
+**What this does and does not buy.** The *records* are compatible in both directions, and
+the claim rests on files another implementation actually wrote rather than on files built to
+match the description: a storage file carrying three records, only the first of them preceded
+by a file-header line, plus two single-message files, are held in the tree and read by the
+tests on every run. In the other direction the record this server writes is compared with one
+of those byte for byte across the file-header line and the message header — the two parts the
+other implementation checks before it appends.
+
+One thing found by doing that is worth stating plainly: the trailer key `V`, which holds the
+CRLF-counted size, currently carries the length of the bytes on disk instead. The two agree
+for mail arriving over LMTP, which is CRLF throughout, and diverge for a body stored with bare
+LF.
+
+The *store* is not: the index that says which message lives at which
 offset is ours (`yarilo.map.index`, `yarilo.index*`), and another implementation's map index
 and per-folder index files are not read. Pointing another implementation at a yarilo tree,
 or the reverse, therefore shows an empty mailbox even though every file in it would parse.
