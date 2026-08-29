@@ -144,16 +144,70 @@ sidecar is not part of what conversion writes.
 
 ### Moving an existing store from another server
 
-**Maildir only.** Pointing yarilo at a Maildir tree works, because a Maildir
-mailbox *is* its files: the message is the file, and the directory is the index.
-A dbox tree — mdbox `m.<N>` or sdbox `u.<UID>` — is a different case: the
-records parse, but the index saying which message sits at which offset is not
-read, so the mailbox comes up **empty**. See
+**Pointing yarilo at the tree: Maildir only.** A Maildir mailbox *is* its
+files — the message is the file, and the directory is the index. A dbox tree —
+mdbox `m.<N>` or sdbox `u.<UID>` — is a different case: the records parse, but
+the index saying which message sits at which offset is not read, so a mailbox
+pointed at directly comes up **empty**. See
 [Storage](STORAGE#record-header-size) for what does and does not interoperate.
 
+A dbox store is therefore **converted rather than adopted**, and that is what
+`--src dbox-ref` below does: it reads the other server's index as well as its
+records, and writes a store of ours.
+
 Moving a dbox store from another server therefore means moving the mail rather
-than adopting the tree: deliver it over LMTP, or upload it over IMAP, into a
-store yarilo has written itself.
+than adopting the tree. There are two ways, and they differ in what survives.
+
+#### `--src dbox-ref` — read the other server's store, write ours
+
+```sh
+yarilo-migrate --src dbox-ref --dst mdbox \
+  --from /var/mail/olduser --to /var/mail/newuser --dry-run
+```
+
+Reads the store where it is and writes a fresh one. **The source is never
+written to**, so it can be run against a copy, and `--dry-run` prints what it
+would do without writing at all.
+
+**What comes across**
+
+| | |
+|:---|:---|
+| messages, in their folders | yes, including nested folders and non-ASCII names |
+| flags — `\Seen` `\Answered` `\Flagged` `\Deleted` `\Draft` | yes |
+| keywords | yes |
+| per-message identifiers (GUID) | yes |
+| received date | yes |
+| **UIDs and UIDVALIDITY** | **no — reallocated** |
+| subscriptions, ACLs, quota state | no |
+
+The flags and the keywords are the reason this exists: a dbox record carries
+neither, so anything that read only the stored files would hand over a mailbox
+in which nothing has been read and nothing is marked.
+
+UIDs are reallocated because the messages are written through the destination's
+own save path, as in every other conversion here. Clients resynchronise the
+account once afterwards.
+
+**What it requires**
+
+The store must be the reference's default dbox layout — a folder is a directory
+under `mailboxes/` with its messages in a `dbox-Mails` beneath it. Anything
+else is not read, and is not half-read either: nothing outside that shape looks
+like a folder.
+
+**A folder whose index cannot be read stops the import**, naming the folder,
+rather than importing it as empty. Importing an unreadable folder as empty
+would lose its mail with nothing in the output saying so.
+
+**The source server must be stopped.** This reads files that a running server
+is still writing.
+
+#### Delivery or upload
+
+Deliver the mail over LMTP, or upload it over IMAP, into a store yarilo has
+written itself. Slower, and it carries no flags or keywords either — but it
+needs no access to the old server's files and no downtime on it.
 
 For a Maildir tree, point yarilo at the store, then fill in what it does not
 carry — **in this order**, because the second depends on the first:
