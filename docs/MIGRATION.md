@@ -179,6 +179,7 @@ would do without writing at all.
 | per-message identifiers (GUID) | yes |
 | received date | yes |
 | **UIDs and UIDVALIDITY** | **no — reallocated** |
+| flags and keywords, for a folder whose index is missing | no — see below |
 | subscriptions, ACLs, quota state | no |
 
 The flags and the keywords are the reason this exists: a dbox record carries
@@ -196,9 +197,47 @@ under `mailboxes/` with its messages in a `dbox-Mails` beneath it. Anything
 else is not read, and is not half-read either: nothing outside that shape looks
 like a folder.
 
-**A folder whose index cannot be read stops the import**, naming the folder,
-rather than importing it as empty. Importing an unreadable folder as empty
-would lose its mail with nothing in the output saying so.
+**A folder with no index is recovered from the store instead**, and what it
+costs is stated below. A folder whose index is there but unreadable — a
+permission problem, a truncated file — stops the import instead, naming it: a
+folder imported as empty would lose its mail with nothing in the output saying
+so.
+
+**The map is required.** Everything the importer knows about where a message's
+bytes are comes from it, so a store without a readable
+`storage/dovecot.map.index.log` cannot be imported at all.
+
+##### When a folder has no index
+
+Its messages are found by walking the store's records, which describe
+themselves. That recovers the message and loses the rest:
+
+| | |
+|:---|:---|
+| body, GUID, received date | yes |
+| **flags and keywords** | **no — a dbox record carries none** |
+| folder | the one the record names, which is where the message was **first saved** |
+
+The last row is the one to read twice. Nothing rewrites that name when a
+message is moved, so a mailbox somebody has been filing for years comes back
+sorted by where each message originally landed.
+
+This is **mdbox only**. Only mdbox writes the folder name into the record;
+sdbox does not, because a single-message file already sits in its folder's
+directory — so an sdbox folder without an index is found by its path, not by
+this.
+
+##### The run says which messages came which way
+
+```
+migration complete migrated=1204 from_index=1198 from_store_scan=6
+                   folders_with_index=14 folders_scanned=1
+```
+
+and a run that used the scan at all warns. Check those numbers before telling
+anyone the migration is done: `from_store_scan` is mail that arrived with no
+flags and no keywords, and a large number there means the folder indexes were
+not copied with the store.
 
 **The source server must be stopped.** This reads files that a running server
 is still writing.
