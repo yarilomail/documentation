@@ -204,8 +204,8 @@ folder imported as empty would lose its mail with nothing in the output saying
 so.
 
 **The map is required.** Everything the importer knows about where a message's
-bytes are comes from it, so a store without a readable
-`storage/dovecot.map.index.log` cannot be imported at all.
+bytes are comes from it, so a store whose map transaction log under `storage/`
+cannot be read cannot be imported at all.
 
 ##### When a folder has no index
 
