@@ -144,21 +144,92 @@ sidecar is not part of what conversion writes.
 
 ### Moving an existing store from another server
 
-**Pointing yarilo at the tree: Maildir only.** A Maildir mailbox *is* its
-files — the message is the file, and the directory is the index. A dbox tree —
-mdbox `m.<N>` or sdbox `u.<UID>` — is a different case: the records parse, but
-the index saying which message sits at which offset is not read, so a mailbox
-pointed at directly comes up **empty**. See
-[Storage](STORAGE#record-header-size) for what does and does not interoperate.
+There are two ways, and the difference is not a matter of taste: they answer
+different questions.
 
-A dbox store is therefore **converted rather than adopted**, and that is what
-`--src dbox-ref` below does: it reads the other server's index as well as its
-records, and writes a store of ours.
+| | |
+|:---|:---|
+| **Import** — `--src dbox-ref` | the mail moves to a **different** store, on a server that keeps running elsewhere. The source is never written to. |
+| **Adoption** — in place | this server takes over **the same** store, where it lies. Nothing is copied, and the other server can no longer serve it afterwards. |
 
-Moving a dbox store from another server therefore means moving the mail rather
-than adopting the tree. There are two ways, and they differ in what survives.
+Import is what you want when the two servers coexist, when the source must stay
+readable, or when the destination is somewhere else entirely. Adoption is what
+you want when yarilo is replacing the server over a store that stays put — and
+it is the only one of the two that keeps a client from resynchronising, because
+it is the only one that keeps the UIDs.
 
-#### `--src dbox-ref` — read the other server's store, write ours
+A Maildir tree is a third case and needs neither: a Maildir mailbox *is* its
+files, so it is pointed at directly. A dbox tree is not — the records parse,
+but the index saying which message sits at which offset has to be read, which
+is what both routes below do and what pointing at the tree does not.
+
+#### Adoption — this server takes over the store in place
+
+Point the deployment at the store and open a folder. The first open reads the
+other server's index for that folder, writes ours beside it, and removes theirs.
+The messages are not copied, moved or rewritten: our map records point at the
+same storage files at the same offsets.
+
+**This is one-way, and it is one-way for the whole store from the first open,
+not folder by folder.** The other server will not find a folder it can no longer
+name, whether or not that folder has been converted yet. Going back means a
+restore, not a downgrade.
+
+**What comes across**
+
+| | |
+|:---|:---|
+| messages, in their folders | yes, including nested folders and non-ASCII names |
+| flags and keywords | yes |
+| **UIDs and UIDVALIDITY** | **yes — unchanged** |
+| the next UID a folder will hand out | yes, theirs — not one past the highest surviving message |
+| per-message identifiers (GUID) | yes |
+| subscriptions | yes |
+| ACLs, quota state | no |
+
+The UIDs are the point of adopting rather than importing. A client reconnecting
+over the same mailbox finds the numbers it left and resynchronises nothing;
+fresh ones would make it refetch every message, which costs what a migration
+over IMAP costs.
+
+**Folder names are brought to the encoding this deployment writes.** The other
+server spells them one way and `mailbox_list_utf8` says how yarilo spells them;
+where the two differ, a folder is unreadable under either name, so the
+directories are renamed once. A name that cannot be read as the other server's
+is left exactly as it is.
+
+**What happens to their files**
+
+Per folder, at the moment it is converted: the index, its log, the rotated logs
+and the cache file. Anything else in the directory is not ours to remove and
+stays.
+
+Store-wide — their map and its logs, and their subscription file — only when
+**no folder of theirs is left**. A folder nobody has opened still addresses its
+mail through their map, so a store where some folder is never selected keeps
+that map indefinitely. That is the correct outcome and not a leak.
+
+**What stops it**
+
+| | |
+|:---|:---|
+| the store cannot be written to | refused, naming the directory: adoption deletes files, and a read-only store — a snapshot, a replica — cannot have that done to it. Import the store offline instead. |
+| a folder of theirs with no map of theirs | refused: the messages it names cannot be located at all, and a folder served empty is the one answer nobody checks. |
+| their index unreadable | refused for that folder, naming it. |
+
+**mdbox only.** An sdbox store of theirs keeps each message in its own file with
+no map to convert; adopting one is not implemented, and it is refused rather
+than half-done.
+
+**The other server must be stopped**, and the store must not be shared with it.
+This rewrites index files it would otherwise be writing.
+
+**What it costs.** A folder is converted once, on its first open, holding the
+folder's write lock — so a delivery arriving mid-conversion waits for it. On a
+three-thousand-message folder that wait is tens of milliseconds, the same order
+as an ordinary large SELECT.
+
+#### Import — `--src dbox-ref` reads their store and writes ours
 
 ```sh
 yarilo-migrate --src dbox-ref --dst mdbox \
@@ -169,6 +240,10 @@ Reads the store where it is and writes a fresh one. **The source is never
 written to**, so it can be run against a copy, and `--dry-run` prints what it
 would do without writing at all.
 
+Use this when the mail is going somewhere else, or when the source has to stay
+readable. To take over the store where it lies, adopt it instead — the section
+above — and keep the UIDs.
+
 **What comes across**
 
 | | |
@@ -178,9 +253,10 @@ would do without writing at all.
 | keywords | yes |
 | per-message identifiers (GUID) | yes |
 | received date | yes |
-| **UIDs and UIDVALIDITY** | **no — reallocated** |
+| **UIDs and UIDVALIDITY** | **no — reallocated**; adoption keeps them |
 | flags and keywords, for a folder whose index is missing | no — see below |
 | subscriptions, ACLs, quota state | no |
+| folder-name encoding | written the way this deployment writes it |
 
 The flags and the keywords are the reason this exists: a dbox record carries
 neither, so anything that read only the stored files would hand over a mailbox
