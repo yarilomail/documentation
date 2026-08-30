@@ -175,11 +175,20 @@ returned as it lies on disk. That is [#1527](https://github.com/yarilomail/yaril
 and it is not in 2.4.1 — reaching it requires placing another implementation's files under this
 server's index by hand, which is the store question below.
 
-The *store* is not: the index that says which message lives at which
-offset is ours (`yarilo.map.index`, `yarilo.index*`), and another implementation's map index
-and per-folder index files are not read. Pointing another implementation at a yarilo tree,
-or the reverse, therefore shows an empty mailbox even though every file in it would parse.
-Store interoperability is a separate piece of work and is not scheduled.
+The *store* is a different question, and it has one answer in each direction.
+
+**Their store, read by this server: converted, not shared.** The index that says which message
+lives at which offset is ours (`yarilo.map.index`, `yarilo.index*`), and theirs is in their own
+format. An mdbox store of theirs is therefore **adopted**: on the first open of a folder this
+server reads their index, writes ours beside it, and removes theirs, leaving the messages
+exactly where they lie. That is one-way for the whole store from the first open, and it is
+described in [Migration](MIGRATION#adoption-this-server-takes-over-the-store-in-place).
+Adoption is not sharing: the two servers do not read one store at the same time, and the other
+one cannot serve it afterwards.
+
+**A yarilo tree, read by them: not possible.** Our index files are ours, nothing converts them
+back, and pointing another implementation at this tree shows an empty mailbox even though every
+message file in it would parse.
 
 Three parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
 under `storage:`, mdbox only):
