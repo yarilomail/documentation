@@ -214,12 +214,15 @@ that map indefinitely. That is the correct outcome and not a leak.
 | | |
 |:---|:---|
 | the store cannot be written to | refused, naming the directory: adoption deletes files, and a read-only store — a snapshot, a replica — cannot have that done to it. Import the store offline instead. |
-| a folder of theirs with no map of theirs | refused: the messages it names cannot be located at all, and a folder served empty is the one answer nobody checks. |
+| an mdbox folder of theirs with no map of theirs | refused: the messages it names cannot be located at all, and a folder served empty is the one answer nobody checks. An sdbox folder has no map to miss. |
 | their index unreadable | refused for that folder, naming it. |
 
-**mdbox only.** An sdbox store of theirs keeps each message in its own file with
-no map to convert; adopting one is not implemented, and it is refused rather
-than half-done.
+**mdbox and sdbox.** An sdbox store of theirs has no map: a single-message file
+sits in its folder's own directory, so its position is its path and only the
+folder index is converted. One difference is worth knowing about: an sdbox
+folder index of theirs carries no GUID, so each message's identity is read from
+the message file itself, which is where their own server keeps it. A folder of
+theirs converts with one file open per message on top of the index read.
 
 **The other server must be stopped**, and the store must not be shared with it.
 This rewrites index files it would otherwise be writing.
