@@ -186,6 +186,17 @@ described in [Migration](MIGRATION#adoption-this-server-takes-over-the-store-in-
 Adoption is not sharing: the two servers do not read one store at the same time, and the other
 one cannot serve it afterwards.
 
+**An mdbox folder whose index is lost is indistinguishable from a new one.** mdbox folders
+hold no message files — the mail is in the shared storage and the folder directory carries only
+indexes — so a folder directory without an index looks exactly like a folder that was just
+created, and the server opens it as new. The only thing outside the index that ties a message to
+a folder is the storage trailer, which names the folder a message was *first* saved to, so it
+cannot file moved mail back. Recovery is the operator storage-wide rebuild, run with that user's
+mailboxes stopped: it recomputes every map record's refcount, and under live delivery a message
+saved but not yet appended to its folder would be counted as referenced by nobody and reclaimed
+by the next purge. sdbox has no such ambiguity — its messages are files in the folder — and a
+folder whose index is lost there is rebuilt from them on the next open.
+
 **A yarilo tree, read by them: not possible.** Our index files are ours, nothing converts them
 back, and pointing another implementation at this tree shows an empty mailbox even though every
 message file in it would parse.
