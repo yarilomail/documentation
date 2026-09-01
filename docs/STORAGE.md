@@ -179,7 +179,7 @@ The *store* is a different question, and it has one answer in each direction.
 
 **Their store, read by this server: converted, not shared.** The index that says which message
 lives at which offset is ours (`yarilo.map.index`, `yarilo.index*`), and theirs is in their own
-format. An mdbox store of theirs is therefore **adopted**: on the first open of a folder this
+format. An mdbox or sdbox store of theirs is therefore **adopted**: on the first open of a folder this
 server reads their index, writes ours beside it, and removes theirs, leaving the messages
 exactly where they lie. That is one-way for the whole store from the first open, and it is
 described in [Migration](MIGRATION#adoption-this-server-takes-over-the-store-in-place).
