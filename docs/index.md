@@ -1,3 +1,7 @@
+---
+description: "Yarilo is a cloud-native mail server in Go for Kubernetes: IMAP, POP3, LMTP, Submission, JMAP and Sieve. Install, configure, architecture, operations."
+---
+
 # Yarilo Documentation
 
 Yarilo is a cloud-native mail server written in Go: IMAP, POP3, LMTP, Submission, JMAP and Sieve, designed for Kubernetes.

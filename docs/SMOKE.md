@@ -1,3 +1,7 @@
+---
+description: "End-to-end smoke test for a live yarilo instance — authenticate, deliver over LMTP, read over IMAP and POP3: how to run it, what it checks, reading failures."
+---
+
 # End-to-end smoke test
 
 Drives a live yarilo instance through the full happy-path mail flow:

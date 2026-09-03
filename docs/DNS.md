@@ -1,3 +1,7 @@
+---
+description: "The DNS records a mail domain needs — A/AAAA, MX, SPF, DKIM, DMARC and PTR — with examples, why nameserver redundancy matters, and how to verify with dig."
+---
+
 # DNS records for a mail domain: MX, SPF, DKIM, DMARC and PTR
 
 The DNS records a mail domain needs before yarilo can receive and send mail
