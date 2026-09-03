@@ -1,3 +1,7 @@
+---
+description: "POP3 configuration for yarilo: RFC 1939 with STLS, UIDL, CAPA and XCLIENT, listener ports, TLS modes and the protocol-level settings behind them."
+---
+
 # POP3 configuration
 
 Yarilo implements POP3 (RFC 1939) with STLS (RFC 2595), UIDL, CAPA, and XCLIENT.

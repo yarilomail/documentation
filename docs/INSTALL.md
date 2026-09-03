@@ -1,3 +1,7 @@
+---
+description: "Install yarilo on Kubernetes with Helm or run it with Docker Compose: prerequisites, DNS and TLS via cert-manager, first user, smoke test, troubleshooting."
+---
+
 # Installation Guide
 
 Yarilo installs two ways. Pick the one that matches your target:

@@ -12,7 +12,7 @@ function pageMeta(text: string): { title: string; desc: string } {
     const t = block.trim()
     if (!t || t.startsWith('#') || t.startsWith('```') || t.startsWith('|') ||
         t.startsWith(':::') || t.startsWith('---') || t.startsWith('<')) continue
-    desc = t.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    desc = t.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/`/g, '')
     break
   }
   return { title, desc }
@@ -43,9 +43,25 @@ function buildLlmsTxt(srcDir: string, outDir: string) {
   writeFileSync(join(outDir, 'llms-full.txt'), full.join('\n\n---\n\n') + '\n')
 }
 
+/* Trim to a search-snippet length on a word boundary. */
+function snippet(text: string, max = 155): string {
+  if (text.length <= max) return text
+  const cut = text.slice(0, max)
+  return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:]$/, '') + '…'
+}
+
 export default defineConfig({
   buildEnd(siteConfig) {
     buildLlmsTxt(siteConfig.srcDir, siteConfig.outDir)
+  },
+  /* Per-page meta description: frontmatter `description` wins; otherwise
+     the page's first prose paragraph, so no page falls back to the
+     site-wide one-liner. */
+  transformPageData(pageData, { siteConfig }) {
+    if (pageData.frontmatter.description) return
+    const file = join(siteConfig.srcDir, pageData.filePath)
+    const { desc } = pageMeta(readFileSync(file, 'utf8'))
+    if (desc) pageData.description = snippet(desc)
   },
   title: 'Yarilo',
   description: 'Yarilo mail server documentation',

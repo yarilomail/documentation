@@ -1,3 +1,7 @@
+---
+description: "yarctl, the unified operator CLI for yarilo: user and mailbox management, mailbox index tools, quota, director inspection and other admin commands."
+---
+
 # yarctl
 
 Unified operator CLI for yarilo. Two top-level planes:
