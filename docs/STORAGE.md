@@ -316,6 +316,8 @@ storage:
   mail_fsync: optimized   # never | optimized | always
 ```
 
+The Helm chart exposes it under `storage` by the same name.
+
 ## When a log folds, and what it costs not to
 
 Every append to a folder's index goes to a log beside it; the log is folded
