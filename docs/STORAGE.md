@@ -300,10 +300,33 @@ Where the sync happens matters as much as whether:
   points at bytes a crash did not write.
 - the **index journal** is synced in `always` only.
 
-The cost is one `fsync` per delivered message, paid while the file is still in
-`tmp/` where no other session can see it — it lengthens no queue. A deployment
-can still get a stronger guarantee from the mount (`sync`, or a filesystem whose
-journal covers data); `mail_fsync` is what yarilo itself promises.
+The cost is one `fsync` per delivered message. In the code it is paid outside
+any lock — the file is still in `tmp/`, where no other session can see it — but
+on a journalling filesystem it is not free of the others: every `fsync` forces a
+filesystem-journal commit, the commits serialise, and the uidlist row's own
+`fsync`, which *is* taken under the folder's lock, waits behind the commits the
+other deliveries on that node just caused.
+
+Measured on ext4 (`data=ordered`), fifty sessions over twenty accounts, one
+build with only this key changed:
+
+| | `optimized` | `never` |
+|:---|---:|---:|
+| `fsync` calls in a 90-second run | 728 | 0 |
+| one `fsync` of the message body | 1.7 ms | — |
+| one `fsync` of the uidlist row | 1.4 ms | — |
+| uidlist lock held, mean | **26 ms** | **8.7 ms** |
+| index write cycle held, mean | 40 ms | 29 ms |
+
+So the hold grows with how many deliveries a node is making at once, not with
+the cost of the call itself. Expect that where a folder is busy, and read
+`maildir_lock_hold_seconds` rather than guessing.
+
+`never` removes both syncs and is for a stand, or for storage that acknowledges
+a write of its own — a battery-backed controller, or a volume whose mount makes
+the guarantee. A deployment can also get a stronger guarantee than `always` from
+the mount (`sync`, or a filesystem whose journal covers data); `mail_fsync` is
+what yarilo itself promises.
 
 Index writes are a separate matter: the base is replaced atomically (temp file
 + rename) and the log is append-only, so a crash costs the tail of the log
