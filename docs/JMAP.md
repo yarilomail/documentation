@@ -454,12 +454,59 @@ crafted message can never render in the origin that serves the API.
 | Mail — `Email/query` (index and full-text conditions), blob download | RFC 8621 §4.4, RFC 8620 §6.2 | served, read-only |
 | Mail — `SearchSnippet/get` | RFC 8621 §5 | served |
 | Mail — `Thread/get`, `Thread/changes` | RFC 8621 §3 | served from the account's threading state; a merge is reported in `Email/changes` as well, since a client groups by the `threadId` it holds |
-| Mail — `Mailbox/set`, `Mailbox/changes` | RFC 8621 §2 | later phase |
-| Mail — `Email/set`, `Mailbox/set` | RFC 8621 | later phase |
+| Mail — `Mailbox/changes` | RFC 8621 §2 | served |
+| Mail — `Email/changes` | RFC 8621 §4 | served |
+| Mail — `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
+| Mail — `Email/set` | RFC 8621 §4.6 | served |
+| Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
+| Mail — `Mailbox/set` | RFC 8621 §2.5 | later phase |
 | Push over WebSocket | RFC 8887 | later phase |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
 and is meant to be extracted as a standalone library.
+
+## Quota
+
+`urn:ietf:params:jmap:quota` (RFC 9425) is advertised in the session resource
+and per account. A client that speaks only JMAP can read the limit it is being
+enforced against, which it previously could not.
+
+One account is one quota root, and the objects are read-only: limits come from
+the userdb, not from the client.
+
+| Object | Reported when |
+|:---|:---|
+| `resourceType: "octets"` | a storage limit is set for the account |
+| `resourceType: "count"` | a message-count limit is set (`quota_messages`) |
+
+Both carry `scope: "account"`, `types: ["Mail"]` and the root name
+`quota_name` gives IMAP. `hardLimit` is the limit **after** the site-wide
+scaling (`quota_storage_percentage`, `quota_storage_extra`), so it is the number
+a save is actually judged against, and `warnLimit` is the nearest configured
+`quota_warning` threshold below it.
+
+Nothing is reported when the quota engine is off, when `quota_hidden` is set, or
+when the user has no limits and `quota_ignore_unlimited` is set — the same three
+gates IMAP `GETQUOTA` answers on. A limit nobody enforces is not announced.
+
+`used` is the same count `GETQUOTA` reports, from the same sweep of the
+account's folders: two accountings would be two answers to one question. The
+units differ because the protocols do — RFC 9208 counts kibibytes, RFC 9425
+octets — and the smoke check converts one to the other rather than tolerating a
+difference.
+
+### State and changes
+
+The state string carries the numbers themselves, so `Quota/changes` says which
+root moved by comparing the state a client holds against the current one, with
+no per-client history kept on the server. A state this server did not issue is
+answered with `cannotCalculateChanges`, which sends the client back to
+`Quota/get`.
+
+`Quota/queryChanges` answers for real, unlike the Mailbox and Email ones, which
+are registered and answer `cannotCalculateChanges`: this result set is the
+account's own roots, which the state already names, so there is no previous
+result to remember.
 
 ---
 
