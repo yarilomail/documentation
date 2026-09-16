@@ -274,23 +274,49 @@ reference-count delta in it can be applied twice.
 
 ## Durability: what a save promises
 
-An mdbox save appends the message to `m.<N>` and records it in the map. Neither
-write is followed by an `fsync`: durability is delegated to the filesystem and
-its mount options, as it is in the reference implementation. A message
-acknowledged to the client is therefore in the page cache and on its way to
-disk, not proven to be on it.
+`storage.mail_fsync` says what has reached the disk by the time a delivery is
+answered — the LMTP `250` for a recipient, the `OK [APPENDUID]` of an APPEND.
+It takes the same three values as the reference implementation, and the same
+default.
 
-That is the trade every dbox-family store makes, and it is stated here because
-it is the kind of property an operator discovers at the worst possible moment
-otherwise. A deployment that needs the stronger guarantee gets it from the
-mount (`sync`, or a filesystem whose journal covers data), not from a setting
-here.
+| mode | synced before the answer | what it still does not promise |
+|:---|:---|:---|
+| `never` | nothing, including the uidlist row | every byte written is in the page cache only |
+| `optimized` *(default)* | the message body; the uidlist row, as before | the index and its journal, the directory entry |
+| `always` | the above, plus the index journal and the directory after a rename or create | that the directory survives — a synced entry is not a repaired directory |
+
+The body is the half that cannot be rebuilt, which is why `optimized` syncs it
+and nothing else: the index, the list and the flags in a name are all
+reconstructible from the bodies that are on disk. In `never` even the uidlist
+row is left to the filesystem, so a crash can hand a file that already had a uid
+a second one; it is the mode for a stand, or for storage that acknowledges its
+own writes.
+
+Where the sync happens matters as much as whether:
+
+- **maildir** syncs the file in `tmp/` *before* it is named and moved into
+  `cur/`, so the durable bytes precede the answer rather than follow it.
+- **mdbox** syncs `m.<N>` *before* the map records the message, so the map never
+  points at bytes a crash did not write.
+- the **index journal** is synced in `always` only.
+
+The cost is one `fsync` per delivered message, paid while the file is still in
+`tmp/` where no other session can see it — it lengthens no queue. A deployment
+can still get a stronger guarantee from the mount (`sync`, or a filesystem whose
+journal covers data); `mail_fsync` is what yarilo itself promises.
 
 Index writes are a separate matter: the base is replaced atomically (temp file
 + rename) and the log is append-only, so a crash costs the tail of the log
 rather than the folder. The `mail_volatile_path` setting moves the index's temporary
 file — and its fsync — off the mail volume, which is why it is worth setting on
 NFS deployments (see [Path templates](#path-templates)).
+
+```yaml
+storage:
+  mail_fsync: optimized   # never | optimized | always
+```
+
+The Helm chart exposes it under `storage` by the same name.
 
 ## When a log folds, and what it costs not to
 
