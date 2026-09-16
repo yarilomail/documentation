@@ -454,8 +454,9 @@ crafted message can never render in the origin that serves the API.
 | Mail — `Email/query` (index and full-text conditions), blob download | RFC 8621 §4.4, RFC 8620 §6.2 | served, read-only |
 | Mail — `SearchSnippet/get` | RFC 8621 §5 | served |
 | Mail — `Thread/get`, `Thread/changes` | RFC 8621 §3 | served from the account's threading state; a merge is reported in `Email/changes` as well, since a client groups by the `threadId` it holds |
-| Mail — `Mailbox/changes`, `Mailbox/queryChanges` | RFC 8621 §2 | served |
-| Mail — `Email/changes`, `Email/queryChanges` | RFC 8621 §4 | served |
+| Mail — `Mailbox/changes` | RFC 8621 §2 | served |
+| Mail — `Email/changes` | RFC 8621 §4 | served |
+| Mail — `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
 | Mail — `Email/set` | RFC 8621 §4.6 | served |
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
 | Mail — `Mailbox/set` | RFC 8621 §2.5 | later phase |
@@ -502,9 +503,10 @@ no per-client history kept on the server. A state this server did not issue is
 answered with `cannotCalculateChanges`, which sends the client back to
 `Quota/get`.
 
-`Quota/queryChanges` answers for real, unlike the Mailbox and Email ones: the
-result set is the account's own roots, which the state already names, so there
-is no previous result to remember.
+`Quota/queryChanges` answers for real, unlike the Mailbox and Email ones, which
+are registered and answer `cannotCalculateChanges`: this result set is the
+account's own roots, which the state already names, so there is no previous
+result to remember.
 
 ---
 
