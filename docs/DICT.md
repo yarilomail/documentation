@@ -47,23 +47,37 @@ one backing service through different prefixes/namespaces.
 
 ### file
 
-JSON file on local disk. Atomic temp-file + rename on every commit.
-In-process sync.RWMutex; NOT safe across processes. Use for standalone
-single-pod deployments, dev runs, smoke tests.
+JSON file. Atomic temp-file + rename on every commit.
+
+The path is a template expanded **per operation** from the operation's
+user (`%u`, `%h`, `%n`, `%d`, `%i`), so one configured dict gives every
+user a file of their own. A path naming `%h` is refused on any operation
+that carries no home, rather than resolving to a path shared by everyone.
+
+Safe across processes: a commit takes a lock on `<path>.lock`, re-reads
+the document under the lock and then rewrites it, so two pods writing the
+same user's file keep each other's keys. Reads take no lock — they stat
+the file and reload when its stamp has moved.
+
+Unlike `redis` and `sql`, this driver is opened by the process that uses
+it, not by `yarilo-dict`: it links no engine. It is the default for
+annotations.
 
 ```yaml
 dicts:
   metadata:
     driver: file
     settings:
-      path: "/var/yarilo/dicts/metadata.json"
+      path: "%h/yarilo-metadata.json"
+      lock_method: ""          # flock (default), fcntl or dotlock
 ```
 
 Settings:
 
 | Key | Type | Required | Meaning |
 |:---|:---|:---|:---|
-| `path` | string | yes | Filesystem path; expand `%u`/`%h`/`%n`/`%d` *before* opening |
+| `path` | string | yes | Filesystem path; `%u`/`%h`/`%n`/`%d`/`%i` are expanded per operation |
+| `lock_method` | string | no | Write lock transport: `flock` (default), `fcntl`, `dotlock`. Match the mail volume's `storage_lock_method` |
 
 ### memory
 
@@ -308,12 +322,14 @@ priv/box/INBOX/comment	first message arrived
 
 | Topology | Recommended driver |
 |:---|:---|
-| Standalone single-pod helm release | `file` (mounted on the pod's PVC) |
-| Backend multi-pod helm release | `redis` (shared Redis Service) |
+| Per-user state on the mail volume (annotations, and the default) | `file`, one file per user under `%h` |
+| Standalone single-pod helm release | `file` |
+| State that must live off the mail volume, shared by all pods | `redis` (shared Redis Service) |
 | Already running Postgres for other yarilo state | `sql` driver, `postgres` mode |
 | Unit tests | `memory` |
 | "Feature disabled" wiring | `fail` |
 
-The choice is config-only — switching from `file` (standalone) to `redis`
-(backend) is a `yarilo.yaml` edit, not a rebuild. This is the
+The choice is config-only — switching from `file` to `redis` is a
+`yarilo.yaml` edit, not a rebuild. What does change with it is who opens
+the dict: `file` is opened by the session, an engine by `yarilo-dict`. This is the
 **config-not-binary** rule that every yarilo storage decision honours.
