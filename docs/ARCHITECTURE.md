@@ -194,9 +194,8 @@ The logical request flow (login → session → shared services → storage):
   yarilo-auth                 # passdb + userdb (shared service)
   yarilo-auth-worker
   yarilo-warden                # connlimit + session counters + kick bus (shared; Redis Pub/Sub across replicas, #908)
-  yarilo-director             # ring + userDir + monitor
+  yarilo-director             # ring + userDir
   yarilo-locks                # cross-pod write coordination (per backend tag)
-  yarilo-monitor              # sidecar in director pod — polls backend pod health, reports to director ring
 ```
 
 k8s replaces infrastructure processes:
@@ -223,7 +222,6 @@ app/
   yarilo-auth-worker/main.go
   yarilo-warden/main.go
   yarilo-director/main.go
-  yarilo-monitor/main.go
 internal/
   login/imap/      — TLS accept + SASL + TCP proxy goroutine
   login/pop3/
@@ -235,7 +233,6 @@ internal/
   auth/            — passdb/userdb chain
   warden/           — connection accounting
   director/        — consistent hash ring, user→pod routing
-  monitor/         — backend pod health checks, lock TTL liveness reports to director
 pkg/
   mailbox/         — MailboxBackend + IndexBackend interfaces
   config/          — YAML config via koanf
@@ -247,7 +244,7 @@ helm/
       auth-deployment.yaml
       warden-deployment.yaml
       redis-statefulset.yaml
-  yarilo-director/ — director pool (login-proxies + director StatefulSet + monitor sidecar)
+  yarilo-director/ — director pool (login-proxies + director StatefulSet)
     Chart.yaml
     values.yaml
     templates/
@@ -354,8 +351,7 @@ stern -l app.kubernetes.io/part-of=yarilo
 
 | Workload | Type | Service | Replicas | Notes |
 |:---|:---|:---|:---|:---|
-| `yarilo-director` | StatefulSet | Headless :9102 + ClusterIP :9103 (admin API) | 3 | peer-sync ring, monitor sidecar per pod |
-| `yarilo-monitor` | sidecar | (in director pod) | 1 per director | polls backends, marks down in ring |
+| `yarilo-director` | StatefulSet | Headless :9102 + ClusterIP :9103 (admin API) | 3 | peer-sync ring; backends report their own health by lease |
 | `yarilo-imap-login` | Deployment | LoadBalancer :993 / :143 | 2+ | TLS terminator + proxy, HPA |
 | `yarilo-pop3-login` | Deployment | LoadBalancer :995 / :110 | 2+ | HPA |
 | `yarilo-submission-login` | Deployment | LoadBalancer :465 / :587 | 2+ | HPA |
@@ -399,7 +395,6 @@ stern -l app.kubernetes.io/part-of=yarilo
 | `yarilo-auth` | `yarilo` | none | none |
 | `yarilo-warden` | `yarilo` | none | none |
 | `yarilo-director` | `yarilo` | none | none |
-| `yarilo-monitor` (sidecar) | `yarilo` | none | none |
 | `yarilo-locks` | `yarilo` | none | none |
 
 ---
@@ -530,7 +525,6 @@ Plain TCP is used only on the data plane between a login proxy and a backend pod
 | `yarilo-imap/pop3/submission/lmtp/managesieve/jmap` | `yarilo-dict` | mTLS TCP :9107 | TAB-delimited dict verbs, the dict named on the wire (`pkg/dict/proxy`) — engines live only in the service |
 | `yarilo-fts`, `yarilo-quota-status` | `yarilo-auth` | mTLS TCP :9102 (master) | TAB-delimited USER — **userdb lookup** for callers that hold no session token |
 | `yarilo-director` | `yarilo-lmtp` | plain TCP ClusterIP | raw LMTP bytes (proxy) |
-| `yarilo-monitor` (sidecar) | backend `/healthz` of each StatefulSet pod | mTLS HTTP | health polling (rebalance ring on failures) |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-locks-<tag>` | mTLS TCP :9104 | TAB-delimited (LOCK/UNLOCK/RENEW) |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-warden` | mTLS TCP :9101 | TAB-delimited (SESSION events) |
 
@@ -1154,4 +1148,3 @@ nothing: it fails instead, and the gate installs the tool.
 | Cross-user maildir access | Each session pod runs as `yarilo` uid; NetworkPolicy; director affinity prevents concurrent access |
 | Auth bypass | `yarilo-auth` reachable only via mTLS; NetworkPolicy restricts access to login pods |
 | Connection flooding | `yarilo-warden` enforces `max_userip_connections` globally across all login replicas |
-| Backend failure | `yarilo-monitor` (sidecar in director pod) detects via `/healthz` polling, `yarilo-director` removes from ring, reroutes in-flight connections |
