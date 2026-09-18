@@ -351,8 +351,8 @@ Three decisions, each mirroring a validated reference behaviour:
   dark — the reference's comment says exactly this.
 
 **When a new share appears in LIST.** The registry is read on an interval,
-not on every LIST: an answer is held for an hour, as in the reference, which
-re-checks at most once per `SHARED_NS_RETRY_SECS` (one hour).
+not on every LIST: an answer is held for an hour, which is the interval the
+reference re-checks on.
 
 A `SETACL` drops the cached answer of the principal it names — the recipient,
 the group, or everyone — on the backend that served the command. So a user
