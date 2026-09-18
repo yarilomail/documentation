@@ -350,6 +350,22 @@ Three decisions, each mirroring a validated reference behaviour:
   Deleting against partial data is how someone else's visible space goes
   dark — the reference's comment says exactly this.
 
+**When a new share appears in LIST.** The registry is read on an interval,
+not on every LIST: an answer is held for an hour, as in the reference, which
+re-checks at most once per `SHARED_NS_RETRY_SECS` (one hour). So a mailbox
+another user has just shared with you appears in your `LIST "" "user/*"`
+**within an hour**, not instantly. Your own `SETACL` is different: it drops
+what you were told immediately, so a share you grant is reflected in your
+very next LIST. An administrator's `acl registry rebuild` clears every
+cached answer.
+
+The interval is what keeps LIST off the dict service: without it every LIST
+of every session iterates the registry — two or three paths per command,
+each holding a connection from the dict pool for the length of its stream.
+The rows for `anyone/` and for each group are the same for everybody who
+reads them, so the server reads each of those once per interval rather than
+once per user.
+
 Discovery never overrides the gate (7.1/#1138): a registry row is a hint,
 and each discovered owner still resolves through `ownerHandle` + ACL
 filtering — a stale row (revoked grant, unreconciled dict) and an invented
