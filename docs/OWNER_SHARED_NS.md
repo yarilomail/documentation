@@ -350,6 +350,28 @@ Three decisions, each mirroring a validated reference behaviour:
   Deleting against partial data is how someone else's visible space goes
   dark — the reference's comment says exactly this.
 
+**When a new share appears in LIST.** The registry is read on an interval,
+not on every LIST: an answer is held for an hour, which is the interval the
+reference re-checks on.
+
+A `SETACL` drops the cached answer of the principal it names — the recipient,
+the group, or everyone — on the backend that served the command. So a user
+who is granted a mailbox by someone connected to the same backend sees it in
+their very next LIST; on the other backends it appears **within an hour**.
+An administrator's `acl registry rebuild` clears every cached answer
+everywhere it runs.
+
+The admin surface does not use the cache: `GET /acl/registry/owners` (and
+`yarctl acl registry owners`) reads the registry directly, so an operator is
+always told what the dict says now.
+
+The interval is what keeps LIST off the dict service: without it every LIST
+of every session iterates the registry — two or three paths per command,
+each holding a connection from the dict pool for the length of its stream.
+The rows for `anyone/` and for each group are the same for everybody who
+reads them, so the server reads each of those once per interval rather than
+once per user.
+
 Discovery never overrides the gate (7.1/#1138): a registry row is a hint,
 and each discovered owner still resolves through `ownerHandle` + ACL
 filtering — a stale row (revoked grant, unreconciled dict) and an invented
