@@ -352,12 +352,18 @@ Three decisions, each mirroring a validated reference behaviour:
 
 **When a new share appears in LIST.** The registry is read on an interval,
 not on every LIST: an answer is held for an hour, as in the reference, which
-re-checks at most once per `SHARED_NS_RETRY_SECS` (one hour). So a mailbox
-another user has just shared with you appears in your `LIST "" "user/*"`
-**within an hour**, not instantly. Your own `SETACL` is different: it drops
-what you were told immediately, so a share you grant is reflected in your
-very next LIST. An administrator's `acl registry rebuild` clears every
-cached answer.
+re-checks at most once per `SHARED_NS_RETRY_SECS` (one hour).
+
+A `SETACL` drops the cached answer of the principal it names — the recipient,
+the group, or everyone — on the backend that served the command. So a user
+who is granted a mailbox by someone connected to the same backend sees it in
+their very next LIST; on the other backends it appears **within an hour**.
+An administrator's `acl registry rebuild` clears every cached answer
+everywhere it runs.
+
+The admin surface does not use the cache: `GET /acl/registry/owners` (and
+`yarctl acl registry owners`) reads the registry directly, so an operator is
+always told what the dict says now.
 
 The interval is what keeps LIST off the dict service: without it every LIST
 of every session iterates the registry — two or three paths per command,
