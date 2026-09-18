@@ -152,7 +152,6 @@ export default defineConfig({
       {
         text: 'Operations',
         items: [
-          { text: 'Monitoring', link: '/MONITOR' },
           { text: 'yarilo-admin', link: '/YARILO-ADMIN' },
           { text: 'Testing', link: '/TESTING' },
           { text: 'Smoke Tests', link: '/SMOKE' }
