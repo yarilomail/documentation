@@ -632,15 +632,34 @@ Redis for shared cluster state, SQL for operators who already run one)
 is selected via config, not code. Adding a new dict-backed feature does
 not touch this package.
 
-**The drivers live in one process: `yarilo-dict`.** A session binary
-reaches a dict through `pkg/dict/proxy`, which names the dict on the wire
-and speaks the same `Dict` interface; the service owns the URIs and the
-engines. `dict_service.dict_addr` is mandatory in any binary that has a
-dict configured, and an empty address refuses the start by name. This is
-what keeps a session binary free of SQLite, MySQL and `database/sql`
-(imap 36.9 → 21.6 MB, pop3 34.2 → 18.7 MB when the engines moved out).
-The exceptions that open a dict themselves are the services that own
-one anyway: `yarilo-auth`, `yarilo-backend-api`, `yarilo-quota-status`.
+**The engines live in one process: `yarilo-dict`.** A session binary
+reaches an engine-backed dict through `pkg/dict/proxy`, which names the
+dict on the wire and speaks the same `Dict` interface; the service owns
+the URIs and the engines. `dict_service.dict_addr` is mandatory in any
+binary that has such a dict configured, and an empty address refuses the
+start by name. This is what keeps a session binary free of SQLite, MySQL
+and `database/sql` (imap 36.9 → 21.6 MB, pop3 34.2 → 18.7 MB when the
+engines moved out). The exceptions that open an engine themselves are the
+services that own one anyway: `yarilo-auth`, `yarilo-backend-api`,
+`yarilo-quota-status`.
+
+**The `file` driver opens where it is used.** It links no engine — it
+reads and writes one JSON document on the mail volume — so a session
+opens it directly instead of asking a service to open a file it can
+reach itself. This is the default for annotations (`dicts.metadata`,
+`path: "%h/yarilo-metadata.json"`): a file per user in that user's home,
+and an annotation event costs no round trip. The rule the split follows
+is about engines, not about who may touch a disk:
+
+| Driver | Opened by | Why |
+|:---|:---|:---|
+| `file` | the session itself | no engine, no dependency; the path is per user |
+| `redis`, `sql` | `yarilo-dict` | an engine and its client library |
+| `memory`, `fail` | wherever declared | test and fallback drivers |
+
+Several pods may share one user's file: a write takes a lock on
+`<path>.lock` and re-reads the document under it before rewriting, and a
+read reloads when the file's stamp has moved. Reads take no lock.
 
 ### Contract
 
@@ -664,7 +683,7 @@ for drivers without native atomic multi-key writes.
 |:---|:---|:---|
 | `pkg/dict/memory` | tests / dev only | in-process map; no persistence; lazy TTL expiry |
 | `pkg/dict/fail` | wiring placeholder | every op returns `ErrFailDriver`; used to wire "feature disabled" |
-| `pkg/dict/file` | standalone deployment | JSON envelope, atomic temp-file + rename, in-process sync.RWMutex; NOT safe across processes |
+| `pkg/dict/file` | yes, and the default for annotations | JSON envelope, atomic temp-file + rename, per-user path, file-locked writes; opened by the session |
 | `pkg/dict/redis` | backend k8s deployment | `go-redis/v9`; SET/GET/DEL, MULTI/EXEC tx, INCRBY, EXPIRE, SCAN; prefix-isolated |
 | `pkg/dict/sql` | backend k8s deployment | `database/sql` + `modernc.org/sqlite` (pure Go) + `pgx/v5/stdlib`; per-namespace table with `expires` column + index |
 
