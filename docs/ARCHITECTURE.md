@@ -256,7 +256,7 @@ helm/
       submission-login-deployment.yaml
       lmtp-proxy-deployment.yaml
       director-statefulset.yaml   — 3 pods peer-sync
-  yarilo-backend/  — backend pool (один release на tag, 4 StatefulSet-и per protocol)
+  yarilo-backend/  — backend pool (one release per tag, 4 StatefulSets per protocol)
     Chart.yaml
     values.yaml      — per-protocol replicaCount + HPA config
     templates/
@@ -272,22 +272,22 @@ helm/
 
 ## Helm chart structure
 
-**Three charts**, кожен deployment-шар окремо. Сторонній storage (NFS, Redis HA) — поза yarilo-чартами.
+**Three charts**, one per deployment layer. Third-party storage (NFS, Redis HA) is outside the yarilo charts.
 
 ```sh
-# Раз на інсталяцію — shared infrastructure services
+# Once per installation — shared infrastructure services
 helm install yarilo-shared ./helm/yarilo-shared -f values-prod.yaml
 
-# Раз на інсталяцію — director pool
+# Once per installation — director pool
 helm install yarilo-director ./helm/yarilo-director -f values-prod.yaml
 
-# Один release на tag — backend pool з власним NFS shard
+# One release per tag — backend pool with its own NFS shard
 helm install yarilo-backend-a ./helm/yarilo-backend --set tag=a -f values-prod.yaml
 helm install yarilo-backend-b ./helm/yarilo-backend --set tag=b -f values-prod.yaml
 # ...
 ```
 
-### values-prod.yaml (per chart) — приклад
+### values-prod.yaml (per chart) — example
 
 **yarilo-shared:**
 ```yaml
@@ -302,7 +302,7 @@ warden:
 **yarilo-director:**
 ```yaml
 director:
-  replicas: 3      # peer-sync ring, фіксований
+  replicas: 3      # peer-sync ring, fixed size
 imapLogin: { replicas: 2 }
 pop3Login: { replicas: 2 }
 submissionLogin: { replicas: 2 }
@@ -347,8 +347,8 @@ stern -l app.kubernetes.io/part-of=yarilo
 | Workload | Type | Service | Replicas | Notes |
 |:---|:---|:---|:---|:---|
 | `yarilo-auth` | Deployment | ClusterIP :9100 | 2+ | stateless, HPA, userdb queries external SQL/LDAP |
-| `yarilo-warden` | Deployment | ClusterIP :9101 | 2 | state в Redis (HA), conn+session counters |
-| `redis-shared` | StatefulSet (or external) | ClusterIP :6379 | per-Redis-HA-design | state backend для warden |
+| `yarilo-warden` | Deployment | ClusterIP :9101 | 2 | state in Redis (HA), conn+session counters |
+| `redis-shared` | StatefulSet (or external) | ClusterIP :6379 | per-Redis-HA-design | state backend for warden |
 
 ### yarilo-director chart
 
@@ -361,7 +361,7 @@ stern -l app.kubernetes.io/part-of=yarilo
 | `yarilo-submission-login` | Deployment | LoadBalancer :465 / :587 | 2+ | HPA |
 | `yarilo-lmtp-proxy` | Deployment | ClusterIP/NodePort :24 | 2+ | MTA-facing, IP allowlist via NetworkPolicy |
 
-### yarilo-backend chart (один release на tag)
+### yarilo-backend chart (one release per tag)
 
 | Workload | Type | Service | Replicas | Notes |
 |:---|:---|:---|:---|:---|
@@ -369,20 +369,20 @@ stern -l app.kubernetes.io/part-of=yarilo
 | `yarilo-backend-<tag>-pop3` | StatefulSet | Headless :10110 | M (HPA) | sticky ring per pod, NFS RWX |
 | `yarilo-backend-<tag>-submission` | StatefulSet | Headless :10587 | P (HPA) | sticky ring per pod, NFS RWX |
 | `yarilo-backend-<tag>-lmtp` | StatefulSet | Headless :10024 | Q (HPA) | sticky ring per pod, NFS RWX |
-| `yarilo-locks-<tag>` | Deployment | ClusterIP :9104 | 2 | cross-pod write coord, state в Redis |
-| `redis-<tag>` | StatefulSet (or shared) | ClusterIP :6379 | 1+ | state backend для locks |
-| NFS PV `<tag>` | PV/PVC | — | RWX | shared всіма 4 StatefulSet-ами в tag-у |
+| `yarilo-locks-<tag>` | Deployment | ClusterIP :9104 | 2 | cross-pod write coordination, state in Redis |
+| `redis-<tag>` | StatefulSet (or shared) | ClusterIP :6379 | 1+ | state backend for locks |
+| NFS PV `<tag>` | PV/PVC | — | RWX | shared by all 4 StatefulSets in the tag |
 
-**Чому StatefulSet для backend і director:**
-- Director: peer-sync ring потребує stable identity (`director-0`, `director-1`, `director-2`) для початкового discovery
-- Backend session-процеси: director routes user → конкретний pod через stable DNS (`backend-a-imap-2.headless.svc`), потрібен StatefulSet з headless Service для stable pod names
+**Why StatefulSet for backend and director:**
+- Director: the peer-sync ring needs stable identities (`director-0`, `director-1`, `director-2`) for initial discovery
+- Backend session processes: the director routes a user to one pod by stable DNS (`backend-a-imap-2.headless.svc`), which needs a StatefulSet with a headless Service for stable pod names
 
-**Чому 4 окремі StatefulSet-и на протокол замість 1 StatefulSet з 4 контейнерами:**
-- Independent scaling — POP3 типово 1 pod, LMTP при mass-delivery 10+ pods
-- Process isolation — crash одного протоколу не зачіпає інші
-- Right-sized resources — кожен з власними CPU/RAM limits та HPA-метрикою
+**Why 4 StatefulSets, one per protocol, instead of 1 StatefulSet with 4 containers:**
+- Independent scaling — POP3 is typically 1 pod, LMTP under mass delivery 10+ pods
+- Process isolation — a crash of one protocol does not touch the others
+- Right-sized resources — each with its own CPU/RAM limits and HPA metric
 
-**Trade-off:** Cross-protocol writes (LMTP delivery + IMAP STORE на той же mailbox) → cross-pod координація через `yarilo-locks`. Locks — critical path для всіх writes.
+**Trade-off:** cross-protocol writes to one mailbox (LMTP delivery + IMAP STORE) meet in the mailbox's own files; see [Locks](#locks) for where a lock is taken and where it is not.
 
 ### Security context per workload
 
@@ -394,7 +394,7 @@ stern -l app.kubernetes.io/part-of=yarilo
 | `yarilo-lmtp-proxy` | `nobody` | NET_BIND_SERVICE | none |
 | `yarilo-imap` | `yarilo` | none | RWX PVC (NFS) |
 | `yarilo-pop3` | `yarilo` | none | RWX PVC (NFS) |
-| `yarilo-submission` | `yarilo` | none | RWX PVC (NFS, для Sent folder) |
+| `yarilo-submission` | `yarilo` | none | RWX PVC (NFS, for the Sent folder) |
 | `yarilo-lmtp` | `yarilo` | none | RWX PVC (NFS) |
 | `yarilo-auth` | `yarilo` | none | none |
 | `yarilo-warden` | `yarilo` | none | none |
@@ -474,37 +474,61 @@ NodePort (protected by network policy; not exposed via LoadBalancer).
 
 ## Auth architecture rules
 
-**passdb and userdb are strictly separate — never call userdb from the login process.**
+**No process but `yarilo-auth` verifies a credential.** A session binary
+(imap, pop3, lmtp, managesieve, submission, jmap) links no passdb driver
+and builds no passdb chain. The login proxies relay the SASL bytes of the
+client to `yarilo-auth`, which runs the mechanism (PLAIN, LOGIN, SCRAM,
+SCRAM-PLUS with the channel binding the proxy holds, since it terminates
+TLS) and answers with a session token. The session binary presents the
+token and receives the userdb answer through one field list that the
+service writes and the session reads (`home`, `mail`, `quota_rule`, groups
+and the rest of `internal/auth/protocol/authok.go`).
 
 ```
-login pod   →  AUTH(user, pass)          →  yarilo-auth :9100  (passdb only → token)
-                                                                  ↑ NO userdb here
-backend pod →  VERIFY(token, user=<u>)   →  yarilo-auth :9100  (token + username binding check)
-backend pod →  USER(<username>)          →  yarilo-auth :9102  (master socket → userdb → home/mail/quota/groups)
+login pod   →  AUTH <mech> <resp> / CONT / CANCEL  →  yarilo-auth :9100  (mechanism + passdb → token)
+backend pod →  VERIFY(token, user=<u>)              →  yarilo-auth :9100  (token + username binding → userdb fields)
+backend pod →  USER(<username>)                     →  yarilo-auth :9102  (master socket → userdb, for callers without a token: fts, quota-status)
 ```
 
 Rules that must never be violated:
 
-- **Login pods call passdb only.** `RunAuth` must not invoke `userdb.Lookup`. The auth result from a login-side AUTH carries only: `username`, `token`, `nologin`, `allow_nets`. No `home`, no `mail`.
-- **Session pods call userdb.** After VERIFY succeeds, every session binary (imap, pop3, submission, managesieve, lmtp) calls `USER <username>` on the master socket (:9102) to obtain `home`, `mail`, `quota_rule`, `groups`, and any extra fields. This is the only source of storage identity.
-- **VERIFY binds token to username.** The VERIFY command includes the username from the preamble (`VERIFY\t<id>\t<token>\tuser=<u>`). yarilo-auth rejects with FAIL if the token was not issued to that username. This prevents token reuse across users.
-- **`RunAuth` = passdb chain only.** `WithAuthenticatorUserdb` / userdb wiring must not be attached to the login-side authenticator.
+- **A session binary links no passdb or storage driver.** `app/guard` walks
+  `go list -deps` of every session binary and fails on any passdb package
+  or database driver in the tree. Read its list before adding a driver
+  anywhere. `go-redis` stays in the sessions for `pkg/locks` and the
+  warden client only.
+- **`auth_service.addr` is mandatory for any binary that authenticates.**
+  An empty address refuses the start by name. There is no local fallback
+  chain to fall back to.
+- **A relayed exchange is bounded on the service side.** Every SASL
+  conversation the service holds carries a deadline, swept on every touch;
+  a session that gives up cancels it at once. One connection per mail
+  process multiplexes them by request id; the attempt ceiling is
+  `auth_max_attempts`.
+- **VERIFY binds token to username.** `yarilo-auth` rejects with FAIL if the
+  token was not issued to that username. A verdict without a token never
+  reaches a backend.
+- **The service refuses what it cannot grant.** A distinct authzid without
+  master users is a refusal, not a login as the identity that proved itself;
+  a master login looks the target up in the userdb before answering and
+  answers with the target's fields.
 
 ---
 
 ## Service communication (mTLS RPC)
 
-Між компонентами використовується **mTLS TCP** через k8s Services (не класичний IPC через pipes/Unix sockets — це RPC).
-Plain TCP — лише на data plane між director-проксі і backend-pod-ом всередині trust boundary (ClusterIP + NetworkPolicy).
+Components talk over **mTLS TCP** through k8s Services (not classic IPC over pipes or Unix sockets — this is RPC).
+Plain TCP is used only on the data plane between a login proxy and a backend pod inside the trust boundary (ClusterIP + NetworkPolicy).
 
 | From | To | Transport | Protocol |
 |:---|:---|:---|:---|
-| `*-login` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited AUTH — **passdb only** → session token |
+| `*-login` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited AUTH/CONT/CANCEL — SASL bytes relayed, mechanism runs in the service → session token |
 | `*-login` | `yarilo-warden` | mTLS TCP :9101 | TAB-delimited (connection counting) |
 | `*-login` | `yarilo-director` | mTLS TCP :9102 | TAB-delimited LOOKUP |
 | `*-login` | `yarilo-imap/pop3/submission` | plain TCP ClusterIP | XCLIENT preamble (ADDR/SESSION/TOKEN/USER), then raw protocol bytes (proxy) |
-| `yarilo-imap/pop3/submission/managesieve` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited VERIFY(token, user=) — token + username binding check |
-| `yarilo-imap/pop3/submission/lmtp/managesieve` | `yarilo-auth` | mTLS TCP :9102 (master) | TAB-delimited USER — **userdb lookup** → home, mail, quota, groups |
+| `yarilo-imap/pop3/submission/managesieve/lmtp` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited VERIFY(token, user=) — token + username binding check → userdb fields |
+| `yarilo-imap/pop3/submission/lmtp/managesieve/jmap` | `yarilo-dict` | mTLS TCP :9107 | TAB-delimited dict verbs, the dict named on the wire (`pkg/dict/proxy`) — engines live only in the service |
+| `yarilo-fts`, `yarilo-quota-status` | `yarilo-auth` | mTLS TCP :9102 (master) | TAB-delimited USER — **userdb lookup** for callers that hold no session token |
 | `yarilo-director` | `yarilo-lmtp` | plain TCP ClusterIP | raw LMTP bytes (proxy) |
 | `yarilo-monitor` (sidecar) | backend `/healthz` of each StatefulSet pod | mTLS HTTP | health polling (rebalance ring on failures) |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-locks-<tag>` | mTLS TCP :9104 | TAB-delimited (LOCK/UNLOCK/RENEW) |
@@ -610,9 +634,19 @@ sits on top of this contract instead of inventing its own storage.
 
 A single interface (`Dict` + `Tx` + `Iterator`) is implemented by
 multiple drivers; concrete storage (a local JSON file for standalone,
-Redis for shared cluster state, PostgreSQL for operators who already
-run one) is selected via config, not code. Adding a new dict-backed
-feature does not touch this package.
+Redis for shared cluster state, SQL for operators who already run one)
+is selected via config, not code. Adding a new dict-backed feature does
+not touch this package.
+
+**The drivers live in one process: `yarilo-dict`.** A session binary
+reaches a dict through `pkg/dict/proxy`, which names the dict on the wire
+and speaks the same `Dict` interface; the service owns the URIs and the
+engines. `dict_service.dict_addr` is mandatory in any binary that has a
+dict configured, and an empty address refuses the start by name. This is
+what keeps a session binary free of SQLite, MySQL and `database/sql`
+(imap 36.9 → 21.6 MB, pop3 34.2 → 18.7 MB when the engines moved out).
+The exceptions that open a dict themselves are the services that own
+one anyway: `yarilo-auth`, `yarilo-backend-api`, `yarilo-quota-status`.
 
 ### Contract
 
@@ -963,49 +997,150 @@ Every log call uses the base logger — never log without connection/session con
 
 ---
 
-## Known issues and required fixes
+## Locks
 
-### Cross-process write coordination — storage corruption risk
+**Lock only writes, only where writes meet, through the kernel.** A flag
+change or an expunge in maildir is a rename or an unlink and takes no lock.
+The two places where two writers can meet — the uidlist row and the index
+journal group — take a kernel file lock (`pkg/filelock`:
+`storage_lock_method: flock` by default, `fcntl`, or `dotlock` for a volume
+without lock arbitration). Reads take no lock: a reader builds its own view
+from the shared base image plus its private replay of the journal tail, up
+to the last whole BOUNDARY record.
 
-**Problem:** `internal/storage/mailbox/maildir` and `internal/storage/index/file` use `sync.Mutex`
-for in-process concurrency. `sync.Mutex` does not protect against concurrent access from separate
-processes (`yarilo-imap`, `yarilo-pop3`, `yarilo-submission`, `yarilo-lmtp`) — they share storage
-but live in distinct address spaces. Affects both standalone (single pod, 4 processes, one PVC)
-and backend (multi-pod StatefulSets, one NFS RWX) deployments.
+- Why: a network lock on the per-message mailbox write path cost 46 ms per
+  client cycle with under 1 ms spent in the lock server itself, and fifty
+  sessions queued on it (#1809). Nine correct lock fixes moved nothing
+  because none of them was at the wait.
+- No probe at start: the volume is not tested for lock support when the
+  process starts. A method the kernel refuses (`ENOLCK`, `EOPNOTSUPP`) falls
+  back to `dotlock` for that volume, once, logged once, counted in
+  `filelock_method_fallback_total`. A probe with a shared file name failed
+  its own siblings at start.
+- `pkg/locks` (the `yarilo-locks` service, mTLS `:9104`) stays for the
+  director ring, sessions, delivery dedup, the mdbox map, subscriptions
+  and foreign-index adoption — never on the per-message mailbox write path.
 
-| File | Risk |
-|:---|:---|
-| `yarilo-uidlist` | UID assignment race → duplicate UIDs or corruption |
-| fileindex (`*.idx`) | concurrent writes → index corruption |
+**A hold calls nothing above storage.** Under a folder hold the code
+unlinks and writes; it does not notify, count quota, write to the client
+socket, or re-open a folder. `Box.ExpungeMarked` takes no callback: it
+removes and returns what went, and the session tells FTS, quota and the
+client afterwards.
 
-Raw mail delivery (`rename()` into `new/`) is safe — atomic at OS level.
+- Why: a quota count inside the expunge hold re-opened the folder, which
+  asked for the same non-reentrant mutex — the session waited on itself for
+  as long as the client stayed connected (#1853).
+- Guard: `TestTheHoldOpensNoFolder`, plus an end-to-end row with a session
+  that has no counted usage and a quota clone on.
 
-**Required fix:** Route every cross-process write through **`yarilo-locks`** — the single locking
-abstraction in `pkg/locks`. One wire protocol (TAB-delimited, see [DEPLOYMENT.md](DEPLOYMENT.md)
-§yarilo-locks). Two backends behind one identical wire protocol:
+**Two locks, one order, held by code.** Where the mdbox folder lock and the
+user's map lock are both taken, the folder comes first. A folder asked for
+under a held map is refused by name, per goroutine, and counted
+(`yarilo_mdbox_lock_order_refused_total`). A user-wide lock is taken once
+per operation, never once per message: an expunge of N bodies locks the map
+once (`RemoveManyHeld`; 50 acquisitions per 50-message expunge → 1, #1884).
 
-| Use | `yarilo-locks` mode | Backend | Transport |
-|:---|:---|:---|:---|
-| **Every k8s Helm release (standalone or backend)** | `remote` | Redis (bundled or external) | mTLS TCP `:9104` |
-| Unit tests / non-k8s CLI dev | `embedded` | in-memory map (ephemeral) | Unix socket |
+**A change touching a hold or a lock is reviewed by walking one command to
+the leaves.** A diff does not show the chain: `HoldFolder → notify → quota →
+Box.Folder → reconcile → the same mutex` crossed four layers and three PRs.
 
-Production k8s is always remote — Unix sockets cannot cross pods, so embedded mode breaks the
-moment `replicaCount > 1`. Embedded stays in the binary for tests and CLI dev; it is never the
-Helm default. The choice is config-driven (`locks_service.mode`) so the same compiled binary
-serves both — see CLAUDE.md §Config-not-binary.
+---
 
-In-process goroutine concurrency keeps `sync.Mutex` as a fast-path before any `yarilo-locks` call —
-the two-tier scheme avoids RTT for intra-process contention. `fcntl`/`flock` is not used: it has
-no EVENT channel for IDLE notifications, opaque metrics, and shaky NFS semantics.
+## Index
 
-**Status:** `pkg/locks` foundation + `yarilo-locks` binary landed in v1.4.0 (Phase 0).
-`internal/storage/mailbox/maildir` and `internal/storage/index/file` write paths wired
-through `pkg/locks` in v1.5.0 (Phase 1): two-tier mutex + cross-process X lock on
-`mbox:<user>:<folder>`, atomic `AllocateAppend` for UID assignment, integration test
-proving no UID collisions and no uidlist corruption under concurrent two-process writes.
-Backend wiring (config-driven `LocksClient` reach into `backend.New`) shipped in v1.6.0
-(Phase 2.1). LMTP delivery and IMAP `APPEND`/`COPY`/`MOVE`/INBOX-rename swapped from
-the race-prone `NextUID++` pattern to `AllocateAppend` in v1.7.0 (Phase 2.2).
+**The transaction is the `UserIndex` contract.** `Begin → Expunge / Append /
+UpdateFlags / MarkDirty → Commit`: one hold, one record group in the journal
+up to BOUNDARY, one modseq bump. The per-message methods are not a second
+path (#1827).
+
+**A reader never serves a transaction cut short.** A group is applied only
+when the file holds every byte the BOUNDARY promises, asked of the file at
+that moment; a group the pass confirmed past what it read is fetched in full
+before `committedEnd` moves. The journal tail is read in one call, never
+eight bytes at a time (reads per command 5,398 → 22, #1848, #1859).
+
+**Journal rotation is configuration**: `mail_index_log_rotate_min_size` /
+`max_size` / `min_age` (32k / 1M / 60s). Compaction folds the base and
+truncates the log with the expunge floor stamped first.
+
+---
+
+## Durability
+
+`mail_fsync` has three modes and defaults to `optimized`: the message body
+is synced before the delivery is answered — maildir in `tmp/` before the
+name, mdbox before the map record — and so is the uidlist row; `always` adds
+the index journal and the directory entry; `never` syncs nothing, the row
+included. The cost is one `fsync` per delivery, paid outside any lock in
+the code and inside the filesystem journal all the same: on ext4 the commits
+serialise, and the uidlist row's own `fsync` under the folder lock waits
+behind them (8.7 → 26 ms held at fifty sessions). The mode is a durability
+decision, not a throughput one.
+
+---
+
+## Configuration rules
+
+- **An unknown value refuses the start.** `mail_fsync`,
+  `storage_lock_method` and every enum are validated at load in
+  `pkg/config`; a typo in a durability or exclusion setting is not replaced
+  by a default nobody asked for.
+- **A key nested under a section still carries the section prefix**
+  (`auth_max_attempts`, `storage_lock_method`, `mail_fsync` under
+  `storage`). A knob the chart template did not render is a knob that does
+  nothing: check a new key by rendering, not by reading `values.yaml`.
+- **Nothing is probed at start that the kernel or a service will report
+  loudly on first use.** Failure on first use, named; no self-tests at boot.
+- **Deployment shape is configuration, never a different binary.** No build
+  tags for a topology; session binaries stay `CGO_ENABLED=0` static.
+- **The session-binary shape lives in one place.** Every session process
+  behind a login proxy calls `config.KeepOnlySessionListener(cfg, role)`
+  first — it keeps the one listener it serves and drops the rest, the
+  TLS-terminating ones included, because the client certificate is mounted
+  in the login pods and not here — and takes listener TLS from
+  `config.ListenerTLS`. `pkg/config/session_shape_test.go` fails on a second
+  call, a `cfg.Services.*` write, or a `BuildTLSConfig(cfg.General.SSL)` in
+  any of the five binaries.
+- **A new service component lands in three places at once** — the image
+  build, the entrypoint dispatch, and the chart with its certificate — and
+  each has a guard row in `app/guard`: every `YARILO_COMPONENT` value in the
+  chart has an entrypoint case, and every workload rendered under
+  `internal_tls` mounts the secret.
+
+---
+
+## How a change is proven
+
+**Measure where before how much.** Before a performance fix: the breakdown
+of one operation on the stand's topology, with the counters that already
+exist. A stall with low CPU and idle disk gets a goroutine dump
+(`/debug/pprof/goroutine?debug=2`) before any bisection; it named #1853 and
+#1884 where eight slots of throughput could not. `hack/stand/watch-stalls.sh`
+takes that dump, the auth histogram and the cluster snapshot on the first
+stall of a run.
+
+**A/B is a form, not a number.** Same window, same node, identical mailbox
+fill before every arm (`hack/stand/ab-arm.sh` wipes and reseeds), order
+A → B → A so the second A bounds the node's drift, and the change's own
+direct metric read beside logins (AUTH latency for an auth change, lock
+acquisitions for a lock change). The base image comes from the node's cache
+the same day as the rollout. Divergence in both directions across storage
+types is method, not image. Measured drift envelope per window: mdbox
+±3.7 %, maildir ±2.6 %, sdbox ±0.4 %; a difference inside it is not a
+finding.
+
+**Zero comes with the tool that counted it.** Before any "0" or "none": the
+script ran, the log exists, the counter is in the tree and covers the
+window, the job was created. "41 checks, 32 passed" without "9 skipped:
+these" is not a number.
+
+**A test row sits at the seam, and the mutation is shown to apply.** Assert
+in the function that computes, not through layers that make a coincidence;
+drive the caller that had the defect, not the helper the fix added. Tests
+run against the real service over the wire (`internal/auth/authtest`), not
+a stub of ourselves. A "do not X" in a comment has a row that does X and
+fails. A row that skips when its tool is missing is a green gate on
+nothing: it fails instead, and the gate installs the tool.
 
 ---
 
