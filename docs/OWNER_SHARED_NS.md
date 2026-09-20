@@ -439,6 +439,40 @@ discriminator for owner-templated resolution: not "which pod", but **"is the
 owner's mailbox on the same farm (same PV) as this session's mailbox?"** — the
 tags being unique farm identifiers (e.g. `farm-a`, `farm-b`), not user names.
 
+### Routing within a farm: users who share must land on one backend
+
+The farm tag answers *where the data is*; it does not answer *which backend a
+session lands on*. Inside a farm the director hashes the username, and the
+default template hashes the **whole address** (`director_service.username_hash`
+unset, i.e. `%Lu`), so two users of one domain routinely land on different
+backends.
+
+That is fine where the backends of a farm share one PV — both see the owner's
+files, writes are coordinated by the lock service, and events about another
+user's mailbox travel through it too. It is **not** fine where a deployment
+gives each backend its own storage: the owner's mailbox is then simply not on
+the backend serving the accessor, and every share fails in a way that reads
+like an ACL defect.
+
+If users of one domain share mailboxes with each other, route the domain to one
+backend:
+
+```yaml
+components:
+  director:
+    username_hash: "%Ld"     # hash the domain, not the address
+    assignment_policy: hash  # least_sessions never looks at the name
+```
+
+Both lines matter. `assignment_policy: least_sessions` picks the least-loaded
+backend and never reads the username, so the hash template has no effect while
+it is on.
+
+The default stays `%Lu` on purpose, as in the reference: a single-domain
+deployment hashed on `%Ld` puts every account on one backend and stops scaling.
+Domain affinity is a choice you make when sharing crosses accounts, and its
+price is that a domain no longer spreads.
+
 ### Same farm tag — resolution is local
 
 When the owner and the accessing mailbox carry the **same farm tag**, the
