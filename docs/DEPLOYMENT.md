@@ -1064,6 +1064,51 @@ independently pick a pod and split a user's per-user writer (#788).
   SESSION-OPEN. The admin resolve has no protocol → level 1 is skipped, total
   load decides. Session counts are replicated ring-wide (SESSION-OPEN/CLOSE gossiped as (origin, seq) envelopes, #804), so whichever random replica answers a LOOKUP decides on the full cluster view — not just the sessions on the watch-holding replica.
 
+- **`domain`** (#1943): one backend per **domain**, chosen by load. A domain seen
+  for the first time is placed on the Up backend of its tag with the fewest
+  active connections and stays there; every later login of that domain follows
+  it. This is what a shared mailbox needs — every member of a domain reaches the
+  same backend — without pinning a whole domain by hash and hoping the
+  distribution is even. A username with no domain falls back to the hash.
+
+  The placement is replicated across the director ring, so a director restart
+  does not re-place a domain, and it is forgotten after
+  `director_service.director_domain_expire` (seconds, default `900`, Helm:
+  `components.director.director_domain_expire`) without a session — its own
+  knob, deliberately not the user TTL: a domain forgotten between two logins
+  would be placed elsewhere and the affinity would be lost with nobody asking.
+
+  **Load counted at placement, not at connect.** The count a placement compares
+  is the backend's active sessions **plus the placements it has already been
+  given whose sessions have not arrived yet**. Without that, a burst of first
+  logins across several new domains reads the same zeroes — SESSION-OPEN comes
+  back after the LOOKUP that placed the user — and every one of them lands on
+  one backend. (The reference raises its per-host count inside
+  `user_directory_add` for the same reason.)
+
+  **Rebalance.** When the busiest backend of a tag rises more than
+  `director_service.director_domain_rebalance_percent` above the quietest
+  (default `20`; **`0` turns it off**, and the chart reads the key with `hasKey`
+  so a `0` in values is a `0` in the config), one domain moves down — but only
+  when the move actually narrows the spread, and among such moves the one that
+  disconnects the fewest sessions. A move ends that domain's sessions on the
+  backend it left, one user at a time through the confirmed kill. `_interval`
+  (default `60`) is how often this is judged and `_cooldown` (default `600`) how
+  long a moved domain is left alone, which is what keeps two backends either
+  side of the line from trading a domain.
+
+  **What it does not do.** It does not split a domain: one large domain still
+  fills the backend it was placed on, and the cure for that is spreading the
+  domain across tags via userdb, exactly as with `%Ld`. It moves domains, not
+  users.
+
+**Which one to use.** `hash` where nothing is shared between users and
+determinism is worth more than balance. `least_sessions` where users are
+independent and the load is uneven. `domain` where users of a domain share
+mailboxes or ACLs — it replaces the older `username_hash: "%Ld"` +
+`assignment_policy: hash` pairing, which achieves the same affinity but leaves
+the distribution to the hash.
+
 **Trade-offs (least_sessions).** It gives up hash determinism: an expired-then-
 returning user may land on a different pod than before. Acceptable because the
 data lives on the shared tag PV, but it must be a deliberate operator choice —
