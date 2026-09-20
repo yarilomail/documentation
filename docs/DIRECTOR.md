@@ -267,7 +267,12 @@ Every login proxy (imap/pop3/submission/managesieve/lmtp) routes sessions one of
 
 `director_service.username_hash_lowercase` (default `true`, Helm: `components.director.username_hash_lowercase`) lowercases usernames before they're hashed for ring routing or used as keys for sticky assignments and admin (`USER-MOVE`) overrides (#738) — without it, two spellings of the same account (`User@d.test` / `user@d.test`) can hash to different values and land on different backends, defeating sticky routing. Migration note: enabling this on an already-running cluster changes hashes for mixed-case usernames — their existing sticky entries just expire naturally via `user_expire`, no special migration step is needed.
 
-> **Sharing mailboxes between users of a domain?** Set `username_hash: "%Ld"`
+> **Sharing mailboxes between users of a domain?** Set
+> `assignment_policy: domain` (#1943): a domain is placed on the backend with
+> the fewest connections and every user of it follows, with no hash template to
+> get right. The older pairing below still works and stays supported.
+>
+> **The older pairing:** set `username_hash: "%Ld"`
 > **and** `assignment_policy: hash`. The default hashes the whole address, so
 > users of one domain land on different backends — harmless where those
 > backends share one PV, fatal where each has its own storage. And

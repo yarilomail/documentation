@@ -460,13 +460,26 @@ backend:
 ```yaml
 components:
   director:
+    assignment_policy: domain   # one backend per domain, picked by load
+```
+
+The domain is placed on the backend with the fewest connections and every user
+of it follows. Nothing else has to be set: the policy does not consult
+`username_hash`.
+
+The older pairing does the same by hashing the domain, and stays supported:
+
+```yaml
+components:
+  director:
     username_hash: "%Ld"     # hash the domain, not the address
     assignment_policy: hash  # least_sessions never looks at the name
 ```
 
-Both lines matter. `assignment_policy: least_sessions` picks the least-loaded
-backend and never reads the username, so the hash template has no effect while
-it is on.
+Both lines matter there. `assignment_policy: least_sessions` picks the
+least-loaded backend and never reads the username, so the hash template has no
+effect while it is on. The difference between the two is where the domain
+lands: the hash decides by name, `domain` decides by load.
 
 The default stays `%Lu` on purpose, as in the reference: a single-domain
 deployment hashed on `%Ld` puts every account on one backend and stops scaling.
