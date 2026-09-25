@@ -262,7 +262,6 @@ The document carries what a search has to answer with:
 |:--|:--|
 | the message | boolean term `G<message guid, hex>`, one per document |
 | the folders holding a copy | boolean term `XF<folder guid, hex>`, repeated |
-| the address of each copy | boolean term `Q<folder guid, hex>:<uid>`, repeated |
 | what a hit is | document value, slot 0: the message GUID |
 | the document number | the database's own; never stored anywhere, so a compaction renumbers freely |
 
@@ -271,8 +270,9 @@ means the whole account — and answers with message GUIDs. The uid of a hit is
 the per-user GUID store's to say (`yarilo.guid.index`), not the document's: the
 same message in two folders has two uids and one document.
 
-An expunge removes the copy's two terms; the document goes with the last of
-them. A compaction merges the shards, renumbers them, and folds the documents
+An expunge asks the GUID store what is left of the message: another copy in the
+same folder and nothing changes; none there and the folder's term goes; none
+anywhere and the document goes with it. A compaction merges the shards, renumbers them, and folds the documents
 of one message into one — a copy indexed while another shard was current has a
 document of its own until then.
 
@@ -285,7 +285,7 @@ is derived, and it is rebuilt.
 **flatcurve (first engine, PR #581):** one `fts-flatcurve/` directory per
 **user** under the index root, holding `current.###` / `index.###` Xapian
 shards, term prefixes `A`/`H<NAME>`/`B` for the text and
-`G`/`XF`/`Q` for identity,
+`G`/`XF` for identity,
 and yarilo's own shard version key (`yarilo.fts-flatcurve`). There is no
 direct in-place migration from other installations — indexes are rebuilt by
 the indexer — so no cross-product on-disk compatibility promise is carried.
