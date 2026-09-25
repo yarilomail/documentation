@@ -279,6 +279,14 @@ document of its own until then.
 A folder without a GUID is refused rather than indexed under an empty term; it
 is reported once per folder, not once per message.
 
+`yarctl fts status <user>` reports four numbers for the account: documents in
+the index, live copies, the distinct messages those copies are, and **live
+copies with no row in the GUID store**. The fourth is the one to watch: a hit
+is resolved through that store, so a copy it does not record cannot be found
+however well the message is indexed — while the first three all agree.
+`yarctl backend index rebuild-guid-store <user>` rebuilds the store from the
+folders' records and is the ordinary repair for it.
+
 There is no migration from the per-folder layout that came before: the index
 is derived, and it is rebuilt.
 
