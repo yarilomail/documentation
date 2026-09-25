@@ -250,32 +250,42 @@ resolution — `UserInfo.IndexDir` (the `INDEX=` override) → `MailPath` → `H
 (`internal/storage/index/file/file.go:365-380`) — configurable and
 FS-agnostic.
 
-**The index path is keyed by the folder's GUID**, never by its name or by the
-mail driver's on-disk layout: `<fts_index_root>/<guid>/fts-flatcurve`.
+**One index per user**, at `<fts_index_root>/fts-flatcurve`: a folder is a
+term inside a document, not a directory. A message has one document wherever
+it is filed, so a copy costs terms rather than a second parse of the body, and
+a search over several folders — a virtual mailbox — is one query rather than
+one query per folder.
 
-This is a deliberate divergence. In the reference the driver-derived layout
-*is* the identity — `fts-flatcurve` sits inside the per-folder index
-directory, which moves with the folder when it is renamed, so the coupling
-costs nothing there. Giving FTS its own root through `fts_index_root` removed
-that property: a renamed folder no longer drags its index along, and a
-per-user driver migration reshapes the path entirely. Both orphaned the index
-silently, and a search then rebuilt from scratch while the old directory sat
-there occupying space. The GUID restores by another mechanism what the
-reference gets from co-location — a rename keeps it, a driver change does not
-touch it — so a rename needs no handling at all rather than needing correct
-handling.
+The document carries what a search has to answer with:
 
-Indexes written under either older layout (driver-aware, or the original flat
-`<root>/<folder>/`) are adopted on first access and moved to the GUID path;
-what cannot be moved is rebuilt, since the data is derived. The user record
-keeps its driver and separator for that migration alone.
+| what | how |
+|:--|:--|
+| the message | boolean term `G<message guid, hex>`, one per document |
+| the folders holding a copy | boolean term `XF<folder guid, hex>`, repeated |
+| the address of each copy | boolean term `Q<folder guid, hex>:<uid>`, repeated |
+| what a hit is | document value, slot 0: the message GUID |
+| the document number | the database's own; never stored anywhere, so a compaction renumbers freely |
 
-A folder without a GUID is refused rather than indexed under a path built
-from an empty value; it is reported once per folder, not once per message.
+A search filters by the `XF` terms of the folders asked for — none of them
+means the whole account — and answers with message GUIDs. The uid of a hit is
+the per-user GUID store's to say (`yarilo.guid.index`), not the document's: the
+same message in two folders has two uids and one document.
 
-**flatcurve (first engine, PR #581):** a `fts-flatcurve/` directory per
-**mailbox** under that mailbox's index dir, holding `current.###` /
-`index.###` Xapian shards, docid == UID, term prefixes `A`/`H<NAME>`/`B`,
+An expunge removes the copy's two terms; the document goes with the last of
+them. A compaction merges the shards, renumbers them, and folds the documents
+of one message into one — a copy indexed while another shard was current has a
+document of its own until then.
+
+A folder without a GUID is refused rather than indexed under an empty term; it
+is reported once per folder, not once per message.
+
+There is no migration from the per-folder layout that came before: the index
+is derived, and it is rebuilt.
+
+**flatcurve (first engine, PR #581):** one `fts-flatcurve/` directory per
+**user** under the index root, holding `current.###` / `index.###` Xapian
+shards, term prefixes `A`/`H<NAME>`/`B` for the text and
+`G`/`XF`/`Q` for identity,
 and yarilo's own shard version key (`yarilo.fts-flatcurve`). There is no
 direct in-place migration from other installations — indexes are rebuilt by
 the indexer — so no cross-product on-disk compatibility promise is carried.
