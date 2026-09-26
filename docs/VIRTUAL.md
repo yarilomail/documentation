@@ -33,9 +33,9 @@ its path: `<home>/virtual/All/yarilo-virtual` is `Virtual/All`, and
 `<home>/virtual/Work/Open/yarilo-virtual` is `Virtual/Work/Open`. A directory
 without a configuration file is not a mailbox.
 
-A virtual mailbox is made by writing its configuration file. A client cannot
-create, delete or rename one: `CREATE Virtual/X` is answered
-`NO [CANNOT]`, because a mailbox made that way would have no definition.
+A virtual mailbox is made by writing its configuration file, and removed or
+renamed with its directory. A client cannot do either: `CREATE`, `DELETE` and
+`RENAME` in the virtual namespace are answered `NO [CANNOT]`.
 
 The configuration file is `yarilo-virtual`. A file named `dovecot-virtual`
 from an existing installation is read when `yarilo-virtual` is absent, and is
@@ -72,19 +72,21 @@ The line forms:
 | `INBOX` | this folder; `INBOX` in any case |
 | `Archive/*` | a pattern: `*` matches across the hierarchy, `%` stops at the separator |
 | `-Trash` | take what this pattern matches out of the set, whatever else named it |
+| `!Saved` | the folder that `APPEND`, `COPY` and `MOVE` into the virtual mailbox store to; one per file, a name rather than a pattern |
 | indented text | the `SEARCH` rule for the folders named since the last rule, for example `unseen`, `flagged`, `since 1-Jan-2026`, `subject "invoice"` |
 
 The rule is parsed when the configuration is read, by the same parser `SEARCH`
-uses. A rule that is not valid `SEARCH` syntax makes the mailbox fail to open
-until the file is fixed, rather than silently matching nothing. Rules on the message text (`TEXT`, `BODY`,
+uses. A file that cannot be read makes the mailbox fail to open until it is
+fixed, rather than silently matching nothing: the client is answered
+`NO [SERVERBUG]`, and the log names the file, the line and the error. Rules
+on the message text (`TEXT`, `BODY`,
 `SUBJECT`, other headers) are answered by the [full-text index](/FTS) when it
 is enabled, without reading message bodies; text criteria nested under `NOT`
 or `OR` are checked by reading the messages.
 
-Three more line forms are read without effect. `+Folder` is read as
-`Folder`, without clearing `\Recent`. `!Folder` names where `APPEND` and
-`COPY` into the virtual mailbox would store, and both are refused. A
-`/entry:value` line, which selects folders by an annotation, selects none.
+Two more line forms are read without effect. `+Folder` is read as `Folder`,
+without clearing `\Recent`. A `/entry:value` line, which selects folders by an
+annotation, selects none.
 
 ## What the mailbox holds
 
@@ -120,6 +122,18 @@ changed starts its messages over; the other folders keep theirs.
   in the virtual mailbox or the next `SELECT` of it. A message does not
   vanish while it is being read.
 
+## Storing into a virtual mailbox
+
+`APPEND`, `COPY` and `MOVE` into a virtual mailbox store the message in the
+folder its `!` line names, with the flags given. The answer carries no
+`APPENDUID` or `COPYUID`, because the new UID belongs to that folder, not to
+the virtual mailbox. The virtual mailbox shows the message at its next
+synchronisation if its rules keep it.
+
+A virtual mailbox without a `!` line stores nothing, and one whose `!` folder
+does not exist cannot store either: both answer `NO [CANNOT]`. A refused
+`MOVE` leaves the message where it was.
+
 ## Working in a virtual mailbox
 
 | Command | What it does |
@@ -128,6 +142,7 @@ changed starts its messages over; the other folders keep theirs.
 | `SEARCH` | text criteria are answered by one full-text lookup over all the mailbox's folders. A folder the index has not caught up with is read in full rather than answered from an incomplete index |
 | `STORE` | changes the flags of the real message, in its folder. `+FLAGS` and `-FLAGS` apply as changes, so a flag another client set on that message meanwhile is kept; the reply shows the flags the message ended with, and its `MODSEQ` in the virtual mailbox moves |
 | `EXPUNGE` | removes the real messages marked `\Deleted` from their folders, and drops what stopped matching |
+| `SORT`, `THREAD` | order by what the real messages say: their headers, dates and sizes, read from their own folders |
 | `IDLE`, `NOTIFY` | hear changes in the mailbox's folders, not only in the virtual mailbox itself |
 | `CONDSTORE`, `QRESYNC` | the virtual mailbox has its own modseq; changes to its messages, and messages leaving, are reported like in any mailbox |
 
@@ -146,9 +161,7 @@ indexed once, in their own folders.
 
 ## Limits
 
-- `APPEND` and `COPY` into a virtual mailbox are refused; the `!` line that
-  names where they would go is not acted on yet.
-- `SORT` and `THREAD` over a virtual mailbox are not yet covered by tests.
+- `MOVE` from a virtual mailbox to another folder is not supported yet.
 - A folder that moved is read in full on the next pass, not only its messages
   that changed since the previous one.
 - The folders an `IDLE` listens to are fixed when `IDLE` starts; a folder that
