@@ -7,9 +7,11 @@ and expunging in a virtual mailbox act on the real message in its folder.
 
 ## Enabling
 
-Virtual mailboxes live in a namespace of their own, declared with the
-`virtual:` location. The namespace is personal: it lists the user's own
-virtual mailboxes, over the user's own folders.
+Virtual mailboxes live in a personal namespace of their own, with a
+`virtual:` location: the user's own virtual mailboxes, over the user's own
+folders.
+
+Declare the namespace beside the one that holds INBOX:
 
 ```yaml
 namespaces:
@@ -45,19 +47,25 @@ One folder per line. An indented line that follows is an IMAP `SEARCH`
 rule, and applies to every folder named since the previous rule. Blank lines
 and lines starting with `#` are ignored.
 
+Collect every unread message in INBOX and the archive, in
+`<home>/virtual/Unread/yarilo-virtual`:
+
 ```text
-# Virtual/Unread: every unread message in INBOX and the archive
 INBOX
 Archive/*
   unseen
 ```
 
+Show everything except the trash and the spam folder, in
+`<home>/virtual/All/yarilo-virtual`:
+
 ```text
-# Virtual/All: everything except the trash and the spam folder
 *
 -Trash
 -Junk
 ```
+
+The line forms:
 
 | Line | Meaning |
 |:---|:---|
@@ -73,13 +81,10 @@ silently matching nothing. Rules on the message text (`TEXT`, `BODY`,
 is enabled, without reading message bodies; text criteria nested under `NOT`
 or `OR` are checked by reading the messages.
 
-Three more line forms are accepted and not yet acted on:
-
-| Line | Status |
-|:---|:---|
-| `+Folder` | read as `Folder`; the `\Recent` clearing it asks for is not applied |
-| `!Folder` | names the folder that `APPEND` and `COPY` into the virtual mailbox would store to. Storing into a virtual mailbox is not implemented yet and is refused |
-| `/entry:value` | selects folders by an annotation; such a line currently selects no folder |
+Three more line forms are read without effect. `+Folder` is read as
+`Folder`, without clearing `\Recent`. `!Folder` names where `APPEND` and
+`COPY` into the virtual mailbox would store, and both are refused. A
+`/entry:value` line, which selects folders by an annotation, selects none.
 
 ## What the mailbox holds
 
@@ -108,12 +113,12 @@ changed starts its messages over; the other folders keep theirs.
 
 ### How a message leaves
 
-- **Its copy was expunged in its folder**: it leaves at once, and the client
-  is told with `EXPUNGE`, or `VANISHED` under QRESYNC.
-- **It stopped matching its rule** — a message read in an "unread" mailbox:
-  it stays while the mailbox is open, and leaves at the next `EXPUNGE` in the
-  virtual mailbox or the next `SELECT` of it. A message does not vanish while
-  it is being read.
+- Its copy was expunged in its folder: it leaves at once, and the client is
+  told with `EXPUNGE`, or `VANISHED` under QRESYNC.
+- It stopped matching its rule, as a message read in an "unread" mailbox
+  does: it stays while the mailbox is open, and leaves at the next `EXPUNGE`
+  in the virtual mailbox or the next `SELECT` of it. A message does not
+  vanish while it is being read.
 
 ## Working in a virtual mailbox
 
@@ -122,14 +127,14 @@ changed starts its messages over; the other folders keep theirs.
 | `FETCH` | reads the real message: body, envelope, structure and `BINARY` sections are the copy's |
 | `SEARCH` | text criteria are answered by one full-text lookup over all the mailbox's folders. A folder the index has not caught up with is read in full rather than answered from an incomplete index |
 | `STORE` | changes the flags of the real message, in its folder. `+FLAGS` and `-FLAGS` apply as changes, so a flag another client set on that message meanwhile is kept; the reply shows the flags the message ended with, and its `MODSEQ` in the virtual mailbox moves |
-| `EXPUNGE` | **removes the real messages** marked `\Deleted` from their folders, and drops what stopped matching |
+| `EXPUNGE` | removes the real messages marked `\Deleted` from their folders, and drops what stopped matching |
 | `IDLE`, `NOTIFY` | hear changes in the mailbox's folders, not only in the virtual mailbox itself |
 | `CONDSTORE`, `QRESYNC` | the virtual mailbox has its own modseq; changes to its messages, and messages leaving, are reported like in any mailbox |
 
-`EXPUNGE` in a virtual mailbox deletes mail: a message marked `\Deleted`
-there is gone from its real folder too. That is the point of acting on the
-real message, and it is worth telling users who treat a virtual mailbox as a
-view.
+::: warning EXPUNGE deletes the real message
+A message marked `\Deleted` and expunged in a virtual mailbox is gone from
+its real folder too. Tell users who treat a virtual mailbox as a view.
+:::
 
 A `STORE` made in a virtual mailbox is a flag change in two mailboxes, so an
 [imapsieve](/SIEVE) script bound to the message's own folder runs on it, and
