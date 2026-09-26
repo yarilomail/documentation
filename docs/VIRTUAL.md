@@ -154,6 +154,20 @@ is not read, and a pass where no folder moved writes nothing and takes no
 lock. A folder that moved is read in full. A folder whose `UIDVALIDITY`
 changed starts its messages over; the other folders keep theirs.
 
+### When a pass fails
+
+A pass can fail: the configuration file cannot be read, the metadata store
+behind an annotation line does not answer, or a folder cannot be read. The
+client is told, the same way as for any other storage failure:
+
+| Where | Answer |
+|:---|:---|
+| `SELECT`, `EXAMINE`, `STATUS` | `NO [SERVERBUG]`: the mailbox is not opened or counted |
+| an open mailbox: `NOOP`, the end of any command, an `IDLE` wake-up | an untagged `* NO [SERVERBUG]`; the command itself completes, and `IDLE` stays open |
+
+The mailbox keeps the messages its last successful pass left, and the next
+pass tries again. The log names the user, the mailbox and the cause.
+
 ### How a message leaves
 
 - Its copy was expunged in its folder: it leaves at once, and the client is
