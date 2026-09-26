@@ -146,7 +146,8 @@ export default defineConfig({
         text: 'Features',
         items: [
           { text: 'Sieve', link: '/SIEVE' },
-          { text: 'Full-Text Search', link: '/FTS' }
+          { text: 'Full-Text Search', link: '/FTS' },
+          { text: 'Virtual Mailboxes', link: '/VIRTUAL' }
         ]
       },
       {

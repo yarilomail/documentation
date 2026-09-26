@@ -88,8 +88,8 @@ as the fallback — nothing regresses.
 - **Relevancy**: engine scores flow through per-level AND(max-on-common) /
   OR(union-max) merges and surface only via a relevancy fetch special.
 - Multi-mailbox lookup exists **only for virtual mailboxes** — not for
-  ordinary cross-mailbox search. (yarilo has no virtual mailboxes yet; noted
-  as future.)
+  ordinary cross-mailbox search. yarilo's [virtual mailboxes](/VIRTUAL) use
+  it: a search in one is a single lookup over all the folders it draws from.
 
 ### 3.2 Reference Xapian-engine limitations that we will not inherit
 

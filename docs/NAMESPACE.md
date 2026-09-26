@@ -209,6 +209,13 @@ to `true` to expose it to all users.
 | Quota debit on writes to `user/alice/*` charges alice (owner-paid) | QUOTA-1 + NS-3 |
 | Director routes `user/alice/*` to alice's backend pod in multi-pod deployments | NS-3 |
 
+## Virtual mailboxes
+
+A personal namespace with `location: "virtual:%h/virtual"` holds virtual
+mailboxes: each is defined by a configuration file listing other folders and
+the `SEARCH` rules that pick messages from them. See
+[Virtual Mailboxes](/VIRTUAL).
+
 ## Mixed storage drivers across namespaces
 
 The `location:` URL's driver prefix is honoured per-namespace.
