@@ -73,6 +73,9 @@ The line forms:
 | `Archive/*` | a pattern: `*` matches across the hierarchy, `%` stops at the separator |
 | `-Trash` | take what this pattern matches out of the set, whatever else named it |
 | `!Saved` | the folder that `APPEND`, `COPY` and `MOVE` into the virtual mailbox store to; one per file, a name rather than a pattern |
+| `/shared/comment:keep*` | keep a folder a pattern brought in only if its annotation matches the mask; see below |
+| `-/shared/comment:skip*` | keep it only if the annotation does not match, or is not set |
+| `+Folder` | read as `Folder`; see below |
 | indented text | the `SEARCH` rule for the folders named since the last rule, for example `unseen`, `flagged`, `since 1-Jan-2026`, `subject "invoice"` |
 
 The rule is parsed when the configuration is read, by the same parser `SEARCH`
@@ -84,9 +87,47 @@ on the message text (`TEXT`, `BODY`,
 is enabled, without reading message bodies; text criteria nested under `NOT`
 or `OR` are checked by reading the messages.
 
-Two more line forms are read without effect. `+Folder` is read as `Folder`,
-without clearing `\Recent`. A `/entry:value` line, which selects folders by an
-annotation, selects none.
+### Selecting folders by annotation
+
+A line starting with `/` filters the folders that the patterns bring in by
+their [METADATA](/IMAP) annotation (RFC 5464):
+
+```text
+Projects/*
+/shared/vendor/example/state:active*
+```
+
+This keeps each folder under `Projects` whose `/shared/vendor/example/state`
+annotation starts with `active`, and drops the others.
+
+- The entry is a METADATA entry name and starts with `/private/` or
+  `/shared/`. It is read from the same store as `GETMETADATA` reads, so a
+  value a client sets with `SETMETADATA` is what the filter sees.
+- The text after `:` is a mask: `*` matches any run of characters and `?`
+  exactly one; everything else must match exactly, case included.
+- A line starting with `-` inverts the test: the folder is kept when the
+  annotation does not match the mask, including when it is not set.
+- With several annotation lines, a folder is kept when any one of them keeps
+  it.
+- The filter applies only to folders that a pattern brought in. A folder named
+  exactly on its own line is always kept.
+- Annotation lines take no `SEARCH` rule, and `!` cannot be combined with
+  one: a save folder is a name.
+
+A changed annotation takes effect at the next synchronisation. A `NOOP` in
+the open mailbox shows the folder's messages arriving, or leaving.
+
+Every synchronisation reads the annotation of each folder a pattern brought
+in, once per annotation line. With the default file-backed metadata store,
+this costs a check of the file's modification time. With a Redis or SQL
+metadata store, it costs one query per folder and line on each check.
+
+### `+Folder`
+
+`+` asks for `\Recent` to be cleared on the folder's messages when the
+virtual mailbox is opened. yarilo does not track `\Recent`: no message is
+ever reported as recent, so there is nothing to clear. The line is read as
+the folder name without the `+`.
 
 ## What the mailbox holds
 
@@ -117,6 +158,8 @@ changed starts its messages over; the other folders keep theirs.
 
 - Its copy was expunged in its folder: it leaves at once, and the client is
   told with `EXPUNGE`, or `VANISHED` under QRESYNC.
+- Its folder left the set: the folder was deleted or renamed, or an
+  annotation line no longer keeps it. Its messages leave at once.
 - It stopped matching its rule, as a message read in an "unread" mailbox
   does: it stays while the mailbox is open, and leaves at the next `EXPUNGE`
   in the virtual mailbox or the next `SELECT` of it. A message does not
@@ -140,6 +183,8 @@ does not exist cannot store either: both answer `NO [CANNOT]`. A refused
 |:---|:---|
 | `FETCH` | reads the real message: body, envelope, structure and `BINARY` sections are the copy's |
 | `SEARCH` | text criteria are answered by one full-text lookup over all the mailbox's folders. A folder the index has not caught up with is read in full rather than answered from an incomplete index |
+| `COPY` | copies the real message to the destination; `COPYUID` names the virtual mailbox's UIDs as the source |
+| `MOVE` | moves the real message: it arrives in the destination and leaves its own folder, and so the virtual mailbox too |
 | `STORE` | changes the flags of the real message, in its folder. `+FLAGS` and `-FLAGS` apply as changes, so a flag another client set on that message meanwhile is kept; the reply shows the flags the message ended with, and its `MODSEQ` in the virtual mailbox moves |
 | `EXPUNGE` | removes the real messages marked `\Deleted` from their folders, and drops what stopped matching |
 | `SORT`, `THREAD` | order by what the real messages say: their headers, dates and sizes, read from their own folders |
@@ -161,7 +206,6 @@ indexed once, in their own folders.
 
 ## Limits
 
-- `MOVE` from a virtual mailbox to another folder is not supported yet.
 - A folder that moved is read in full on the next pass, not only its messages
   that changed since the previous one.
 - The folders an `IDLE` listens to are fixed when `IDLE` starts; a folder that
