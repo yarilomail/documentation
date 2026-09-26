@@ -75,8 +75,8 @@ The line forms:
 | indented text | the `SEARCH` rule for the folders named since the last rule, for example `unseen`, `flagged`, `since 1-Jan-2026`, `subject "invoice"` |
 
 The rule is parsed when the configuration is read, by the same parser `SEARCH`
-uses, so a rule that is not valid `SEARCH` syntax is refused rather than
-silently matching nothing. Rules on the message text (`TEXT`, `BODY`,
+uses. A rule that is not valid `SEARCH` syntax makes the mailbox fail to open
+until the file is fixed, rather than silently matching nothing. Rules on the message text (`TEXT`, `BODY`,
 `SUBJECT`, other headers) are answered by the [full-text index](/FTS) when it
 is enabled, without reading message bodies; text criteria nested under `NOT`
 or `OR` are checked by reading the messages.
