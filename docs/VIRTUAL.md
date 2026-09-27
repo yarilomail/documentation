@@ -62,6 +62,10 @@ namespaces:
 
 The definition directory is only read: the mailboxes are the same for
 everyone, while the messages, the uids and the indexes are each user's own.
+
+`mail_index_path` is required whenever that directory is not writable.
+`SELECT` creates the mailbox's index before it reads anything, so without
+somewhere else to put it the command fails.
 In the chart, `virtualDefinitions:` carries the files, one key per mailbox,
 and mounts them read-only at that path in every backend container. See
 [Namespaces](/NAMESPACE).

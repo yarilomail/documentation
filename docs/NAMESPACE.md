@@ -41,11 +41,11 @@ namespaces:
   - type: personal              # required: personal | other | shared
     prefix: ""                  # mailbox name prefix; "" reserved for personal
     separator: "/"              # one character; different per-namespace allowed
-    list: true                  # show in NAMESPACE response
+    list: "yes"                 # LIST exposure: yes | children | no
     subscriptions: true         # track SUBSCRIBE state for this namespace
     inbox: true                 # owns the magic "INBOX" mailbox (set on exactly one)
     location: "maildir:%h"      # storage URL; varexpand %u/%h/%n/%d/%i
-    hidden: false               # keep out of LIST "" "*"; named exactly it answers
+    hidden: false               # keep out of the NAMESPACE response
 ```
 
 `location:` may be written as the pair `mail_driver:` and `mail_path:`, the
@@ -58,9 +58,22 @@ directory be shared, read-only, by every user: the mailboxes are read from
 `mail_path` and the indexes written under the user. Set without a store to
 put an index in, it is refused at startup.
 
-`hidden: true` keeps the namespace's mailboxes out of `LIST "" "*"`, as
-RFC 2342 has it. A pattern that names the namespace answers as ever, and so
-does `SELECT`. The personal namespace is never hidden.
+`hidden: true` takes the namespace out of the `NAMESPACE` response and does
+nothing else: `LIST`, `SELECT` and everything under the prefix answer exactly
+as before. It is for a namespace a client should not be told to go looking in
+on its own, while anything that knows the name may still use it.
+
+`hidden:` and `list:` are often set together but are not the same setting,
+and neither reaches into the other's reply:
+
+| | `NAMESPACE` | `LIST "" "*"` | `LIST "" "Virtual/*"` |
+|---|---|---|---|
+| default | advertised | listed | listed |
+| `hidden: true` | not advertised | listed | listed |
+| `list: "no"` | advertised | not listed | listed |
+
+A `list: "no"` namespace at the root prefix (`""`) answers only a pattern
+with no wildcard in it.
 
 ### Default (when `namespaces:` is omitted)
 
