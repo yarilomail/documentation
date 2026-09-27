@@ -41,12 +41,39 @@ namespaces:
   - type: personal              # required: personal | other | shared
     prefix: ""                  # mailbox name prefix; "" reserved for personal
     separator: "/"              # one character; different per-namespace allowed
-    list: true                  # show in NAMESPACE response
+    list: "yes"                 # LIST exposure: yes | children | no
     subscriptions: true         # track SUBSCRIBE state for this namespace
     inbox: true                 # owns the magic "INBOX" mailbox (set on exactly one)
-    location: "maildir:%h"      # NS-1b: storage URL; varexpand %u/%h/%n/%d/%i
-    hidden: false               # NS-1b: hide matching mailboxes from LIST "" "*"
+    location: "maildir:%h"      # storage URL; varexpand %u/%h/%n/%d/%i
+    hidden: false               # keep out of the NAMESPACE response
 ```
+
+`location:` may be written as the pair `mail_driver:` and `mail_path:`, the
+spelling a 2.4 configuration already has. Giving both forms for one namespace
+is refused at startup rather than resolved by precedence.
+
+`mail_index_path:` says where this namespace writes its indexes, the split
+spelling of the location's `INDEX=` option. It is what lets one definition
+directory be shared, read-only, by every user: the mailboxes are read from
+`mail_path` and the indexes written under the user. Set without a store to
+put an index in, it is refused at startup.
+
+`hidden: true` takes the namespace out of the `NAMESPACE` response and does
+nothing else: `LIST`, `SELECT` and everything under the prefix answer exactly
+as before. It is for a namespace a client should not be told to go looking in
+on its own, while anything that knows the name may still use it.
+
+`hidden:` and `list:` are often set together but are not the same setting,
+and neither reaches into the other's reply:
+
+| | `NAMESPACE` | `LIST "" "*"` | `LIST "" "Virtual/*"` |
+|---|---|---|---|
+| default | advertised | listed | listed |
+| `hidden: true` | not advertised | listed | listed |
+| `list: "no"` | advertised | not listed | listed |
+
+A `list: "no"` namespace at the root prefix (`""`) answers only a pattern
+with no wildcard in it.
 
 ### Default (when `namespaces:` is omitted)
 
@@ -211,10 +238,32 @@ to `true` to expose it to all users.
 
 ## Virtual mailboxes
 
-A personal namespace with `location: "virtual:%h/virtual"` holds virtual
-mailboxes: each is defined by a configuration file listing other folders and
-the `SEARCH` rules that pick messages from them. See
-[Virtual Mailboxes](/VIRTUAL).
+A namespace with `location: "virtual:%h/virtual"` holds virtual mailboxes:
+each is defined by a configuration file listing other folders and the `SEARCH`
+rules that pick messages from them. See [Virtual Mailboxes](/VIRTUAL).
+
+One definition can serve every user. The definitions live in a directory of
+their own, read-only, and `mail_index_path` sends the indexes under each
+user's home:
+
+```yaml
+namespaces:
+  - type: personal
+    prefix: "Virtual/"
+    separator: "/"
+    hidden: true
+    list: "no"
+    mail_driver: virtual
+    mail_path: /etc/yarilo/virtual
+    mail_index_path: "%h/index/virtual"
+```
+
+The type is `personal` even though the definitions are shared: what the
+mailboxes show is the user's own mail, which is what RFC 2342 calls personal.
+Only the definition files are common to everyone.
+
+In the chart, `virtualDefinitions:` carries those files, one key per mailbox,
+and mounts them at that path in every backend container.
 
 ## Mixed storage drivers across namespaces
 
