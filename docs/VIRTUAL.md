@@ -41,6 +41,31 @@ The configuration file is `yarilo-virtual`. A file named `dovecot-virtual`
 from an existing installation is read when `yarilo-virtual` is absent, and is
 never written, so a migrated store keeps its virtual mailboxes as they were.
 
+### One definition for every user
+
+The definitions need not live in the user's home. A namespace whose
+`mail_path` is a directory of its own gives every user the same mailboxes,
+and `mail_index_path` sends the indexes under each user instead:
+
+```yaml
+namespaces:
+  - type: shared
+    prefix: "Virtual/"
+    separator: "/"
+    hidden: true
+    list: "no"
+    subscriptions: false
+    mail_driver: virtual
+    mail_path: /etc/yarilo/virtual
+    mail_index_path: "%h/index/virtual"
+```
+
+The definition directory is only read: the mailboxes are the same for
+everyone, while the messages, the uids and the indexes are each user's own.
+In the chart, `virtualDefinitions:` carries the files, one key per mailbox,
+and mounts them read-only at that path in every backend container. See
+[Namespaces](/NAMESPACE).
+
 ## The configuration file
 
 One folder per line. An indented line that follows is an IMAP `SEARCH`
