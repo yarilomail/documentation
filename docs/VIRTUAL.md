@@ -37,6 +37,12 @@ A virtual mailbox is made by writing its configuration file, and removed or
 renamed with its directory. A client cannot do either: `CREATE`, `DELETE` and
 `RENAME` in the virtual namespace are answered `NO [CANNOT]`.
 
+`SUBSCRIBE` is answered the same way — a virtual mailbox is opened by name, not
+subscribed to. `UNSUBSCRIBE` still works, so a row left by another server can
+be removed. Subscriptions an existing installation kept in its own virtual
+subscription file are not read, so after a migration those mailboxes stop
+appearing in `LIST (SUBSCRIBED)` and are opened by name instead.
+
 The configuration file is `yarilo-virtual`. A file named `dovecot-virtual`
 from an existing installation is read when `yarilo-virtual` is absent, and is
 never written, so a migrated store keeps its virtual mailboxes as they were.
@@ -49,12 +55,11 @@ and `mail_index_path` sends the indexes under each user instead:
 
 ```yaml
 namespaces:
-  - type: shared
+  - type: personal
     prefix: "Virtual/"
     separator: "/"
     hidden: true
     list: "no"
-    subscriptions: false
     mail_driver: virtual
     mail_path: /etc/yarilo/virtual
     mail_index_path: "%h/index/virtual"

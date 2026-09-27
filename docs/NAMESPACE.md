@@ -248,16 +248,19 @@ user's home:
 
 ```yaml
 namespaces:
-  - type: shared
+  - type: personal
     prefix: "Virtual/"
     separator: "/"
     hidden: true
     list: "no"
-    subscriptions: false
     mail_driver: virtual
     mail_path: /etc/yarilo/virtual
     mail_index_path: "%h/index/virtual"
 ```
+
+The type is `personal` even though the definitions are shared: what the
+mailboxes show is the user's own mail, which is what RFC 2342 calls personal.
+Only the definition files are common to everyone.
 
 In the chart, `virtualDefinitions:` carries those files, one key per mailbox,
 and mounts them at that path in every backend container.
