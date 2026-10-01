@@ -221,8 +221,20 @@ Returns every folder visible in the namespace via the underlying
 storage driver (`UserMailbox.ListFolders`).
 
 ```json
-{ "folders": ["INBOX", "Sent", "Trash"] }
+{
+  "folders":     ["INBOX", "Sent", "Trash"],
+  "not_created": ["Trash"],
+  "special_use": { "Sent": "\\Sent", "Trash": "\\Trash" }
+}
 ```
+
+A mailbox the namespace configures with `auto` (see
+[Namespaces](./NAMESPACE.md#configured-mailboxes-mailboxes)) is listed even when
+no server has made it yet. `not_created` names those mailboxes. The listing is
+a read and makes nothing; the first IMAP, JMAP or LMTP open makes them. For an
+account with no mail home yet, the list holds only the configured mailboxes.
+`special_use` is the configured attribute of each listed name, for the personal
+namespace.
 
 CLI: `yarctl backend folder list <user> [--namespace NS]`
 
@@ -396,6 +408,7 @@ ACL/metadata key namespace.
 ```json
 {
   "name":           "INBOX",
+  "created":        true,
   "guid":           "ab12...ef",
   "uid_validity":   1747000000,
   "next_uid":       42,
@@ -404,6 +417,15 @@ ACL/metadata key namespace.
   "highest_modseq": 19
 }
 ```
+
+A configured mailbox that no server has made yet answers without an identity,
+rather than with one made up:
+
+```json
+{ "name": "Sent", "created": false, "configured": true }
+```
+
+`folder/guid` answers `404` for such a mailbox: it has no GUID until it is made.
 
 CLI: `yarctl backend folder info <user> <folder>`
 

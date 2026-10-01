@@ -46,6 +46,9 @@ namespaces:
     inbox: true                 # owns the magic "INBOX" mailbox (set on exactly one)
     location: "maildir:%h"      # storage URL; varexpand %u/%h/%n/%d/%i
     hidden: false               # keep out of the NAMESPACE response
+    mailboxes:                  # made for every user; see "Configured mailboxes"
+      Sent:  { auto: subscribe, special_use: "\\Sent" }
+      Junk:  { auto: create,    special_use: "\\Junk" }
 ```
 
 `location:` may be written as the pair `mail_driver:` and `mail_path:`, the
@@ -74,6 +77,65 @@ and neither reaches into the other's reply:
 
 A `list: "no"` namespace at the root prefix (`""`) answers only a pattern
 with no wildcard in it.
+
+## Configured mailboxes (`mailboxes`)
+
+A namespace can name mailboxes that every user has. A client that does not
+set up its own folders (Outlook, older mobile clients) then finds Sent, Drafts
+and Trash on its first login, instead of picking places for them on its own.
+
+```yaml
+namespaces:
+  - type: personal
+    prefix: ""
+    separator: "/"
+    inbox: true
+    mailboxes:
+      Sent:   { auto: subscribe, special_use: "\\Sent" }
+      Drafts: { auto: subscribe, special_use: "\\Drafts" }
+      Trash:  { auto: subscribe, special_use: "\\Trash" }
+      Junk:   { auto: create,    special_use: "\\Junk" }
+```
+
+| Key | Values | Meaning |
+|:---|:---|:---|
+| `auto` | `no` (default), `create`, `subscribe` | `create` makes the mailbox the first time any server opens or lists the namespace. `subscribe` does the same and subscribes it once. |
+| `special_use` | an RFC 6154 attribute (`\Sent`, `\Drafts`, `\Trash`, `\Junk`, `\Archive`, `\All`, `\Flagged`, `\Important`) | The attribute LIST and JMAP roles report for this name. Personal namespace only. |
+
+**When a mailbox is made.** The storage layer makes it the first time a mailbox
+is opened or listed for the user, whichever server does it: IMAP `LIST`,
+`SELECT` or `STATUS`, JMAP `Mailbox/get`, or an LMTP delivery to it. A
+JMAP-only client on a fresh account sees the mailboxes without any IMAP
+session first.
+
+**Subscriptions.** `subscribe` writes the subscription once, when the mailbox
+is made, and never again. A user who unsubscribes stays unsubscribed. A
+mailbox the user created on their own before the server made it is left as it
+is: no subscription is added, and its `special_use` still applies. The
+subscription file keeps its format: sorted full names, one per line, no
+header. If the file in that place belongs to another implementation (a
+version-2 file with its header), the server does not convert it to add a
+subscription of its own. The mailbox is still made.
+
+**Where `auto` is allowed.** In the personal namespace, in a personal namespace
+with its own `location`, and in a shared namespace with a fixed `location`.
+Startup refuses it in an owner-templated namespace (its store belongs to
+each owner) and in a virtual one (a virtual mailbox is made by its
+configuration file).
+
+**`special_use` and `imap_special_use_defaults`.** At startup the two become one
+map. A name that both give the same attribute appears once. A name they give
+different attributes refuses startup, and the message names the mailbox and
+both values. `special_use` outside the personal namespace refuses startup.
+
+**Admin API.** `folder/list` shows configured mailboxes that do not exist yet
+as present, with their special use, and makes nothing. It is a read. See
+[BACKEND-API](./BACKEND-API.md).
+
+> **Behaviour change.** Earlier versions subscribed every folder a client
+> selected. They no longer do: a subscription comes only from `SUBSCRIBE`, or
+> from a `subscribe` mailbox when the server makes it. A client that relied on
+> `SELECT` to subscribe a folder now has to subscribe it.
 
 ### Default (when `namespaces:` is omitted)
 

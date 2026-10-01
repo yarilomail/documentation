@@ -27,6 +27,8 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `lmtp_add_received_header` | `true` | Prepend a `Received:` header to every delivered message. |
 | `lmtp_add_message_id` | `true` | Synthesise a `Message-ID:` when a message arrives without one. An existing header is never rewritten. |
 | `lmtp_save_to_detail_mailbox` | `false` | When `true`, `user+folder@domain` delivers to the `folder` mailbox instead of `INBOX`. |
+| `lda_mailbox_autocreate` | `false` | A delivery to a folder that does not exist makes it. When `false`, the message goes to the detail mailbox if that exists, otherwise to `INBOX`. |
+| `lda_mailbox_autosubscribe` | `false` | Subscribes a folder `lda_mailbox_autocreate` made. Without `lda_mailbox_autocreate` it does nothing, and startup refuses it. |
 | `lmtp_hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
 | `lmtp_verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
 | `lmtp_user_concurrency_limit` | `0` | Maximum concurrent deliveries per user. `0` = unlimited. |
@@ -35,6 +37,22 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `lmtp_client_workarounds` | — | List of client compatibility workarounds (see below). |
 | `lmtp_listen` | — | Listen address of the backend LMTP service. |
 | `lmtp_backend_port` | — | Port the login service proxies to on the backend. |
+
+### A delivery to a folder that does not exist
+
+A folder a delivery names (`user+folder@` with `lmtp_save_to_detail_mailbox`, or
+a Sieve `fileinto`) may not exist yet:
+
+- if a namespace configures it with `auto` (see
+  [Namespaces](./NAMESPACE.md#configured-mailboxes-mailboxes)), the delivery
+  makes it like any other open, subscribed when `auto: subscribe`. The two
+  knobs below play no part in that;
+- otherwise, with `lda_mailbox_autocreate: true`, the delivery makes it, and
+  subscribes it with `lda_mailbox_autosubscribe: true`;
+- otherwise the message goes to the detail mailbox when that is another folder
+  and exists, then to `INBOX`. The delivery is not refused.
+
+`fileinto :create` makes the folder regardless of these settings.
 
 ### `lmtp_add_message_id`
 
