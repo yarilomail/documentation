@@ -9,8 +9,8 @@ For the director's own admin endpoints (ring, backends, users) see [Director API
 ## Transport
 
 - **Protocol:** JSON over HTTP, or over HTTPS with mutual TLS when `internal_tls.enabled: true`. The director API, by contrast, is always plain HTTP.
-- **Auth:** Bearer token in `Authorization: Bearer <token>`. The server reads it from the `BACKEND_API_TOKEN` env var, which the chart wires from a Secret. An empty token disables auth — local dev only.
-- **IP allow-list:** when `backend_api.allowed_nets` is set, clients outside those CIDRs get `403 forbidden` before the bearer check.
+- **Auth:** Bearer token in `Authorization: Bearer <token>`. The server reads it from the `BACKEND_API_TOKEN` env var, which the chart wires from a Secret. An empty token stops the service at start; running without one takes an explicit `backend_api.auth_disabled: true` (local dev only), and setting both is refused too.
+- **IP allow-list:** when `backend_api.allowed_nets` is set, clients outside those CIDRs get `403 forbidden` before the bearer check. An entry that is not a CIDR stops the service at start.
 - **Request bodies:** every `POST` endpoint takes a JSON body. `GET` endpoints take query parameters.
 
 ## Limits

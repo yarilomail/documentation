@@ -51,7 +51,7 @@ components:
 The address is checked before the token: a caller outside the list gets `403` whatever token it sends.
 
 ::: warning
-An empty `director_service.api.token` disables token checking. The chart always sets one.
+An empty `director_service.api.token` stops the director at start; running the API without one takes an explicit `director_service.api.auth_disabled: true`, and setting both is refused too. The chart always sets a token. An `allowed_nets` entry that is not a CIDR also stops the director at start.
 :::
 
 ---
