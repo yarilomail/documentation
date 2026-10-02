@@ -21,7 +21,7 @@ marked `no` name the notable extensions that are not advertised. Where this
 page and a protocol page disagree, this one is the one kept current — the
 disagreement is a bug in the other, and both are fixed together.
 
-Version: **2.3.x line** (beta). Last reviewed 2026-08-28. 2.4.1 is not released; the 2.4.1-dev images are release candidates.
+Version: **2.3.x line** (beta). Last reviewed 2026-10-02. 2.4.1 is not released; the 2.4.1-dev images are release candidates.
 
 ## Protocols
 
@@ -32,7 +32,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-28. 2.4.1 is not released;
 | LMTP | yes | delivery, proxying to backends, a synthesised `Message-ID` when one is missing |
 | Submission (MSA) | yes | separate service, relay to an external MTA |
 | ManageSieve | yes | RFC 5804 |
-| JMAP | partial | **reads, synchronises, and writes keywords.** `Mailbox/{get,query,changes}`, `Email/{get,query,set,changes}`, `Thread/{get,changes}`, `SearchSnippet/get`, blob download, back-references, real state strings. `Email/set` updates keywords; **create and destroy are refused** with an answer naming what to use instead (append over IMAP, deliver over LMTP, expunge over IMAP). `Mailbox/set` and blob upload are not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)); push is not ([#714](https://github.com/yarilomail/yarilo/issues/714)). `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design — a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false` |
+| JMAP | partial | **reads, synchronises, and writes keywords.** `Mailbox/{get,query,changes}`, `Email/{get,query,set,changes}`, `Thread/{get,changes}`, `SearchSnippet/get`, `Quota/{get,changes,query,queryChanges}` (RFC 9425, read-only), blob download, back-references, real state strings. `Email/set` updates keywords; **create and destroy are refused** with an answer naming what to use instead (append over IMAP, deliver over LMTP, expunge over IMAP). `Mailbox/set` and blob upload are not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)); push is not ([#714](https://github.com/yarilomail/yarilo/issues/714)). `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design — a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false` |
 
 ## IMAP extensions
 
@@ -52,7 +52,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-28. 2.4.1 is not released;
 | METADATA | yes | RFC 5464, when a metadata dict is configured |
 | ACL | yes | RFC 4314, enforced on every path — **off by default** (`acl.enabled`), so shared and public mailboxes are open to any authenticated user until it is turned on. See [Namespaces](/NAMESPACE) |
 | QUOTA | yes | RFC 9208 |
-| ID | yes | RFC 2971 |
+| ID | yes | RFC 2971; always offered before login, after login only while `imap_id_send` is non-empty |
 | COMPRESS | no | |
 | URLAUTH, CATENATE, BURL | no | RFC 4467 / RFC 4469 / RFC 4468. Until 2026-08-25 the IMAP page listed URLAUTH as supported; it never was, and the claim is removed rather than kept |
 | SEARCH=FUZZY, CONTEXT=SEARCH, CONTEXT=SORT, ESORT | no | |
@@ -75,7 +75,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-28. 2.4.1 is not released;
 | Feature | yarilo | Notes |
 |:---|:---|:---|
 | SASL PLAIN / LOGIN | yes | |
-| SASL SCRAM-SHA-1 / SHA-256 / SHA-256-PLUS | yes | channel binding included |
+| SASL SCRAM-SHA-1 / SHA-1-PLUS / SHA-256 / SHA-256-PLUS | yes | channel binding included |
 | SASL XOAUTH2 / OAUTHBEARER | yes | with token introspection |
 | SASL CRAM-MD5, DIGEST-MD5 | no | [#245](https://github.com/yarilomail/yarilo/issues/245) |
 | SASL EXTERNAL (client certificates) | no | [#615](https://github.com/yarilomail/yarilo/issues/615) |
@@ -118,7 +118,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-08-28. 2.4.1 is not released;
 
 | Feature | yarilo | Notes |
 |:---|:---|:---|
-| Director (per-user backend affinity) | yes | own ring and peer sync, plus a `flush_socket` hook |
+| Director (per-user backend affinity) | yes | own ring and peer sync, plus a per-user flush hook (`flush_program`) — see [Director](/DIRECTOR) |
 | Replication (dsync) | no | [#249](https://github.com/yarilomail/yarilo/issues/249) |
 | Shared and public namespaces | partial | namespaces and ACLs work; cross-user delivery and some enforcement gaps remain ([#544](https://github.com/yarilomail/yarilo/issues/544)) |
 | Virtual mailboxes | partial | a namespace whose mailboxes are defined by a configuration file of folders and `SEARCH` rules; kept in sync while open, with `FETCH`, `SEARCH`, `SORT`, `THREAD`, `STORE`, `EXPUNGE`, `COPY` and `MOVE` acting on the real message, `APPEND`/`COPY`/`MOVE` into one storing to its save folder, and annotation lines filtering the folders. `+` has no effect, as `\Recent` is not tracked. See [Virtual Mailboxes](/VIRTUAL) |
