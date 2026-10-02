@@ -4,8 +4,8 @@ Yarilo runs two submission listeners. MX inbound (port 25) is handled by an exte
 
 | Service key | Port | Role |
 |:---|:---|:---|
-| `submission` | `587` | Outbound submission — AUTH PLAIN required, STARTTLS. |
-| `submissions` | `465` | Outbound submission — AUTH PLAIN required, implicit TLS. |
+| `submission` | `587` | Outbound submission — AUTH required, STARTTLS. |
+| `submissions` | `465` | Outbound submission — AUTH required, implicit TLS. |
 
 See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`, `haproxy_protocol`, `auth_allow_cleartext`).
 
@@ -18,17 +18,18 @@ Protocol-level behaviour shared across both submission listeners.
 | Key | Default | Description |
 |:---|:---|:---|
 | `hostname` | the top-level `hostname` | EHLO/HELO banner and `Message-ID` domain **for submission only**. Unset means the installation's name; see [General](GENERAL). Setting it here does not rename the LMTP banner, the `Received:` header or a delivered message's `Message-ID`. |
-| `submission_max_mail_size` | `41943040` | Maximum accepted message size in bytes (default 40 MiB). |
+| `submission_max_mail_size` | `40M` | Maximum accepted message size. Takes a size with a unit (`40M`) or bytes. Also accepted as `max_message_size`. |
 | `max_line_length` | `4096` | Maximum SMTP command or DATA line length in bytes. |
-| `submission_max_recipients` | `0` | Maximum recipients per message. `0` = unlimited. |
+| `submission_max_recipients` | `0` | Maximum recipients per message. `0` = unlimited. Also accepted as `max_recipients`. |
 | `recipient_delimiter` | `+` | Subaddress separator: `user+tag@domain` → `user@domain`. Empty = disabled. |
+| `submission_client_workarounds` | — | Compatibility shims for non-conformant clients: `whitespace-before-path`, `mailbox-for-path` (see [LMTP](./LMTP#lmtp-client-workarounds) for what each does). Also accepted as `client_workarounds`. |
 | `submission_add_received_header` | `true` | Prepend a `Received:` trace header to messages before forwarding. Set to `false` to suppress (the reference parity — protects sender identity). |
 
 ```yaml
 protocol:
   submission:
     hostname: mail.example.com
-    submission_max_mail_size: 41943040
+    submission_max_mail_size: 40M
     max_line_length: 4096
     submission_max_recipients: 100
     recipient_delimiter: "+"
@@ -39,7 +40,7 @@ protocol:
 
 ## Submission (port 587 / 465)
 
-Accepts mail from MUAs. AUTH PLAIN is required (the only advertised mechanism). After successful authentication and DATA, the message is forwarded to the configured upstream MTA via `protocol.submission.relay`. If `submission_relay_host` is empty, submission returns `451`.
+Accepts mail from MUAs. AUTH is required. `yarilo-submission-login` advertises `AUTH PLAIN LOGIN`, plus `OAUTHBEARER XOAUTH2` when OAuth2 is configured. After successful authentication and DATA, the message is forwarded to the configured upstream MTA via `protocol.submission.relay`. If `submission_relay_host` is empty, submission returns `451`.
 
 `auth_allow_cleartext: false` in the service config blocks AUTH on unencrypted connections; pair it with `ssl_mode: starttls` (port 587) or `ssl_mode: ssl` (port 465).
 
@@ -65,13 +66,15 @@ Configures the upstream MTA for submission. One TCP connection per message; any 
 protocol:
   submission:
     relay:
-      host: smtp.example.com
-      port: 587
-      user: relay-user
-      password: "${RELAY_PASSWORD}"
-      ssl: starttls
-      ssl_verify: true
-      trusted: false
-      connect_timeout: 30
-      command_timeout: 300
+      submission_relay_host: smtp.example.com
+      submission_relay_port: 587
+      submission_relay_user: relay-user
+      submission_relay_password: "${RELAY_PASSWORD}"
+      submission_relay_ssl: starttls
+      submission_relay_ssl_verify: true
+      submission_relay_trusted: false
+      submission_relay_connect_timeout: 30
+      submission_relay_command_timeout: 300
 ```
+
+The pre-beta short names — `host`, `port`, `user`, `password`, `ssl`, `ssl_verify`, `trusted`, `connect_timeout`, `command_timeout` — are still accepted.

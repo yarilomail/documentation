@@ -20,8 +20,11 @@ Protocol-level behaviour, shared across both IMAP listeners.
 | `imap_idle_notify_interval` | `120` | Seconds between unsolicited EXISTS/RECENT responses during IDLE (RFC 2177 keepalive). `0` = disabled. |
 | `imap_max_line_length` | `65536` | Max IMAP command line length in bytes (64 KB = the reference default). `0` = unlimited. |
 | `imap_id_send` | `name *` | Space-separated key-value pairs sent in the ID response (RFC 2971). `*` = server-default values. Empty string = ID extension disabled. |
-| `login_greeting` | `""` | Custom text appended to the server greeting replacing the default `Yarilo IMAP server ready`. Empty = default greeting. |
+| `login_greeting` | `""` | Replaces `IMAP server ready` in the **backend's** greeting. Clients behind a login proxy see `yarilo-imap-login`'s own greeting, `Yarilo Login ready`, which this key does not change. Empty = default. |
 | `imap_logout_format` | `""` | Format string logged at session end. Empty = no stats line. Variables listed below. |
+| `imap_quota` | `true` | Advertise and serve the QUOTA extension (RFC 9208). Independent of quota enforcement. |
+| `imap_special_use_defaults` | — | Map of folder name (case-sensitive) to its RFC 6154 attribute, e.g. `Sent: "\\Sent"`. A user's own `CREATE (USE …)` wins. |
+| `imap_client_workarounds` | — | Compatibility shims: `tb-extra-mailbox-sep`, `tb-lsub-flags`. Also accepted as `client_workarounds`. |
 
 ### `imap_logout_format` variables
 
@@ -46,6 +49,10 @@ protocol:
 
 ## Supported IMAP extensions
 
+[Feature coverage](./PARITY#imap-extensions) is the exhaustive list of what the server advertises. This table explains the ones that need it.
+
+`IMAP4rev2` also brings `ENABLE`, `SASL-IR`, `LITERAL+`, `SEARCHRES` and `STATUS=SIZE`; `LIST-EXTENDED`, `LIST-STATUS`, `CREATE-SPECIAL-USE` and `SORT` (RFC 5256, without `SORT=DISPLAY`) are advertised too.
+
 | Extension | RFC | Notes |
 |:---|:---|:---|
 | IDLE | RFC 2177 | Server-push new-mail notifications. |
@@ -55,13 +62,13 @@ protocol:
 | UIDPLUS | RFC 4315 | `APPENDUID` / `COPYUID` response codes. |
 | UNSELECT | RFC 3691 | Close mailbox without expunge. |
 | NAMESPACE | RFC 2342 | Shared / Other Users namespaces. |
-| QUOTA | RFC 9208 | Per-user storage quota. |
-| ACL | RFC 4314 | Per-mailbox access control lists. |
+| QUOTA | RFC 9208 | Per-user storage quota. Advertised while `imap_quota` is on (the default). |
+| ACL | RFC 4314 | Per-mailbox access control lists. Advertised only with `acl.enabled`. |
 | BINARY | RFC 3516 | Binary content transfer. |
 | THREAD | RFC 5256 | Threading of the searched messages, both algorithms: `THREAD=REFERENCES` (ancestry from `References` / `In-Reply-To`, then joining by base subject) and `THREAD=ORDEREDSUBJECT` (base subject alone). Computed per command from message headers. |
 | ESEARCH | RFC 4731 | Extended SEARCH with MIN/MAX/COUNT. |
 | NOTIFY | RFC 5465 | Event-based notifications. `NOTIFY SET`/`NONE` parsed with all mailbox filters; the **selected** mailbox honours `SELECTED` / `SELECTED-DELAYED` (MessageNew / MessageExpunge / FlagChange), suppressing the unsolicited responses the client did not request (RFC 5465 §5). **Non-selected** mailbox filters (PERSONAL / INBOXES / SUBSCRIBED / SUBTREE / MAILBOXES) are watched via the `pkg/locks` event bus and their MessageNew / MessageExpunge / FlagChange activity is reported as untagged `* STATUS` (RFC 5465 §6), delivered during IDLE and before the next command's tagged response. The watched set is re-evaluated dynamically: mailboxes created, renamed or subscribed after `NOTIFY SET` join or leave the set live (via the per-user `mlist:` event key). Mailbox-level events — **MailboxName** (create / delete / rename, the last with `OLDNAME`) and **SubscriptionChange** (subscribe / unsubscribe) — are reported as untagged `* LIST` responses (RFC 5465 §5) when requested. `AnnotationChange` / metadata events are not yet reported. |
 | SPECIAL-USE | RFC 6154 | `\Sent`, `\Drafts`, `\Trash` folder flags. |
-| ID | RFC 2971 | Server identity advertisement. |
+| ID | RFC 2971 | Server identity advertisement. Always offered before login; after login only while `imap_id_send` is non-empty. |
 | OBJECTID | RFC 8474 | Stable object identifiers: `MAILBOXID` (SELECT/EXAMINE response code + STATUS item, from the folder GUID), `EMAILID` (FETCH, from the message GUID), `THREADID` (FETCH, the conversation a message belongs to; `NIL` for accounts whose threading data has not been built yet). IDs are 32 lowercase hex chars of the 128-bit GUID; they survive RENAME. |
-| METADATA | RFC 5464 | Server and per-mailbox annotations (GETMETADATA / SETMETADATA). State lives in `cfg.Dicts["metadata"]` (`pkg/dict`). Keys: `priv/box/<folder_guid>/<entry>` and `shared/box/<folder_guid>/<entry>`; server-scope entries live under INBOX's GUID with a `vendor/yarilo/pvt/server/` prefix so they cannot collide with INBOX mailbox attributes. |
+| METADATA | RFC 5464 | Advertised only when a `metadata` dict is configured. Server and per-mailbox annotations (GETMETADATA / SETMETADATA). State lives in `cfg.Dicts["metadata"]` (`pkg/dict`). Keys: `priv/box/<folder_guid>/<entry>` and `shared/box/<folder_guid>/<entry>`; server-scope entries live under INBOX's GUID with a `vendor/yarilo/pvt/server/` prefix so they cannot collide with INBOX mailbox attributes. |

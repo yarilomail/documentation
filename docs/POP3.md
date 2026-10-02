@@ -24,7 +24,7 @@ Protocol-level behaviour, shared across both POP3 listeners.
 | `pop3_enable_last` | `false` | Advertise and handle the `LAST` command (RFC 1460). |
 | `pop3_delete_type` | `expunge` | `expunge` = remove message from disk at QUIT. `flag` = set `pop3_deleted_flag` (soft delete, keeps message in IMAP). |
 | `pop3_deleted_flag` | `""` | IMAP flag to set when `pop3_delete_type: flag`. Example: `$POP3Deleted`. |
-| `pop3_save_uidl` | `false` | Persist computed UIDL values to `$HOME/.<folder>/pop3.uidl`. Subsequent sessions load the saved values so UIDLs remain stable across index rebuilds or backend changes. |
+| `pop3_save_uidl` | `false` | Persist computed UIDL values to a `pop3.uidl` file next to the folder's index. Subsequent sessions load the saved values so UIDLs remain stable across index rebuilds or backend changes. |
 | `pop3_lock_session` | `false` | Create a dotlock file at `$HOME/yarilo-pop3-session.lock` after login. Prevents simultaneous access from another yarilo-pop3 replica on the same PVC. Stale locks (older than 10 min) are stolen automatically. |
 
 ### `pop3_uidl_format` variables
@@ -86,7 +86,7 @@ protocol:
     pop3_save_uidl: true
 ```
 
-UIDLs are saved to `$HOME/.<folder>/pop3.uidl` (one `uid\tuidl` pair per line) at the end of each session via atomic write. On the next session, saved values are loaded and used for existing UIDs; new messages get fresh UIDLs that are then persisted.
+UIDLs are saved to a `pop3.uidl` file next to the folder's `yarilo.index`, in the index directory (one `uid\tuidl` pair per line) at the end of each session via atomic write. On the next session, saved values are loaded and used for existing UIDs; new messages get fresh UIDLs that are then persisted.
 
 Priority when multiple sources exist: `pop3_reuse_xuidl` header → saved index entry → format-computed value.
 
@@ -102,9 +102,9 @@ protocol:
     pop3_lock_session: true
 ```
 
-After login, the session creates `$HOME/yarilo-pop3-session.lock`. A second session for the same user on any pod that shares the filesystem will be rejected with `-ERR mailbox already in use`. The lock is released when the session ends (QUIT or disconnect). Locks older than 10 minutes (2× the idle timeout) are automatically treated as stale and stolen.
+After login, the session creates `$HOME/yarilo-pop3-session.lock`. A second session for the same user on any pod that shares the filesystem will be rejected with `-ERR mailbox already in use`. The lock is released when the session ends (QUIT or disconnect). Locks older than the session idle timeout, 10 minutes, are automatically treated as stale and stolen.
 
 | Helm value | Config key | Default | Description |
 |:---|:---|:---|:---|
-| `protocol.pop3.saveUIDL` | `pop3_save_uidl` | `false` | Persist UIDLs to index file. |
-| `protocol.pop3.lockSession` | `pop3_lock_session` | `false` | Dotlock against concurrent access. |
+| `protocol.pop3.pop3_save_uidl` | `pop3_save_uidl` | `false` | Persist UIDLs to index file. |
+| `protocol.pop3.pop3_lock_session` | `pop3_lock_session` | `false` | Dotlock against concurrent access. |
