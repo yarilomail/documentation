@@ -142,7 +142,7 @@ These keys are described in [Deployment](./DEPLOYMENT):
 |:---|:---|:---|
 | `assignment_policy` | `hash` | How a new user gets a backend: `hash`, `least_sessions` or `domain`. See [placement policy](./DEPLOYMENT#initial-placement-policy-—-director-service-assignment-policy-797). |
 | `director_domain_expire` | `900` | Seconds a domain keeps its backend with no session on it, under `domain`. |
-| `director_domain_rebalance_percent` | `20` | How far the busiest backend of a tag may rise above the quietest before one domain moves. `0` never moves one. |
+| `director_domain_rebalance_percent` | `0` (chart: `20`) | How far the busiest backend of a tag may rise above the quietest before one domain moves. `0` never moves one. |
 | `director_domain_rebalance_interval` | `60` | Seconds between rebalance checks. |
 | `director_domain_rebalance_cooldown` | `600` | Seconds a moved domain is left alone. |
 | `user_kick_delay` | `2` | Seconds an admin-initiated kick waits. See [kick pacing](./DEPLOYMENT#kick-pacing-—-user-kick-delay-and-max-parallel-kicks-740). |
