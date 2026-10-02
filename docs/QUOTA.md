@@ -214,7 +214,7 @@ over-quota and too-large actions, `%{error}` is replaced by the reason.
 | Key | Default | Returned when |
 |:---|:---|:---|
 | `quota_status_success` | `OK` | The message fits: under the limit, or within the storage grace for the delivery that crosses it. Also for an ignored folder or a user without limits. |
-| `quota_status_overquota` | `554 5.2.2 %{error}` | The mailbox is full. `%{error}` is `quota.quota_exceeded_message`. |
+| `quota_status_overquota` | `554 5.2.2 %{error}` | The mailbox is full, with `%{error}` = `quota.quota_exceeded_message`. Also when INBOX already holds `quota_mailbox_message_count` messages, with `%{error}` = `Too many messages in the mailbox`. |
 | `quota_status_toolarge` | `""` | The message is larger than `quota.quota_mail_size`, or larger than the user's whole storage limit. Empty uses `quota_status_overquota`. |
 | `quota_status_nouser` | `REJECT Unknown user` | The recipient is unknown in userdb. Empty answers `DUNNO`, so a later Postfix restriction decides. |
 
