@@ -113,7 +113,8 @@ backend LMTP service offer it in the `LHLO` reply as `SIZE <bytes>`:
   size exceeded` while it is being read. The rest is read and discarded rather
   than held in memory, and the connection stays open for the next transaction.
 
-Leave `quota_mail_size` empty or `0` for no limit; then no `SIZE` is offered.
+Leave `quota_mail_size` empty or `0` for no limit; then `LHLO` offers a bare
+`SIZE` with no number, which RFC 1870 reads as "supported, no fixed limit".
 
 **Full mailbox.** A recipient over quota is answered after `DATA`, with the text
 of `quota.quota_exceeded_message`:
