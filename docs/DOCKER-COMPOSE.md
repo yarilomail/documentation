@@ -23,6 +23,7 @@ Everything lives in
 |:---|:---|
 | Infra | `redis`, `yarilo-auth` (userdb), `yarilo-warden`, `yarilo-locks` |
 | Session backends | `yarilo-imap`, `yarilo-pop3`, `yarilo-lmtp`, `yarilo-submission`, `yarilo-managesieve`, `yarilo-jmap` |
+| Full-text search | `yarilo-fts`, the search index service the sessions dial at `yarilo-fts:9106` |
 | Login proxies (TLS) | `yarilo-imap-login`, `yarilo-pop3-login`, `yarilo-submission-login`, `yarilo-lmtp-login`, `yarilo-managesieve-login`, `yarilo-jmap-login` |
 | MTA integration | `yarilo-sasl-login` (SASL auth for Postfix), `yarilo-quota-status` (quota policy) |
 | Operator API | `yarilo-backend-api`, the API `yarctl backend` talks to (not published on the host) |
