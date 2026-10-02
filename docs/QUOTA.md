@@ -144,7 +144,7 @@ resolved per-user limits:
 | `quota_storage_grace` | `10M` | Storage overshoot allowed on **inbound delivery (LMTP/LDA) only**, never on interactive IMAP. It lets the one delivery that crosses the limit through, as long as it lands within the grace. A mailbox already at or over its limit accepts no further delivery, however much grace is left. |
 | `quota_ignore_unlimited` | `false` | Omit the quota root from GETQUOTA/GETQUOTAROOT for unlimited users. |
 | `quota_mailbox_count` | `0` | Cap the number of mailboxes (folders). Enforced at CREATE — `NO [LIMIT] Maximum number of mailboxes reached`. `0` = unlimited. |
-| `quota_mailbox_message_count` | `0` | Cap messages in a single mailbox. Enforced on save — `NO [OVERQUOTA] Too many messages in the mailbox` (LMTP `552`). `0` = unlimited. |
+| `quota_mailbox_message_count` | `0` | Cap on messages in a single mailbox. A mailbox holds up to this many; the save past it is refused with `NO [OVERQUOTA] Too many messages in the mailbox` (LMTP `552 5.2.2`, or `452 4.2.2` with `protocol.lmtp.quota_full_tempfail`). `0` = unlimited. |
 | `quota_hidden` | `false` | Omit the quota root from GETQUOTA/GETQUOTAROOT for **every** user (enforcement still applies). Broader than `quota_ignore_unlimited`. |
 
 Effective storage limit = `rule_limit · quota_storage_percentage/100 + quota_storage_extra`.
