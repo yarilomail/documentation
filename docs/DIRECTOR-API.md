@@ -1,7 +1,8 @@
 # yarilo-director HTTP admin API
 
 Director-plane admin endpoints exposed by `yarilo-director` on port
-`9103` (default). All require a Bearer token and an IP allow-list.
+`9103` (default). The API speaks plain HTTP. Every endpoint requires a Bearer
+token; an IP allow-list can be added on top.
 
 For the storage-plane admin API (dict / acl / quota / folder),
 see [BACKEND-API.md](BACKEND-API.md) — different binary
@@ -32,22 +33,34 @@ To rotate: delete the Secret and run `helm upgrade`.
 
 ---
 
-## IP Whitelist
+## IP allow-list
 
-Default allowed CIDRs (configurable via `components.director.api.allowedNets`):
+The allow-list is empty by default, so the Bearer token is the only gate. Service and pod CIDRs differ between clusters, so no default can be right for every one.
 
-| CIDR | Purpose |
-|:---|:---|
-| `127.0.0.0/8` | Loopback — same-pod CLI |
-| `10.96.0.0/12` | k8s service CIDR (kubeadm default) |
-| `10.244.0.0/16` | k8s pod CIDR (flannel/kubeadm default) |
+To restrict callers by address as well, set `components.director.api.allowed_nets`:
+
+```yaml
+components:
+  director:
+    api:
+      allowed_nets:
+        - "10.96.0.0/12"
+        - "10.244.0.0/16"
+```
+
+The address is checked before the token: a caller outside the list gets `403` whatever token it sends.
+
+::: warning
+An empty `director_service.api.token` disables token checking. The chart always sets one.
+:::
 
 ---
 
 ## CLI
 
-`yarctl` runs inside the director pod and requires no flags — reads URL and token
-from environment automatically:
+`yarctl` needs no flags in the pods where the chart wires it up. Inside the director pod it calls `http://localhost:9103` with `DIRECTOR_API_TOKEN`. In the `yarilo-backend-api` pods the chart sets `YARILO_ADMIN_URL` to the `<release>-director-api` Service and `YARILO_ADMIN_TOKEN` to the API token.
+
+Run a command in the director pod:
 
 ```sh
 kubectl exec -it <director-pod> -- yarctl director status
@@ -57,8 +70,10 @@ Environment variables (set automatically in the container):
 
 | Variable | Default | Description |
 |:---|:---|:---|
-| `YARILO_ADMIN_URL` | `http://localhost:9103` | API base URL |
-| `YARILO_ADMIN_TOKEN` | — | Bearer token (fallback: `DIRECTOR_API_TOKEN`) |
+| `YARILO_ADMIN_URL` | `http://localhost:9103` | API base URL (flag `--url`) |
+| `YARILO_ADMIN_TOKEN` | — | Bearer token (flag `--token`; fallback: `DIRECTOR_API_TOKEN`) |
+
+The `--tls-*` flags of `yarctl` have no effect here: the director API does not serve HTTPS.
 
 ---
 
@@ -68,14 +83,13 @@ Environment variables (set automatically in the container):
 
 #### `GET /api/director/status`
 
-Ring state overview: all backends and peer directors.
+All backends in the ring. `sessions` is the number of sessions on the backend as this director sees them. Director membership is under [`GET /api/director/ring`](#get-api-director-ring).
 
 ```json
 {
   "backends": [
-    {"ip": "10.0.0.1", "port": 993, "tag": "ssd", "up": true, "vhosts": 100}
-  ],
-  "peers": ["10.0.0.2:9102"]
+    {"ip": "10.0.0.1", "port": 993, "tag": "ssd", "up": true, "vhosts": 100, "sessions": 42}
+  ]
 }
 ```
 
@@ -85,19 +99,28 @@ CLI: `yarctl director status`
 
 #### `GET /api/director/dump`
 
-Full state dump: backends, active user→backend mappings, peers.
+Full state dump: backends, user→backend assignments, ring members and session records.
 
 ```json
 {
   "backends": [
-    {"ip": "10.0.0.1", "port": 993, "tag": "ssd", "up": true, "vhosts": 100, "last_updown_change": 1747000000}
+    {"ip": "10.0.0.1", "port": 993, "tag": "ssd", "up": true, "vhosts": 100, "sessions": 42, "last_up": 1747000000, "last_down": 0}
   ],
   "users": [
     {"hash": 3141592653, "host": "10.0.0.1:993", "weak": false, "expires_at": 1747001800}
   ],
-  "peers": ["10.0.0.2:9102"]
+  "peers": ["10.0.0.1:9102", "10.0.0.2:9102"],
+  "sessions": [
+    {"id": "a1b2c3", "user": "alice@example.com", "backend": "10.0.0.1", "proto": "imap", "local": true},
+    {"id": "d4e5f6", "user": "bob@example.com", "backend": "10.0.0.1", "proto": "pop3", "local": false, "origin": "<director run>"}
+  ]
 }
 ```
+
+In `sessions`:
+
+- `local` is `true` for a session whose login connection is attached to this director. A record replicated from another director is counted here but never kicked from here.
+- `origin` is present only on such a replicated record. It names the director run it came from, in the same form the director's purge log lines use.
 
 CLI: `yarctl director dump`
 
@@ -105,18 +128,31 @@ CLI: `yarctl director dump`
 
 #### `GET /api/director/map[?user=USER]`
 
-Without `user` — returns all active user→backend entries from the director's userDir.
-With `user` — performs a live ring lookup for that username.
+The call has three forms:
+
+- Without `user`, it returns every user→backend assignment.
+- With `user` and `peek`, it reads the stored assignment and changes nothing.
+- With `user` alone, it resolves the user the way a login `LOOKUP` does: the sticky assignment first, then the ring.
 
 ```json
-// GET /api/director/map?user=alice@example.com
-{"user": "alice@example.com", "backend": "10.0.0.1", "port": 993, "tag": "ssd"}
-
 // GET /api/director/map
 {"users": [{"hash": 3141592653, "host": "10.0.0.1:993", "weak": false}]}
+
+// GET /api/director/map?user=alice@example.com&peek=1
+{"user": "alice@example.com", "pinned": true, "backend": "10.0.0.1", "host": "10.0.0.1:993", "weak": false}
+{"user": "bob@example.com", "pinned": false}
+
+// GET /api/director/map?user=alice@example.com
+{"user": "alice@example.com", "backend": "10.0.0.1", "port": 993, "tag": "ssd", "sticky": true}
 ```
 
-CLI: `yarctl director map [--user alice@example.com]`
+::: warning
+The form without `peek` can assign a user who has no assignment yet, for example under `assignment_policy: least_sessions`. Use `peek` for read-only inspection.
+:::
+
+The resolving form returns `503` when no backend is available.
+
+CLI: `yarctl director map [--user alice@example.com]`. With `--user`, the CLI sends `peek`.
 
 ---
 
@@ -168,7 +204,7 @@ CLI: `yarctl director backends update 10.0.0.3 --vhosts 200`
 
 #### `DELETE /api/director/backends/{ip}`
 
-Remove backend from the ring. Broadcasts `RING-CHANGE down`.
+Remove backend from the ring. Broadcasts `RING-CHANGE down`. An unknown IP also returns `{"status": "ok"}`.
 
 CLI: `yarctl director backends remove 10.0.0.3`
 
@@ -192,15 +228,38 @@ CLI: `yarctl director backends down 10.0.0.3`
 
 #### `POST /api/director/backends/{ip}/flush`
 
-Flush a specific backend or all backends. Use `all` as `{ip}` to flush everything.
+Evacuate a backend, or every backend with `all` as `{ip}`. Its users are kicked and re-route to the surviving backends.
+
+By default the evacuation is a graceful, throttled drain: users are moved in a window of at most `max_parallel` confirmed kills. The query parameters change that:
+
+| Parameter | Effect |
+|:---|:---|
+| `force=true` | Kick every session at once. |
+| `max_parallel=N` | Window size for this run. The default is `director_service.max_parallel_moves`. |
+
+Drain one backend:
 
 ```sh
 POST /api/director/backends/10.0.0.3/flush
-POST /api/director/backends/all/flush
 ```
 
-CLI: `yarctl director backends flush 10.0.0.3`
-CLI: `yarctl director backends flush all`
+```json
+{"status": "ok", "mode": "graceful", "users_queued": 120, "max_parallel": 5}
+```
+
+Force-evacuate every backend:
+
+```sh
+POST /api/director/backends/all/flush?force=true
+```
+
+```json
+{"status": "ok", "mode": "force"}
+```
+
+See [Deployment](./DEPLOYMENT) for when to drain and when to force.
+
+CLI: `yarctl director backends flush 10.0.0.3 [--force] [--max-parallel N]`
 
 ---
 
@@ -208,8 +267,7 @@ CLI: `yarctl director backends flush all`
 
 #### `POST /api/director/users/{user}/move`
 
-Force-assign a user to a specific backend. Overrides consistent-hash routing.
-Broadcasts `USER-MOVED` to all connected directors.
+Assign a user to a specific backend. The assignment is a sticky pin with the usual `user_expire` lifetime, not a permanent override. The user's sessions on the old backend are kicked, and `USER-MOVED` is broadcast to login pods and around the ring.
 
 ```json
 // Request — either form works:
@@ -226,8 +284,9 @@ CLI: `yarctl director users move alice@example.com --backend 10.0.0.1:993`
 
 #### `POST /api/director/users/{user}/kick`
 
-Kick a user — broadcasts `USER-KICKED` to all connected login clients, which terminate
-active sessions for that user.
+Kick a user: the director clears the user's sticky assignment and broadcasts `USER-KICKED`, so the login pods end that user's sessions. The next login is routed afresh.
+
+The response comes immediately, but the kick itself waits `director_service.user_kick_delay` seconds (default `2`) so an in-flight command on the old backend can finish. New `LOOKUP`s for the user are held until the old sessions are confirmed gone.
 
 CLI: `yarctl director users kick alice@example.com`
 
@@ -304,30 +363,11 @@ CLI: `yarctl director ring status --all`
 
 ---
 
-#### `POST /api/director/ring`
+#### `POST /api/director/ring` and `DELETE /api/director/ring`
 
-Dynamically add a peer director. Starts a persistent reconnecting dial loop.
+Both return `410 Gone`. Ring membership is self-organizing: a director joins by pointing `director_service.peers` at a seed, and a member is removed automatically when its neighbor finds it dead. There is nothing for an operator to add or remove. See [Ring formation](./DIRECTOR#ring-formation-design-history).
 
-```json
-// Request
-{"addr": "10.0.0.4:9102"}
-
-// Response
-{"status": "ok"}
-```
-
-> **Note:** Dynamic peers are not persisted — they are lost on pod restart.
-> For permanent peers, set `components.director.peers` in Helm values.
-
-CLI: `yarctl director ring add 10.0.0.4:9102`
-
----
-
-#### `DELETE /api/director/ring?addr={addr}`
-
-Remove a peer and cancel its dial loop.
-
-CLI: `yarctl director ring remove 10.0.0.4:9102`
+`yarctl director ring add` and `ring remove` print this explanation.
 
 ---
 
@@ -339,8 +379,9 @@ All errors return JSON with an `error` field and appropriate HTTP status code.
 |:---|:---|
 | `400` | Invalid request body or missing required field |
 | `401` | Missing or invalid Bearer token |
-| `403` | Client IP not in `allowedNets` |
-| `404` | Backend not found |
+| `403` | Client IP not in `allowed_nets` |
+| `404` | Backend not found (update, up, down, flush) |
+| `410` | Ring add/remove: membership is self-organizing |
 | `503` | No backends available (map lookup) |
 
 ```json
@@ -354,4 +395,4 @@ All errors return JSON with an `error` field and appropriate HTTP status code.
 | Value | Default | Description |
 |:---|:---|:---|
 | `components.director.api.port` | `9103` | API listen port |
-| `components.director.api.allowedNets` | `127.0.0.0/8`, `10.96.0.0/12`, `10.244.0.0/16` | Allowed client CIDRs |
+| `components.director.api.allowed_nets` | `[]` | Allowed client CIDRs. Empty allows every address. |
