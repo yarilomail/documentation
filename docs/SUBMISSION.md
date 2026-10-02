@@ -40,7 +40,7 @@ protocol:
 
 ## Submission (port 587 / 465)
 
-Accepts mail from MUAs. AUTH is required. `yarilo-submission-login` advertises `AUTH PLAIN LOGIN`, plus `OAUTHBEARER XOAUTH2` when OAuth2 is configured. After successful authentication and DATA, the message is forwarded to the configured upstream MTA via `protocol.submission.relay`. If `submission_relay_host` is empty, submission returns `451`.
+Accepts mail from MUAs. AUTH is required. `yarilo-submission-login` advertises `AUTH PLAIN LOGIN`, and with OAuth2 configured also `OAUTHBEARER XOAUTH2`, but only `PLAIN` and `LOGIN` are accepted; any other mechanism answers `504` ([yarilo#2121](https://github.com/yarilomail/yarilo/issues/2121)). After successful authentication and DATA, the message is forwarded to the configured upstream MTA via `protocol.submission.relay`. If `submission_relay_host` is empty, submission returns `451`.
 
 `auth_allow_cleartext: false` in the service config blocks AUTH on unencrypted connections; pair it with `ssl_mode: starttls` (port 587) or `ssl_mode: ssl` (port 465).
 
