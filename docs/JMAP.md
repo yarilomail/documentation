@@ -1,8 +1,10 @@
 # JMAP configuration
 
-> **Status: in progress.** The session resource (RFC 8620 §2), the request
-> envelope (§3) and the read-only `Mailbox` methods (RFC 8621 §2) are served
-> end-to-end; the remaining data methods land in later phases.
+The session resource, the request envelope and the Mail and Quota methods listed
+under [Capabilities](#capabilities) are served. `Mailbox/set`, blob upload and push
+are not implemented
+([#712](https://github.com/yarilomail/yarilo/issues/712),
+[#714](https://github.com/yarilomail/yarilo/issues/714)).
 
 JMAP runs as two binaries, not one. `yarilo-jmap-login` faces clients and
 `yarilo-jmap` owns the user's state; see
@@ -73,7 +75,7 @@ clients batch against what is published.
 | `jmap_query_max_limit` | `256` | Server ceiling on ids returned by one query. A smaller client `limit` wins; the response reports the limit applied. |
 | `jmap_max_query_folders` | `64` | Mailboxes one full-text `Email/query` may search. A query over more is refused, never answered from part of them. |
 | `jmap_snippet_max_chars` | `256` | Visible characters in a `SearchSnippet` preview. Markup and HTML escapes are not counted; the subject is never cut. |
-| `jmap_push_timeout` | `90` | Idle timeout for a push connection, seconds. Unused until the push phase. |
+| `jmap_push_timeout` | `90` | Idle timeout for a push connection, seconds. Unused: push is not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)). |
 | `jmap_cors_allow_origins` | `[]` | Browser origins allowed to call the endpoint. Empty denies every cross-origin request. Exact match, scheme included. |
 
 The session `state` string is derived from these values, so changing one
@@ -98,7 +100,7 @@ components:
   jmapLogin:               # the client-facing proxy
     enabled: true
     backend_port: 10443    # the JMAP container's port, not the pod's
-    director_addr: "yarilo-director:9090"
+    director_addr: "yarilo-director:9102"
     tls:
       secretName: jmap-tls
 
@@ -170,7 +172,7 @@ parseable answer.
 ## Mailboxes
 
 `Mailbox/get` and `Mailbox/query` are read-only and expose the **personal
-namespace** only; shared and public namespaces arrive with the namespace phase.
+namespace** only; shared and public namespaces are not served over JMAP.
 
 | JMAP member | Source |
 |:---|:---|
@@ -457,10 +459,10 @@ crafted message can never render in the origin that serves the API.
 | Mail — `Mailbox/changes` | RFC 8621 §2 | served |
 | Mail — `Email/changes` | RFC 8621 §4 | served |
 | Mail — `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
-| Mail — `Email/set` | RFC 8621 §4.6 | served |
+| Mail — `Email/set` | RFC 8621 §4.6 | keyword updates; `create` and `destroy` are refused with a pointer to IMAP `APPEND`, LMTP delivery or IMAP `EXPUNGE` |
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
-| Mail — `Mailbox/set` | RFC 8621 §2.5 | later phase |
-| Push over WebSocket | RFC 8887 | later phase |
+| Mail — `Mailbox/set`, blob upload | RFC 8621 §2.5, RFC 8620 §6.1 | not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)) |
+| Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
 and is meant to be extracted as a standalone library.
