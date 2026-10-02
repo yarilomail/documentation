@@ -206,20 +206,20 @@ protocol:
 
 ## `protocol.lmtp.proxy`
 
-Proxy mode is active only on **director** nodes. The director's consistent-hashing ring (built from `general` backend settings) routes each recipient to the correct backend. Backend nodes always deliver locally — `protocol.lmtp.proxy` has no effect on them.
-
-When multiple recipients hash to different backends, deliveries run in parallel and per-recipient status codes are merged before replying to the MTA.
+`yarilo-lmtp-login` reads this section. For each recipient it opens one connection to the backend that the director's LOOKUP names (or to `backend_addr` in standalone mode). Deliveries to different backends run in parallel, and the per-recipient status codes are merged before the reply to the MTA. The backend, `yarilo-lmtp`, ignores the section.
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `proxy.timeout` | `125` | Per-backend connect + transaction timeout in seconds. |
+| `lmtp_proxy_timeout` | `125` | Cap in seconds on one backend delivery: the connect, the LMTP transaction and the body together. Past it the recipient gets `451 4.2.0` and the MTA retries. |
 
 ```yaml
 protocol:
   lmtp:
     proxy:
-      timeout: 60
+      lmtp_proxy_timeout: 60
 ```
+
+In the Helm chart the value is `protocol.lmtp.proxy.lmtp_proxy_timeout`.
 
 ---
 

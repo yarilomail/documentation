@@ -186,7 +186,7 @@ The logical request flow (login → session → shared services → storage):
   yarilo-imap-login           # TLS terminator + proxy (in director deployment)
   yarilo-pop3-login           # ditto
   yarilo-submission-login     # ditto
-  yarilo-lmtp-proxy           # MTA-facing TCP proxy (in director deployment)
+  yarilo-lmtp-login           # MTA-facing LMTP proxy (in director deployment)
   yarilo-imap                 # IMAP session backend (in backend deployment)
   yarilo-pop3                 # POP3 session backend
   yarilo-submission           # Submission session backend
@@ -251,7 +251,7 @@ helm/
       imap-login-deployment.yaml
       pop3-login-deployment.yaml
       submission-login-deployment.yaml
-      lmtp-proxy-deployment.yaml
+      lmtp-login-deployment.yaml
       director-statefulset.yaml   — 3 pods peer-sync
   yarilo-backend/  — backend pool (one release per tag, 4 StatefulSets per protocol)
     Chart.yaml
@@ -355,7 +355,7 @@ stern -l app.kubernetes.io/part-of=yarilo
 | `yarilo-imap-login` | Deployment | LoadBalancer :993 / :143 | 2+ | TLS terminator + proxy, HPA |
 | `yarilo-pop3-login` | Deployment | LoadBalancer :995 / :110 | 2+ | HPA |
 | `yarilo-submission-login` | Deployment | LoadBalancer :465 / :587 | 2+ | HPA |
-| `yarilo-lmtp-proxy` | Deployment | ClusterIP/NodePort :24 | 2+ | MTA-facing, IP allowlist via NetworkPolicy |
+| `yarilo-lmtp-login` | Deployment | ClusterIP/NodePort :24 | 2+ | MTA-facing, IP allowlist via NetworkPolicy |
 
 ### yarilo-backend chart (one release per tag)
 
@@ -387,7 +387,7 @@ stern -l app.kubernetes.io/part-of=yarilo
 | `yarilo-imap-login` | `nobody` | NET_BIND_SERVICE | none |
 | `yarilo-pop3-login` | `nobody` | NET_BIND_SERVICE | none |
 | `yarilo-submission-login` | `nobody` | NET_BIND_SERVICE | none |
-| `yarilo-lmtp-proxy` | `nobody` | NET_BIND_SERVICE | none |
+| `yarilo-lmtp-login` | `nobody` | NET_BIND_SERVICE | none |
 | `yarilo-imap` | `yarilo` | none | RWX PVC (NFS) |
 | `yarilo-pop3` | `yarilo` | none | RWX PVC (NFS) |
 | `yarilo-submission` | `yarilo` | none | RWX PVC (NFS, for the Sent folder) |
