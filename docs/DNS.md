@@ -54,8 +54,9 @@ example.com.   3600  IN  MX  10 mail.example.com.
 ```
 
 The MX target must be a hostname with an A/AAAA record, never an IP address
-and never a CNAME. In a yarilo deployment this host runs the inbound MTA that
-delivers to `yarilo-lmtp` — see [LMTP](./LMTP).
+and never a CNAME. In a yarilo deployment this host runs the inbound MTA, which
+delivers over LMTP to `yarilo-lmtp-login`; that proxy looks up each recipient's
+backend and hands the message on — see [LMTP](./LMTP).
 
 ### SPF
 
