@@ -205,12 +205,33 @@ quota:
 - Empty `quota_over_status_mask` disables it. Currently wired for IMAP logins
   (POP3 lacks the usage-count path — a separate task).
 
-## quota_status_nouser
+## quota-status actions
 
-The `yarilo-quota-status` policy service returns `quota_status_nouser` when the
-recipient is unknown in userdb (default `REJECT Unknown user`). A backend lookup
-**error** still fails open (`DUNNO`); set `quota_status_nouser: ""` to accept
-unknown recipients (`DUNNO`) and let a later Postfix restriction decide.
+Every answer of the `yarilo-quota-status` policy service is a setting under
+`components.quotaStatus` in the chart (`quota_status:` in `yarilo.yaml`). In the
+over-quota and too-large actions, `%{error}` is replaced by the reason.
+
+| Key | Default | Returned when |
+|:---|:---|:---|
+| `quota_status_success` | `OK` | The message fits: under the limit, or within the storage grace for the delivery that crosses it. Also for an ignored folder or a user without limits. |
+| `quota_status_overquota` | `554 5.2.2 %{error}` | The mailbox is full. `%{error}` is `quota.quota_exceeded_message`. |
+| `quota_status_toolarge` | `""` | The message is larger than `quota.quota_mail_size`, or larger than the user's whole storage limit. Empty uses `quota_status_overquota`. |
+| `quota_status_nouser` | `REJECT Unknown user` | The recipient is unknown in userdb. Empty answers `DUNNO`, so a later Postfix restriction decides. |
+
+The default refusal `554 5.2.2` is permanent: the MTA bounces the message to the
+sender at once. To have the MTA keep it queued and retry instead, set for example
+`quota_status_overquota: "DEFER_IF_PERMIT %{error}"` or
+`"452 4.2.2 %{error}"`.
+
+When the size is not known yet (an MTA asking at `RCPT` without a `SIZE`), the
+check counts one byte, so a mailbox already at or over its limit is still refused.
+
+A userdb lookup that fails, or a mailbox that cannot be counted, answers
+`DEFER_IF_PERMIT` with the reason. The MTA retries later; it neither accepts the
+message unchecked nor bounces it.
+
+A request without a recipient, such as Postfix's end-of-message call, answers
+`DUNNO`.
 
 ## IMAP wire (RFC 9208)
 
