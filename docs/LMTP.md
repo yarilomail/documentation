@@ -212,8 +212,6 @@ protocol:
 |:---|:---|:---|
 | `lmtp_proxy_timeout` | `125` | Cap in seconds on one backend delivery: the connect, the LMTP transaction and the body together. Past it the recipient gets `451 4.2.0` and the MTA retries. |
 
-The pre-beta spelling `timeout` is still accepted.
-
 ```yaml
 protocol:
   lmtp:
