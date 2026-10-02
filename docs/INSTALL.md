@@ -465,5 +465,9 @@ setups. `mail_home_template` is the pre-beta spelling of `mail_home` and is
 still accepted. Per-user relocation is a
 DB-only change — populate `home` — with no code or config change.
 
+A username that would be a path has no home: one holding `/`, `\` or NUL, an
+empty local part, or a local part or domain that is `.` or `..`. Such a login
+is refused and such an LMTP recipient gets `550 5.1.1`.
+
 See [Mailbox Storage](./STORAGE) for backends (maildir, sdbox, mdbox),
 self-healing and rotation tuning, and [Quota](./QUOTA) for enforcement.
