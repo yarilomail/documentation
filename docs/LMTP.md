@@ -223,16 +223,6 @@ protocol:
 
 In the Helm chart the value is `protocol.lmtp.proxy.lmtp_proxy_timeout`.
 
----|:---|:---|
-| `proxy.timeout` | `125` | Per-backend connect + transaction timeout in seconds. |
-
-```yaml
-protocol:
-  lmtp:
-    proxy:
-      timeout: 60
-```
-
 ---
 
 ## Listener (service-level settings)
