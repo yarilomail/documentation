@@ -159,7 +159,7 @@ Read by the IMAP, POP3, Submission and ManageSieve login proxies.
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `login_proxy_timeout` | `30` | Seconds a login proxy may spend reaching the user's backend and bringing the session up there: the connect, re-routes to another backend, the preamble and the backend's greeting. Past it the client gets a temporary failure (`NO [UNAVAILABLE]` on IMAP) and may log in again. A user's `proxy_timeout` (see [AUTH](./AUTH)) replaces it. |
+| `login_proxy_timeout` | `30` | Seconds a login proxy may spend reaching the user's backend and bringing the session up there: the connect, re-routes to another backend, the preamble and the backend's greeting, with every retry inside the same window. Past it the client gets a temporary failure (`NO [UNAVAILABLE]` on IMAP) and may log in again. A user's `proxy_timeout` (see [AUTH](./AUTH)) replaces it. |
 
 ```yaml
 login:
