@@ -36,8 +36,14 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `read_timeout` | `300` | Per-command read timeout in seconds. |
 | `write_timeout` | `300` | Per-command write timeout in seconds. |
 | `lmtp_client_workarounds` | — | List of client compatibility workarounds (see below). |
-| `lmtp_listen` | — | Listen address of the backend LMTP service. |
-| `lmtp_backend_port` | — | Port the login service proxies to on the backend. |
+
+The pre-beta short spellings — `add_received_header`, `save_to_detail_mailbox`,
+`hdr_delivery_address`, `verbose_replies`, `user_concurrency_limit` and
+`client_workarounds` — are still accepted for the `lmtp_` keys above.
+
+The backend's listen address and port are listener settings (`services.lmtp`, see
+[Services](./SERVICES)); the port the login service dials is
+`lmtp_login_service.backend_port` below.
 
 ### A delivery to a folder that does not exist
 
@@ -206,20 +212,10 @@ protocol:
 
 ## `protocol.lmtp.proxy`
 
-Proxy mode is active only on **director** nodes. The director's consistent-hashing ring (built from `general` backend settings) routes each recipient to the correct backend. Backend nodes always deliver locally — `protocol.lmtp.proxy` has no effect on them.
-
-When multiple recipients hash to different backends, deliveries run in parallel and per-recipient status codes are merged before replying to the MTA.
-
-| Key | Default | Description |
-|:---|:---|:---|
-| `proxy.timeout` | `125` | Per-backend connect + transaction timeout in seconds. |
-
-```yaml
-protocol:
-  lmtp:
-    proxy:
-      timeout: 60
-```
+`protocol.lmtp.proxy.timeout` is accepted and has no effect: nothing reads it. Routing
+each recipient to its backend is the job of `yarilo-lmtp-login`, which asks the director
+with `LOOKUP` and delivers to that backend — see [`lmtp_login_service`](#lmtp-login-service)
+below. The director itself carries no LMTP traffic.
 
 ---
 
@@ -259,13 +255,13 @@ The backend listens only for preamble connections from `yarilo-lmtp-login`. MTAs
 
 ## `lmtp_login_service`
 
-Configuration for `yarilo-lmtp-login`. Set either `backend_addr` (standalone) or `director_addr` (director mode).
+Configuration for `yarilo-lmtp-login`. Set either `backend_addr` (standalone) or `director_addr` (director mode). When both are set, `backend_addr` wins and the service logs a warning at start.
 
 | Key | Default | Description |
 |:---|:---|:---|
 | `backend_addr` | — | Fixed address of `yarilo-lmtp` backend. Used in standalone mode. |
-| `director_addr` | — | Address of `yarilo-director` for per-recipient LOOKUP. Takes priority over `backend_addr`. |
-| `director_tag` | `""` | Restrict LOOKUP to backends with this tag. Empty = full ring. |
+| `director_addr` | — | Address of `yarilo-director` (`:9102`) for the per-recipient `LOOKUP`. |
+| `director_tag` | `""` | Tag pool for the `LOOKUP`. Empty selects the untagged pool — there is no full-ring mode. A per-user `director_tag` from userdb overrides it. |
 | `backend_port` | `0` | Override the port in the LOOKUP result. `0` = use the result address as-is. |
 
 **Standalone mode:**
@@ -279,14 +275,14 @@ lmtp_login_service:
 components:
   lmtpLogin:
     enabled: true
-    backendAddr: "yarilo-lmtp.yarilo.svc.cluster.local:24"
+    backend_addr: "yarilo-lmtp.yarilo.svc.cluster.local:24"
 ```
 
 **Director mode:**
 
 ```yaml
 lmtp_login_service:
-  director_addr: "yarilo-director.yarilo.svc.cluster.local:9101"
+  director_addr: "yarilo-director.yarilo.svc.cluster.local:9102"
   director_tag: "prod"
   backend_port: 10024
 ```
@@ -295,9 +291,9 @@ lmtp_login_service:
 components:
   lmtpLogin:
     enabled: true
-    directorAddr: "yarilo-director.yarilo.svc.cluster.local:9101"
-    directorTag: "prod"
-    backendPort: 10024
+    director_addr: "yarilo-director.yarilo.svc.cluster.local:9102"
+    director_tag: "prod"
+    backend_port: 10024
 ```
 
 Postfix `main.cf`:
