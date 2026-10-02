@@ -474,7 +474,8 @@ NodePort (protected by network policy; not exposed via LoadBalancer).
 and builds no passdb chain. The login proxies relay the SASL bytes of the
 client to `yarilo-auth`, which runs the mechanism (PLAIN, LOGIN, SCRAM,
 SCRAM-PLUS with the channel binding the proxy holds, since it terminates
-TLS) and answers with a session token. The session binary presents the
+TLS, and OAUTHBEARER and XOAUTH2 when a token validator is configured) and
+answers with a session token. The session binary presents the
 token and receives the userdb answer through one field list that the
 service writes and the session reads (`home`, `mail`, `quota_rule`, groups
 and the rest of `internal/auth/protocol/authok.go`).
