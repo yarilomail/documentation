@@ -77,6 +77,19 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_submission_timeout` | `30` | Timeout in seconds |
 | `sieve.sieve_submission_auth_secret` | `""` | Name of a Kubernetes Secret with `user` and `password` keys for SMTP AUTH. Leave empty for unauthenticated relay |
 
+## ManageSieve
+
+`protocol.managesieve` holds the protocol's own limits; the script size is `sieve.sieve_max_script_size` above.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `max_invalid_commands` | `3` | Unknown commands before authentication after which the server says `BYE` and closes. |
+| `managesieve_max_line_length` | `65536` | Bytes in a command line or a literal, a script's body aside. A larger literal is refused before it is read: `NO "Literal size too large."`, and when the client is already sending it (`{N+}`), `BYE` and close. Before authentication the bound is 8192 bytes. |
+
+A script body over `sieve_max_script_size` gets `NO (QUOTA/MAXSCRIPTSIZE)` before it is read, closing the connection the same way.
+
+A script name is 1 to 256 characters of valid UTF-8 without control characters, `/`, `\`, U+00FF, U+2028 or U+2029, and is neither `.` nor `..`. Any command naming a script otherwise gets `NO "Invalid script name."`.
+
 ## Outbound mail — redirect and vacation
 
 When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
