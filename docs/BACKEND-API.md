@@ -544,7 +544,7 @@ Usage and limits. Limits come from the user's `quota_rule` in userdb when `backe
 
 ### `POST /api/backend/quota/recalc`
 
-Rescans every folder and rewrites the stored counters — the repair for a counter that has drifted. Body: `{ "user", "namespace" }`. Reply: `{ "user", "storage_bytes", "messages" }`. `404` for an unknown user or namespace.
+Rescans every folder and rewrites the stored counters — the repair for a counter that has drifted. Body: `{ "user", "namespace" }`. Reply: `{ "user", "storage_bytes", "messages" }`. `404` when the user has no mail home yet; an unknown namespace is `400`, as on every other route.
 
 ### `GET /api/backend/quota/clone/list` and `GET /api/backend/quota/clone/get?backend=NAME&user=USER`
 
