@@ -373,7 +373,7 @@ the stamped one left in place. Both are logged.
 | `host` / `port` | Upstream backend address. |
 | `destuser` | Username to present to the upstream. |
 | `proxy_mech` | SASL mechanism for the upstream login. |
-| `proxy_timeout` | Upstream connect timeout (seconds). |
+| `proxy_timeout` | Seconds. In `yarilo-lmtp-login`, the cap on one delivery to this user's backend, in place of `lmtp_proxy_timeout`; a missing, zero or negative value keeps the global one. The IMAP/POP3/Submission/ManageSieve login proxies do not read it. |
 | `proxy_redirect_reauth` | Bool: re-auth on redirect. |
 | `proxy_nopipelining` | Bool: disable command pipelining to the upstream. |
 | `ssl` / `starttls` | Upstream TLS mode / bool STARTTLS. |

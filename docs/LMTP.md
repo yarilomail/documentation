@@ -227,6 +227,8 @@ protocol:
 
 In the Helm chart the value is `protocol.lmtp.proxy.lmtp_proxy_timeout`.
 
+A recipient's userdb field `proxy_timeout` (seconds) replaces it for that recipient; see [AUTH](./AUTH).
+
 ---
 
 ## Listener (service-level settings)
