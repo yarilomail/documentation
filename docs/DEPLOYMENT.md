@@ -533,7 +533,7 @@ a config or code rework. Embedded mode is reserved for non-k8s use only.
 **Why embedded is not a k8s option, even at `replicaCount=1`:**
 - Unix-socket coordination is pod-local. Bump `replicaCount: 1 → 2` and the second pod
   cannot see lock state held by the first — two writers collide on the same NFS file.
-- A scheduled rolling restart of a single replica drops every in-flight lock for ~30 s.
+- A scheduled rolling restart of a single replica drops every in-flight lock.
   Remote mode survives this: clients reconnect to the surviving replica and pick up state
   from Redis.
 - Operator surprise is the worst kind of incident. The deployment must not silently switch
@@ -635,7 +635,8 @@ locks_client:
 - **Reads take no lock** — the storage layer provides a consistent snapshot.
 - The protocol also offers shared locks and blocking variants (`LOCK-SHARED`, `LOCK-WAIT`,
   `LOCK-SHARED-WAIT`); the storage code takes only exclusive locks.
-- TTL-based (auto-release on client crash, typically 30 s with renew every 10 s).
+- TTL-based: a lock releases itself if its holder crashes. The TTL and the renewal interval are
+  chosen per kind of lock by the code that takes it; there is no single global value.
 - Granularity: per-mailbox (`mbox:<user>:<folder>`).
 
 | Operation | Lock |
@@ -657,9 +658,9 @@ In embedded mode the identical byte stream runs over the Unix socket `/run/yaril
 > VERSION\t1\n
 < VERSION\t1\tOK\n
 
-> LOCK\t<resource>\t<owner>\t<ttl_ms>\n
+> LOCK\t<resource>\t<owner>\t<ttl_ms>[\t<site>]\n
 < OK\t<lock_id>\n           # acquired
-< BUSY\t<current_owner>\n   # held by someone else
+< BUSY\t<current_owner>\t<site>\n   # held by someone else
 
 > UNLOCK\t<lock_id>\n
 < OK\n | NOT_FOUND\n
@@ -677,9 +678,14 @@ In embedded mode the identical byte stream runs over the Unix socket `/run/yaril
 < OK\t<new_value>\n
 ```
 
-`LOCK-SHARED`, `LOCK-WAIT` and `LOCK-SHARED-WAIT` take the same arguments as `LOCK`. The
-`-WAIT` forms do not answer `BUSY`: they answer when the lock is the caller's, in the order
-the backend keeps for every replica.
+`<site>` names the code path taking the lock, so a `BUSY` reply says who holds it and where.
+`LOCK-SHARED` takes the same arguments as `LOCK`.
+
+`LOCK-WAIT` and `LOCK-SHARED-WAIT` take one more, a wait limit:
+`LOCK-WAIT\t<resource>\t<owner>\t<ttl_ms>\t<site>\t<wait_ms>`. Within that limit the caller
+waits in the server's queue — the order the backend keeps for every replica — and is answered
+`OK` once the lock is its own. When the limit runs out the answer is `BUSY` with the current
+owner and site. A malformed limit answers `ERROR bad_wait`.
 
 ### What stays inside the session processes
 
@@ -697,7 +703,7 @@ If anything hangs, the TTL releases the lock automatically.
 ### Storage backend (remote mode only)
 
 Redis (per backend deployment, or in the same namespace). Key: `lock:<resource>`,
-Value: `<owner>|<acquired_at>`, TTL: 30 s. Atomic acquisition via Lua `SET ... NX EX`.
+Value: `<owner>|<acquired_at>`, TTL: the one the caller asked for. Atomic acquisition via Lua `SET ... NX EX`.
 
 Embedded mode keeps the same key/value shape in a local `map[string]lockState` with a
 background TTL sweeper — no external dependencies.
@@ -1049,7 +1055,7 @@ Synced between directors over the peer protocol.
    sidecar goes silent → TTL expiry (#776). Either way the **whole pod** leaves the
    ring for all protocols.
 2. Director removes it from the ring.
-3. Locks on the dead pod expire via TTL (30 s) on `yarilo-locks-<tag>`.
+3. Locks the dead pod held expire after their TTL on `yarilo-locks`.
 4. Ring rehash → users move to neighbouring replicas in the same tag.
 5. The k8s scheduler brings up a new pod (~30 s).
 6. The new pod mounts the same NFS and starts accepting connections.
