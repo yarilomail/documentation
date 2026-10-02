@@ -40,7 +40,8 @@ value is computed from the mailbox index.
 ## Two distinct entities — do not conflate
 
 1. **quota engine** (`quota.enabled`) — the count backend + enforcement on
-   **every save**: IMAP APPEND/COPY/MOVE (OVERQUOTA), LMTP delivery (452), and
+   **every save**: IMAP APPEND/COPY/MOVE (OVERQUOTA), LMTP delivery (552, or 452
+   with `protocol.lmtp.quota_full_tempfail`), and
    the quota-status policy service. This mirrors the reference's `quota` plugin, whose
    `quota-storage.c` hooks `mail_save` — the path shared by APPEND and delivery.
 2. **IMAP QUOTA extension** (`protocol.imap.imap_quota`) — RFC 9208
@@ -99,8 +100,9 @@ protocol:
 ```
 
 `quota_mail_size` is independent of the usage limit and applies even without a
-per-user `quota_rule`; its rejection carries a distinct "exceeds max mail size"
-text so a client can tell "message too large" from "mailbox full". The
+per-user `quota_rule`. Over IMAP its rejection carries a distinct "exceeds max mail size"
+text, so a client can tell "message too large" from "mailbox full". Over LMTP it is
+offered as `SIZE` and enforced while the message is read (see LMTP). The
 `quota-status` policy service additionally honours `quota_status.recipient_delimiter`
 (default `+`) when deriving the target folder from the recipient detail part.
 
