@@ -58,9 +58,7 @@ An empty `director_service.api.token` disables token checking. The chart always 
 
 ## CLI
 
-`yarctl` needs no flags in the pods where the chart wires it up. Inside the director pod it calls `http://localhost:9103` with `DIRECTOR_API_TOKEN`. In the `yarilo-backend-api` pods the chart sets `YARILO_ADMIN_URL` to the `<release>-director-api` Service and `YARILO_ADMIN_TOKEN` to the API token.
-
-Run a command in the director pod:
+Run director commands from the director pod. The chart sets `YARILO_ADMIN_URL` to the `<release>-director-api` Service and `YARILO_ADMIN_TOKEN` to the API token, so no flags are needed:
 
 ```sh
 kubectl exec -it <director-pod> -- yarctl director status
@@ -74,6 +72,8 @@ Environment variables (set automatically in the container):
 | `YARILO_ADMIN_TOKEN` | — | Bearer token (flag `--token`; fallback: `DIRECTOR_API_TOKEN`) |
 
 The `--tls-*` flags of `yarctl` have no effect here: the director API does not serve HTTPS.
+
+Backend, `yarilo-backend-api` and login pods carry the same two variables, but there they only route per-user backend commands. Those pods set `YARILO_ADMIN_TYPE=backend`, and `yarctl` refuses `director` commands in them.
 
 ---
 
