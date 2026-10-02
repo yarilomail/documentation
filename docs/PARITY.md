@@ -75,8 +75,8 @@ Version: **2.3.x line** (beta). Last reviewed 2026-10-02. 2.4.1 is not released;
 | Feature | yarilo | Notes |
 |:---|:---|:---|
 | SASL PLAIN / LOGIN | yes | |
-| SASL SCRAM-SHA-1 / SHA-1-PLUS / SHA-256 / SHA-256-PLUS | yes | channel binding included |
-| SASL XOAUTH2 / OAUTHBEARER | yes | with token introspection |
+| SASL SCRAM-SHA-1 / SHA-1-PLUS / SHA-256 / SHA-256-PLUS | partial | IMAP and POP3, channel binding included; submission does not offer SCRAM ([yarilo#2121](https://github.com/yarilomail/yarilo/issues/2121)) |
+| SASL XOAUTH2 / OAUTHBEARER | partial | IMAP and POP3, with token introspection; submission advertises them but refuses them with `504` ([yarilo#2121](https://github.com/yarilomail/yarilo/issues/2121)) |
 | SASL CRAM-MD5, DIGEST-MD5 | no | [#245](https://github.com/yarilomail/yarilo/issues/245) |
 | SASL EXTERNAL (client certificates) | no | [#615](https://github.com/yarilomail/yarilo/issues/615) |
 | SASL GSSAPI / Kerberos | no | [#245](https://github.com/yarilomail/yarilo/issues/245) |
