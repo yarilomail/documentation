@@ -102,39 +102,33 @@ either succeed or return a JSON failure descriptor
 
 ### Mechanism advertisement
 
-Both `OAUTHBEARER` and `XOAUTH2` are added to the SASL capability
-list on every protocol that supports them:
+`yarilo-auth` runs both mechanisms and announces them in its handshake only
+when an OAuth provider is configured (`auth.oauth2` non-empty), since that is
+what puts a token validator in the chain. The login proxies offer exactly what
+the service announced:
 
 - **IMAP** — `AUTH=OAUTHBEARER` and `AUTH=XOAUTH2` in `CAPABILITY`
-- **POP3** — `CAPA` lists `SASL OAUTHBEARER XOAUTH2`
-- **Submission (SMTP)** — EHLO `AUTH` extension lists both
+- **POP3** — `CAPA` lists them on the `SASL` line
+- **Submission (SMTP)** — the EHLO `AUTH` line lists them
 
-Advertisement is gated by `auth.oauth2` being non-empty: a
-deployment that configures no OAuth providers does NOT advertise
-either mechanism, so a client never picks a mech the server
-cannot validate.
+A bearer token is a password to whoever reads it, so with
+`auth_allow_cleartext: false` both are held back with `PLAIN` and `LOGIN` on a
+connection that is not TLS, not proxied and not local, and refused there.
 
-### Fast-fail on rejection
+### Failure
 
-RFC 7628 §3.2.3 mandates a two-round failure handshake — the
-server returns the JSON error blob with `done=false`, the client
-acknowledges with a 0x01 dummy byte, and the server then closes
-the SASL exchange. Real-world Go clients (`go-imap`,
-`go-smtp` `imapclient`) skip the dummy step: their `saslClient.Next`
-returns the error immediately and the protocol-layer loop
-unwinds, leaving the server blocked on a read that never
-arrives until the IMAP idle timeout (5+ minutes).
+A refused login follows RFC 7628 §3.2.2: the server answers with a challenge
+carrying a JSON status, the client acknowledges it with a single `0x01` byte,
+and only then is the login refused (`NO`, `-ERR`, `535`).
 
-Yarilo's OAUTHBEARER server returns `done=true` on the first
-rejection. The JSON error blob is still surfaced as the final
-challenge so the client sees the proper RFC 7628 failure
-descriptor; the protocol read on the server side completes
-immediately rather than hanging.
+| Mechanism | JSON |
+|:---|:---|
+| `OAUTHBEARER` | `{"status":"invalid_token","scope":"…","openid-configuration":"…"}` — `invalid_token` for a token that did not validate, `invalid_request` for a malformed message |
+| `XOAUTH2` | `{"status":"401","schemes":"bearer","scope":"…","openid-configuration":"…"}` — `401` for a bad token, `400` for a malformed message |
 
-This is a deliberate deviation from the spec's failure
-choreography. Compliant clients that DO send the 0x01 dummy will
-see the SASL exchange close one round-trip earlier than they
-expect, but no client we've tested misbehaves on this.
+`scope` is the configured `oauth2_scope` list, or `mail` when none is set;
+`openid-configuration` is `<oauth2_issuer_url>/.well-known/openid-configuration`
+and appears only with an issuer configured.
 
 ## Worked examples
 
