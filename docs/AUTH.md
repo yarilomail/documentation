@@ -373,7 +373,7 @@ the stamped one left in place. Both are logged.
 | `host` / `port` | Upstream backend address. |
 | `destuser` | Username to present to the upstream. |
 | `proxy_mech` | SASL mechanism for the upstream login. |
-| `proxy_timeout` | Seconds, in place of the global value for this user: [`login_proxy_timeout`](./GENERAL#login-login-proxy-timeout) in the IMAP/POP3/Submission/ManageSieve login proxies, [`lmtp_proxy_timeout`](./LMTP#protocol-lmtp-proxy) in `yarilo-lmtp-login`. A missing, zero or negative value keeps the global one. |
+| `proxy_timeout` | In place of the global value for this user: [`login_proxy_timeout`](./GENERAL#login-login-proxy-timeout) in the IMAP/POP3/Submission/ManageSieve login proxies, [`lmtp_proxy_timeout`](./LMTP#protocol-lmtp-proxy) in `yarilo-lmtp-login`. A bare number is seconds (`30`); otherwise a number and a unit, `ms`, `s`, `m`, `h`, `d` or `w`, spelled out or not, any case (`500ms`, `2m`, `30 secs`). At most 2³² ms; missing or `0` keeps the global value. The auth service passes the value on unread; a value the proxy cannot read refuses the login (`NO [UNAVAILABLE]`) or fails the recipient (`550 5.3.5`). |
 | `proxy_redirect_reauth` | Bool: re-auth on redirect. |
 | `proxy_nopipelining` | Bool: disable command pipelining to the upstream. |
 | `ssl` / `starttls` | Upstream TLS mode / bool STARTTLS. |

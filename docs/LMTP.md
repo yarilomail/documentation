@@ -227,7 +227,7 @@ protocol:
 
 In the Helm chart the value is `protocol.lmtp.proxy.lmtp_proxy_timeout`.
 
-A recipient's userdb field `proxy_timeout` (seconds) replaces it for that recipient; see [AUTH](./AUTH).
+A recipient's userdb field `proxy_timeout` replaces it for that recipient; see [AUTH](./AUTH) for the format. When that lookup fails the recipient gets `451 4.3.0 Temporary user lookup failure`; when the value cannot be read, `550 5.3.5 Internal user lookup failure`. A user the userdb does not know is delivered with the global value.
 
 ---
 
