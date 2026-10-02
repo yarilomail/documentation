@@ -29,6 +29,7 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `lmtp_save_to_detail_mailbox` | `false` | When `true`, `user+folder@domain` delivers to the `folder` mailbox instead of `INBOX`. |
 | `lda_mailbox_autocreate` | `false` | A delivery to a folder that does not exist makes it. When `false`, the message goes to the detail mailbox if that exists, otherwise to `INBOX`. |
 | `lda_mailbox_autosubscribe` | `false` | Subscribes a folder `lda_mailbox_autocreate` made. Without `lda_mailbox_autocreate` it does nothing, and startup refuses it. |
+| `quota_full_tempfail` | `false` | Reply for a recipient whose mailbox is full. `false`: `552 5.2.2`, a permanent failure the MTA bounces to the sender. `true`: `452 4.2.2`, a temporary failure the MTA keeps queued and retries. See [Message size and a full mailbox](#message-size-and-a-full-mailbox). |
 | `lmtp_hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
 | `lmtp_verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
 | `lmtp_user_concurrency_limit` | `0` | Maximum concurrent deliveries per user. `0` = unlimited. |
@@ -102,11 +103,40 @@ protocol:
 
 ---
 
+## Message size and a full mailbox
+
+**Size.** When `quota.quota_mail_size` is set, both `yarilo-lmtp-login` and the
+backend LMTP service offer it in the `LHLO` reply as `SIZE <bytes>`:
+
+- `MAIL FROM:<...> SIZE=<n>` above the limit is refused at once with `552`.
+- A body that grows past the limit is refused with `552 5.3.4 Maximum message
+  size exceeded` while it is being read. The rest is read and discarded rather
+  than held in memory, and the connection stays open for the next transaction.
+
+Leave `quota_mail_size` empty or `0` for no limit; then `LHLO` offers a bare
+`SIZE` with no number, which RFC 1870 reads as "supported, no fixed limit".
+
+**Full mailbox.** A recipient over quota is answered after `DATA`, with the text
+of `quota.quota_exceeded_message`:
+
+| `quota_full_tempfail` | Reply | What the MTA does |
+|:---|:---|:---|
+| `false` (default) | `552 5.2.2` | Bounces the message to the sender at once. |
+| `true` | `452 4.2.2` | Keeps the message queued and retries until the mailbox has room or the queue lifetime runs out. |
+
+Turn it on only when a full mailbox is expected to be emptied soon and a
+delayed message is better than a bounce. Otherwise the sender learns of the
+failure only when the MTA gives up, often days later.
+
+---
+
 ## Recipient rate limiting
 
 Caps how many messages one sender may deliver to one recipient inside a moving
-window. Beyond the cap the sender is told `421 4.7.0 Rate limit exceeded for
-recipient` and retries later; nothing is lost, and nothing is bounced.
+window. Beyond the cap that recipient is refused with `451 4.7.0 Rate limit
+exceeded for recipient`, and the sender retries later. Nothing is lost and
+nothing is bounced. The connection stays open, and the other recipients of the
+same transaction are answered as usual.
 
 Counters live in `yarilo-locks`, so the limit is **cluster-wide** — a sender
 does not get a fresh allowance by reaching a different backend pod. The key is
