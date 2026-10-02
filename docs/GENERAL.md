@@ -66,6 +66,8 @@ Shared TLS certificate. Used by every TLS-enabled listener that does not define 
 
 **TLS ALPN matching (the reference parity).** TLS listeners advertise ALPN protocol identifiers per IANA RFC 7301: `imap` for IMAP/IMAPS, `pop3` for POP3/POP3S, `smtp` for Submission/Submissions. Clients that send ALPN must match — mismatching connections are refused. Clients without ALPN are accepted (backward-compatibility). LMTP is internal-only and does not enforce ALPN.
 
+The same keys are also accepted under shorter names: `tls_cert`, `tls_key`, `tls_alt_cert`, `tls_alt_key`, `tls_min_version` and `prefer_server_ciphers`.
+
 ```yaml
 general:
   ssl:
@@ -88,7 +90,7 @@ HAProxy PROXY protocol v1/v2. When `haproxy_protocol: true` is set on a service,
 | Key | Default | Description |
 |:---|:---|:---|
 | `timeout` | `3` | Seconds to wait for the PROXY header. Connection closed if header not received in time. |
-| `haproxy_trusted_networks` | `["127.0.0.1/32", "10.0.0.0/8"]` | CIDRs whose PROXY headers are accepted. |
+| `haproxy_trusted_networks` | `["127.0.0.1/32", "10.0.0.0/8"]` | CIDRs whose PROXY headers are accepted. Also accepted as `trusted_nets`. |
 
 ```yaml
 general:
@@ -130,10 +132,23 @@ Enable per-listener with `xclient_protocol: true` in the service config. See [SE
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `mail_max_userip_connections` | `10` | Max simultaneous connections per user+IP pair, counted across all IMAP and POP3 listeners. `0` = unlimited. |
+| `mail_max_userip_connections` | `10` | Max simultaneous connections per user+IP pair, counted across all IMAP and POP3 listeners. `0` = unlimited. A userdb field of the same name overrides it per user. |
 
 ```yaml
 general:
   limits:
     mail_max_userip_connections: 10
+```
+
+---
+
+## `general.startup_dial_retries`
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `startup_dial_retries` | `3` | Attempts to reach an external dependency — warden, Redis — at startup before the process gives up. |
+
+```yaml
+general:
+  startup_dial_retries: 3
 ```

@@ -11,7 +11,7 @@ All services share the following fields:
 | Key | Default | Description |
 |:---|:---|:---|
 | `enabled` | `false` | Start this listener on startup. |
-| `port` | see table | TCP port to bind. |
+| `port` | — | TCP port to bind. Required: there is no default, and an unset port binds port `0`, a random one. The table below gives the conventional ports. |
 | `ssl_mode` | — | TLS mode: `ssl` = implicit TLS; `starttls` = plain with STARTTLS upgrade; `no` = plain only. |
 | `haproxy_protocol` | `false` | Extract real client IP from HAProxy PROXY header. Uses `general.haproxy` for timeout and trusted nets. |
 | `xclient_protocol` | `false` | Accept XCLIENT command from trusted relays. Uses `general.xclient` for trusted nets. |
@@ -26,6 +26,8 @@ All services share the following fields:
 
 ## Listeners
 
+The ports are the conventional ones, which the Helm chart uses; set `port` explicitly in a hand-written config.
+
 | Key | Port | ssl_mode | Protocol doc |
 |:---|:---|:---|:---|
 | `imaps` | `993` | `ssl` | [IMAP.md](IMAP.md) |
@@ -35,6 +37,15 @@ All services share the following fields:
 | `pop3` | `110` | `starttls` | [POP3.md](POP3.md) |
 | `pop3s` | `995` | `ssl` | [POP3.md](POP3.md) |
 | `lmtp` | `24` | `no` | [LMTP.md](LMTP.md) |
+| `managesieve` | `4190` | `starttls` | [SIEVE](./SIEVE) |
+| `jmap` | `8443` | `ssl` | [JMAP](./JMAP) |
+
+Two more listeners are internal, on the backend behind their login proxy, and plain:
+
+| Key | Port (chart) | ssl_mode | Serves |
+|:---|:---|:---|:---|
+| `managesieve_be` | `14190` | `no` | ManageSieve sessions from `yarilo-managesieve-login` |
+| `jmap_be` | `10443` | `no` | JMAP requests from `yarilo-jmap-login` |
 
 ---
 
