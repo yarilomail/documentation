@@ -419,9 +419,9 @@ yarctl backend acl set    --root <user> <identifier> <rights>
 yarctl backend acl delete <user> <mailbox> [<identifier>]        # alias: rm
 yarctl backend acl delete --root <user> [<identifier>]
 yarctl backend acl rebuild     <user> [<folder> ...] [--all] [--dry-run]
-yarctl backend acl materialise <user> [--apply]                   # alias: materialize
-yarctl backend acl registry list
-yarctl backend acl registry rebuild [--namespace NS]
+yarctl backend acl materialise <user> <folder> [<folder> ...] [--apply]   # alias: materialize
+yarctl backend acl registry list    <user>
+yarctl backend acl registry rebuild <user> --namespace NS
 ```
 
 `--root` targets the namespace root rather than a mailbox. An identifier
@@ -725,9 +725,10 @@ yarctl backend who count --by user
 yarctl backend sessions kick <sess-id> [--user U] [--protocols imap,pop3,...]
 ```
 
-Closes one session. The kick is broadcast to every login and LMTP pod through
-`yarilo-locks`, and only the owner of that id reacts — so the id alone is
-enough, and it comes from `backend who`.
+Closes one session. backend-api hands the kick to `yarilo-warden`, which emits
+it on every protocol's channel, and only the owner of that id reacts — so the id
+alone is enough, and it comes from `backend who`. Success means the kick was
+emitted, not that the session is confirmed closed.
 
 `--protocols` narrows the broadcast (default: all four channels). `--user` is
 recorded for the audit log only; it does not select the session.
