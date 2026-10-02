@@ -212,10 +212,20 @@ protocol:
 
 ## `protocol.lmtp.proxy`
 
-`protocol.lmtp.proxy.timeout` is accepted and has no effect: nothing reads it. Routing
-each recipient to its backend is the job of `yarilo-lmtp-login`, which asks the director
-with `LOOKUP` and delivers to that backend — see [`lmtp_login_service`](#lmtp-login-service)
-below. The director itself carries no LMTP traffic.
+Proxy mode is active only on **director** nodes. The director's consistent-hashing ring (built from `general` backend settings) routes each recipient to the correct backend. Backend nodes always deliver locally — `protocol.lmtp.proxy` has no effect on them.
+
+When multiple recipients hash to different backends, deliveries run in parallel and per-recipient status codes are merged before replying to the MTA.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `proxy.timeout` | `125` | Per-backend connect + transaction timeout in seconds. |
+
+```yaml
+protocol:
+  lmtp:
+    proxy:
+      timeout: 60
+```
 
 ---
 
