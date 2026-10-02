@@ -841,8 +841,9 @@ set to the tag and its own NFS PV.
   against. The ClusterIP `-director` Service is what login pods send `LOOKUP` to.
 - One Deployment and Service per login proxy (`yarilo-imap-login`, `yarilo-pop3-login`,
   `yarilo-submission-login`, `yarilo-lmtp-login`, `yarilo-managesieve-login`,
-  `yarilo-jmap-login`, `yarilo-sasl-login`). The client-facing ones are the public entry
-  points; `yarilo-lmtp-login` defaults to a ClusterIP Service for the fronting MTA.
+  `yarilo-jmap-login`, `yarilo-sasl-login`). IMAP, POP3, Submission and JMAP default to
+  LoadBalancer Services, the public entry points; `yarilo-managesieve-login` and
+  `yarilo-lmtp-login` default to ClusterIP.
 
 ### Backend (per tag)
 **One co-located StatefulSet per tag** — the pod runs every protocol container plus the sidecars:

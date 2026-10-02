@@ -39,7 +39,7 @@ files live in
 ### Prerequisites
 
 - Docker Engine 24+ with the Compose v2 plugin (`docker compose version`)
-- Free host ports: 143/993, 110/995, 587/465, 4190, and — loopback-only by
+- Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and — loopback-only by
   default — 24, 12325, 12340. Override in `.env`.
 - ~512 MB RAM
 
@@ -48,6 +48,7 @@ files live in
 ```sh
 cd deploy/compose
 cp .env.example .env
+sed -i.bak "s/^BACKEND_API_TOKEN=.*/BACKEND_API_TOKEN=$(openssl rand -hex 32)/" .env
 ./gen-certs.sh mail.example.com
 docker compose up -d
 docker compose ps
@@ -56,6 +57,7 @@ docker compose ps
 This sequence:
 
 - Copies the default environment; adjust the image tag or ports in `.env` if needed
+- Sets `BACKEND_API_TOKEN`, the bearer token of `yarilo-backend-api`; compose refuses to start without it
 - Generates a self-signed TLS certificate for local use
 - Starts all containers; `docker compose ps` should report every one as `healthy`
 
@@ -123,6 +125,7 @@ docker compose exec yarilo-imap \
 | POP3 / POP3S | 110 / 995 | login proxy |
 | Submission | 587 / 465 | login proxy |
 | ManageSieve | 4190 | login proxy |
+| JMAP | 8443 | login proxy, HTTPS |
 | LMTP | 24 (loopback) | unauthenticated — for your MTA only |
 | SASL auth | 12325 (loopback) | fronting MTA: `smtpd_sasl_type = dovecot` |
 | Quota policy | 12340 (loopback) | fronting MTA: `check_policy_service` |
@@ -149,6 +152,13 @@ docker compose pull && docker compose up -d
 To back up, snapshot the `mail` (messages + indexes) and `state` (userdb)
 volumes.
 
+For the admin CLI, run `yarctl` inside `yarilo-backend-api`, whose environment
+already carries the API address and token:
+
+```sh
+docker compose exec yarilo-backend-api yarctl backend user info user@mail.example.com
+```
+
 To uninstall:
 
 ```sh
@@ -160,7 +170,7 @@ destroys all data.
 
 ## Installing on Kubernetes
 
-The production topology: a director ring (StatefulSet) routes each user to a
+The production topology: a director ring (a Deployment) routes each user to a
 single co-located backend pod that carries every protocol, fronted by
 per-protocol login proxies, with shared `yarilo-auth`, `yarilo-warden`,
 `yarilo-locks` (Redis-backed) and `yarilo-quota-status`.
@@ -177,16 +187,16 @@ inline.
 
 | Component | Kind | Purpose |
 |:---|:---|:---|
-| `yarilo-director` | StatefulSet | LMTP proxy + consistent-hash ring, owns backend routing |
-| `yarilo-backend` | StatefulSet | co-located pod: imap / pop3 / submission / lmtp / managesieve + fts + reg sidecar |
-| `yarilo-*-login` | Deployments | TLS-terminating login proxies (imap / pop3 / submission / lmtp / managesieve / sasl) |
+| `yarilo-director` | Deployment | answers the login proxies' `LOOKUP` from a consistent-hash ring; owns backend routing |
+| `yarilo-backend` | StatefulSet | co-located pod: imap / pop3 / submission / lmtp / managesieve / jmap + fts + backend-api + reg sidecar |
+| `yarilo-*-login` | Deployments | TLS-terminating login proxies (imap / pop3 / submission / lmtp / managesieve / jmap / sasl) |
 | `yarilo-auth` | Deployment | passdb + userdb against the SQL store |
 | `yarilo-warden` | Deployment | connection accounting, auth-penalty, cross-node kick bus |
 | `yarilo-locks` | Deployment | cross-process write coordination (mTLS `:9104`, Redis-backed) |
 | `yarilo-quota-status` | Deployment | RCPT-time quota policy service for a fronting MTA |
 | SQL StatefulSet | StatefulSet | passdb / userdb store (sandbox only — use managed SQL in production) |
 | `yarilo-tls` Secret | Secret | TLS certificate provisioned by cert-manager |
-| LoadBalancer Services | Service | public entry per login proxy (143/993, 110/995, 587/465, 4190, 24) |
+| LoadBalancer Services | Service | public entry for IMAP, POP3, Submission and JMAP (143/993, 110/995, 587/465, 8443); `yarilo-managesieve-login` (4190) and `yarilo-lmtp-login` (24) default to ClusterIP — set `components.<login>.service.type` to publish them |
 
 ### Prerequisites
 
@@ -331,7 +341,7 @@ kubectl -n yarilo-sb exec -i yarilo-postgres-0 -- \
 ```
 
 With `home` / `mail_path` left blank, yarilo derives the path from
-`storage.mailHomeTemplate` (`%d/%n` → `<maildirRoot>/<domain>/<local-part>`).
+`storage.mail_home` (default `%d/%u` → `<maildir_root>/<domain>/<full address>`).
 Set `home` to an absolute path to override per user.
 
 ### Deploying yarilo
@@ -342,15 +352,17 @@ helm upgrade --install yarilo ./helm \
   -n yarilo-sb
 ```
 
-Listeners brought up, via the login-proxy LoadBalancer Services:
+Listeners brought up by the login proxies:
 
-| Listener | Port | TLS mode |
-|:---|:---|:---|
-| IMAPS / IMAP | 993 / 143 | implicit TLS / STARTTLS |
-| Submissions / Submission | 465 / 587 | implicit TLS / STARTTLS |
-| POP3S / POP3 | 995 / 110 | implicit TLS / STARTTLS |
-| LMTP | 24 | plain (internal — front it with an MTA) |
-| Telemetry | 8080 | ClusterIP only — `/healthz`, `/readyz`, `/metrics` |
+| Listener | Port | TLS mode | Service |
+|:---|:---|:---|:---|
+| IMAPS / IMAP | 993 / 143 | implicit TLS / STARTTLS | LoadBalancer |
+| Submissions / Submission | 465 / 587 | implicit TLS / STARTTLS | LoadBalancer |
+| POP3S / POP3 | 995 / 110 | implicit TLS / STARTTLS | LoadBalancer |
+| ManageSieve | 4190 | STARTTLS | ClusterIP by default |
+| JMAP | 8443 | HTTPS | LoadBalancer |
+| LMTP | 24 | plain (front it with an MTA) | ClusterIP by default |
+| Telemetry | 8080 | — | ClusterIP only — `/healthz`, `/readyz`, `/metrics` |
 
 ### Waiting for the certificate
 
@@ -443,13 +455,15 @@ The global home layout is controlled by two config keys:
 
 ```yaml
 storage:
-  maildirRoot: /var/mail/vhosts      # prepended to template-derived paths
-  mailHomeTemplate: "%d/%n"          # %d=domain, %n=local-part, %u=full email
+  maildir_root: /var/mail/vhosts     # prepended to template-derived paths
+  mail_home: "%d/%u"                 # %d=domain, %n=local-part, %u=full address
 ```
 
-The default `%d/%n` gives `/var/mail/vhosts/example.com/alice`. Use `%u` for
-a flat layout, or `%n` for single-domain setups. Per-user relocation is a
+The default `%d/%u` gives `/var/mail/vhosts/example.com/alice@example.com`. Use
+`%d/%n` for `/var/mail/vhosts/example.com/alice`, or `%n` for single-domain
+setups. `mail_home_template` is the pre-beta spelling of `mail_home` and is
+still accepted. Per-user relocation is a
 DB-only change — populate `home` — with no code or config change.
 
-See [Mailbox Storage](./STORAGE) for backends (maildir, dbox, mdbox),
+See [Mailbox Storage](./STORAGE) for backends (maildir, sdbox, mdbox),
 self-healing and rotation tuning, and [Quota](./QUOTA) for enforcement.
