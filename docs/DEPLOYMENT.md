@@ -284,6 +284,7 @@ One switch:
 | Value | Serves | Contains |
 |:---|:---|:---|
 | `telemetry.pprof.enabled` | `/debug/pprof/profile`, `trace`, `allocs`, `heap`, `goroutine`, `block`, `mutex`, `threadcreate`, `cmdline`, `symbol` | stacks, counts and symbol names — which code paths this process runs and what they cost |
+| | `/debug/loglevel` (GET the level, POST `{"level":"debug","ttl":"10m"}` to change it for the whole process) | the current level; off, the route answers 404 |
 
 `block` and `mutex` are in that list but stay silent until a sampling rate is
 set; see below.

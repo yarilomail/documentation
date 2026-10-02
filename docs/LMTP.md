@@ -33,6 +33,7 @@ See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 | `lmtp_hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
 | `lmtp_verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
 | `lmtp_user_concurrency_limit` | `0` | Maximum concurrent deliveries per user. `0` = unlimited. |
+| `lmtp_max_recipients` | `0` | Recipients per transaction, on the backend and in `yarilo-lmtp-login`. Advertised as `LIMITS RCPTMAX=N`; the next RCPT gets `452 4.5.3` and the MTA sends the rest in another transaction. `0` = unlimited. |
 | `read_timeout` | `300` | Per-command read timeout in seconds. |
 | `write_timeout` | `300` | Per-command write timeout in seconds. |
 | `lmtp_client_workarounds` | — | List of client compatibility workarounds (see below). |
