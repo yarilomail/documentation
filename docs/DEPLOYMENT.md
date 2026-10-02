@@ -414,10 +414,10 @@ a private docker network — so it adds its docker subnet to
 `127.0.0.1/32, 10.0.0.0/8`, which does not cover the usual docker bridge, so
 this stays an explicit entry rather than an assumption.
 
-**`connection_limit` means warden.** On this listener the knob has the same
-meaning as everywhere else: per-user/IP accounting held in warden, shared across
-replicas. A local socket cap may exist as a process backstop, but it is a
-different thing and is not published under this name.
+**Connection limits are warden's.** Per-user and per-IP connection limits are
+held in warden and shared across replicas. Listeners have no `connection_limit`
+key: nothing ever read it. A config that still carries one logs a retired-key
+warning at start.
 
 **Scaling.** `yarilo-jmap-login` is stateless beyond TLS and scales on request
 load in both shapes. `yarilo-jmap` scales differently per shape, for the same

@@ -25,6 +25,7 @@ Everything lives in
 | Session backends | `yarilo-imap`, `yarilo-pop3`, `yarilo-lmtp`, `yarilo-submission`, `yarilo-managesieve`, `yarilo-jmap` |
 | Login proxies (TLS) | `yarilo-imap-login`, `yarilo-pop3-login`, `yarilo-submission-login`, `yarilo-lmtp-login`, `yarilo-managesieve-login`, `yarilo-jmap-login` |
 | MTA integration | `yarilo-sasl-login` (SASL auth for Postfix), `yarilo-quota-status` (quota policy) |
+| Operator API | `yarilo-backend-api`, the API `yarctl backend` talks to (not published on the host) |
 
 The userdb is SQLite — `yarilo-auth` owns it in the `state` volume; mail lives
 in the shared `mail` volume. No external database is required.
@@ -41,6 +42,7 @@ in the shared `mail` volume. No external database is required.
 ```sh
 cd deploy/compose
 cp .env.example .env
+sed -i.bak "s/^BACKEND_API_TOKEN=.*/BACKEND_API_TOKEN=$(openssl rand -hex 32)/" .env
 ./gen-certs.sh mail.example.test
 docker compose up -d
 docker compose ps
@@ -49,6 +51,7 @@ docker compose ps
 This sequence:
 
 - Copies the default environment; adjust the image tag or ports in `.env` if needed
+- Sets `BACKEND_API_TOKEN`, the bearer token of `yarilo-backend-api`; compose refuses to start without it
 - Generates a self-signed TLS certificate for local use
 - Starts all containers; `docker compose ps` should report every one as `healthy`
 
@@ -149,6 +152,13 @@ docker compose exec yarilo-imap \
   -telemetry http://yarilo-imap-login:8080 -insecure=true
 ```
 
+Check the operator API. Once the user exists, this answers with the user's
+home, mail paths and namespaces:
+
+```sh
+docker compose exec yarilo-backend-api yarctl backend user info user@example.test
+```
+
 ## Operations
 
 To follow logs of any service:
@@ -168,10 +178,11 @@ docker compose pull && docker compose up -d
 To back up, snapshot the `mail` (messages + indexes) and `state` (userdb)
 volumes.
 
-For the admin CLI, run `yarctl` inside any session container:
+For the admin CLI, run `yarctl` inside `yarilo-backend-api`. Its environment
+already points `yarctl backend …` at the API and carries the token:
 
 ```sh
-docker compose exec yarilo-imap yarctl ...
+docker compose exec yarilo-backend-api yarctl backend ...
 ```
 
 Migrate mailbox formats with `yarilo-migrate`.
