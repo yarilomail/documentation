@@ -63,7 +63,7 @@ protocol:
 | UNSELECT | RFC 3691 | Close mailbox without expunge. |
 | NAMESPACE | RFC 2342 | Shared / Other Users namespaces. |
 | QUOTA | RFC 9208 | Per-user storage quota. Advertised while `imap_quota` is on (the default). |
-| ACL | RFC 4314 | Per-mailbox access control lists. Advertised only with `acl.enabled`. |
+| ACL | RFC 4314 | Per-mailbox access control lists. Advertised only with `acl.enabled`. A body `FETCH` sets `\Seen` only for a reader holding `s`; with `r` alone the body is served and the flag left as it is. |
 | BINARY | RFC 3516 | Binary content transfer. |
 | THREAD | RFC 5256 | Threading of the searched messages, both algorithms: `THREAD=REFERENCES` (ancestry from `References` / `In-Reply-To`, then joining by base subject) and `THREAD=ORDEREDSUBJECT` (base subject alone). Computed per command from message headers. |
 | ESEARCH | RFC 4731 | Extended SEARCH with MIN/MAX/COUNT. |
