@@ -1,263 +1,152 @@
 # Director configuration
 
-`yarilo-director` is the consistent-hash routing front-end for the yarilo mail cluster.
-It accepts IMAP/POP3/LMTP connections from mail clients, extracts the username from the
-protocol preamble, maps each username to a specific backend pod via a consistent-hash ring,
-and proxies the session directly to that pod IP — bypassing kube-proxy so the same user
-always lands on the same pod (and the same mailbox).
+`yarilo-director` keeps the routing state of a cluster: which backend serves each user. Login pods ask it with a `LOOKUP` before they open a session to a backend.
 
----
+The director does not accept client connections. TLS, the PROXY protocol, XCLIENT and authentication all happen in the login pods; see [General settings](./GENERAL) and [Deployment](./DEPLOYMENT).
 
 ## How it works
 
+A session reaches its backend in these steps:
+
 ```
 mail client
-    │
-    │  TLS (IMAPS/POP3S) or plain TCP (IMAP/POP3/LMTP)
+    │  IMAP / POP3 / Submission / ManageSieve / LMTP / JMAP
     ▼
-yarilo-director  (LoadBalancer Service, ports 993/143/995/110/24)
-    │
-    │  1. Optional: read HAProxy PROXY header → real client IP
-    │  2. TLS-terminate (IMAPS / POP3S)
-    │  3. Extract username from protocol preamble
-    │        IMAP  → LOGIN / AUTHENTICATE PLAIN
-    │        POP3  → USER / PASS
-    │        LMTP  → LHLO / MAIL FROM / RCPT TO (first recipient = routing key)
-    │  4. Consistent-hash ring lookup → backend pod IP
-    │  5. Dial backend pod directly (pod IP, not service VIP)
-    │  6. Optional: send XCLIENT ADDR=<real-ip> to backend
-    │  7. Replay auth command to backend
-    │  8. Bidirectional TCP proxy for the rest of the session
-    │
+login pod (imap-login, pop3-login, …)
+    │  1. TLS, PROXY header, authentication
+    │  2. LOOKUP <user> <tag>  ──────────►  yarilo-director
+    │                          ◄──────────  backend ip:port
+    │  3. dial the backend pod IP directly, send the preamble
     ▼
-yarilo-imap / yarilo-pop3 / yarilo-lmtp  (headless Service, pod IP)
+backend pod (yarilo-imap, yarilo-pop3, …)
 ```
 
-The director speaks just enough of each protocol to extract the username, then becomes
-a transparent TCP proxy. The backend pod sees the original client commands — it handles
-the full session including authentication against yarilo-auth.
+- The director answers from a consistent-hash ring of backends, weighted by `vhosts`, plus the sticky assignments it has already made.
+- Backends join the ring either from the static `mail_servers` list or by registering themselves with a heartbeat.
+- With more than one replica, the directors form a ring of their own to share membership, the backend set and sticky assignments. See [Ring formation](#ring-formation-design-history).
 
----
+## Listening ports
+
+The director listens on three ports:
+
+| Key | Default | Used by |
+|:---|:---|:---|
+| `director_service.listen` | `:9102` | Login pods (`LOOKUP`) and other directors (ring protocol). |
+| `director_service.api.listen` | `:9103` | The admin API; see [Director API](./DIRECTOR-API). |
+| `telemetry.listen` | `:8080` (chart) | Prometheus metrics. |
+
+Login pods reach the director through the ClusterIP `<release>-director` Service, set as each login component's `director_addr`. The headless `<release>-director-ring` Service is for the ring only.
 
 ## `director_service`
 
-Ring and lifecycle settings for the director process.
+These keys are the routing and lifecycle core. Ring, eviction and placement keys are described in the sections below.
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `listen` | `":9102"` | Address for the director-to-director ring protocol (internal, not mail ports). |
-| `user_expire` | `900` | Seconds before a user→backend mapping expires from the in-memory directory. Active sessions reset the TTL on every lookup. |
-| `ping_interval` | `30` | Seconds between keepalive pings to peer directors (ring health). |
-| `ping_timeout` | `10` | Seconds to wait for a PONG before closing the peer connection. |
-| `shutdown.session_grace_period` | `30` | Seconds to wait after SIGTERM before force-closing sessions. |
-| `shutdown.kill_timeout` | `5` | Seconds after grace period before hard exit. |
-| `peers` | `[]` | List of peer director addresses (`"host:port"`) for ring sync. Required when `replicas > 1`. Each director must list all other replicas. |
+| `listen` | `":9102"` | Address for `LOOKUP` and the ring protocol. |
+| `user_expire` | `900` | Seconds before an idle user→backend assignment expires. Each `LOOKUP` refreshes it. |
+| `ping_interval` | `30` | Seconds between keepalive pings to login pods and ring peers. |
+| `ping_timeout` | `10` | Seconds to wait for a `PONG` before closing the connection. |
+| `write_timeout` | `10` | Seconds a single push or reply write may take. `0` selects the default, a negative value disables the bound. |
+| `shutdown.session_grace_period` | `30` | Seconds to wait after `SIGTERM` before exiting. |
+| `peers` | `[]` | Seed list for a one-time ring join. Empty at `replicas > 1` derives the headless `-director-ring` Service. |
+| `backend_expire` | `30` | Seconds a self-registered backend may go without a heartbeat before it leaves the ring. |
+| `backend_unreachable_reporters` | `2` | Distinct login pods that must report a backend unreachable before it is evicted early. |
+| `backend_unreachable_window` | `5` | Seconds within which those reports must arrive. |
+| `join_allowed_nets` | `[]` | CIDRs a ring join is accepted from. Empty allows all. |
 
----
+The chart also renders `shutdown.kill_timeout`, but the director does not read it.
+
+Backend eviction:
+
+- A static backend from `mail_servers`, or one added through the admin API, never heartbeats and never expires.
+- The last backend of a tag is never evicted, by either the lease or the reports; the director logs it instead.
+- A single-replica login fleet cannot produce two distinct reports, so set `backend_unreachable_reporters: 1` there. The lease stays the backstop.
 
 ## `director_service.mail_servers`
 
-Static backend list loaded at startup. Each entry resolves to one or more pod IPs via DNS
-(headless k8s services return one A-record per pod). All resolved IPs are added to the
-consistent-hash ring.
+This is the static backend list loaded at startup. Each `host` resolves to one or more pod IPs through DNS; a headless Service returns one A record per pod, and every IP joins the ring.
 
 | Key | Description |
 |:---|:---|
-| `host` | Hostname of the headless k8s Service, e.g. `yarilo-imap.yarilo-backend.svc.cluster.local`. |
-| `port` | Backend container port the director dials (must match the pod's listen port). |
-| `tag` | Optional pool label. Empty string = default pool. Used when one director serves multiple backend groups. |
+| `host` | Hostname, typically a headless Service such as `yarilo-imap.yarilo-backend.svc.cluster.local`. |
+| `port` | Backend port the login pod dials. |
+| `tag` | Pool label. Empty is the default pool. |
+| `vhosts` | Ring weight, `1`–`100`. Omit for the default. Under `assignment_policy: least_sessions`, `0` means drain. |
+
+Configure two static backends:
 
 ```yaml
 director_service:
-  listen: ":9102"
-  user_expire: 900
-  ping_interval: 30
-  ping_timeout: 10
   mail_servers:
     - host: yarilo-imap.yarilo-backend.svc.cluster.local
       port: 993
-      tag: ""
-    - host: yarilo-pop3.yarilo-backend.svc.cluster.local
-      port: 110
       tag: ""
     - host: yarilo-lmtp.yarilo-backend.svc.cluster.local
       port: 24
       tag: ""
 ```
 
----
+## mTLS
 
-## `services` (director listeners)
+With `internal_tls.enabled: true`, the `director_service.listen` port requires a client certificate from everyone who connects: login pods sending `LOOKUP` and other directors on the ring.
 
-The director binds the same mail-protocol ports as a regular yarilo node. The `services`
-block in the director config controls which ports are active. Fields are identical to a
-regular yarilo node — see [SERVICES.md](SERVICES.md).
+Ring peers are dialled by pod IP, so the dial verifies a fixed server name, `ring_tls_server_name`, which defaults to `<release>-director-ring`. That name must be a SAN in the director's certificate.
 
-Typical director setup exposes only the ports clients connect to:
+The shared internal-tls Secret has no such SAN. Let the chart issue a director-specific certificate with `components.director.internalTLS.certificate.enabled: true`, or provide your own Secret in `components.director.internalTLS.secretName`.
 
-```yaml
-services:
-  imaps:
-    enabled: true
-    port: 993
-    ssl_mode: ssl
-    haproxy_protocol: true   # if an upstream LB forwards PROXY headers
-  imap:
-    enabled: false           # disable if not needed
-  pop3s:
-    enabled: false
-  pop3:
-    enabled: false
-  lmtp:
-    enabled: true
-    port: 24
-    ssl_mode: "no"
-    xclient_protocol: true   # director will forward real IP to lmtp backend
-```
-
----
-
-## HAProxy PROXY protocol
-
-When a load balancer (HAProxy, nginx, AWS NLB) sits in front of the director, it can
-forward the original client IP in a `PROXY` header prepended to the TCP stream:
-
-```
-PROXY TCP4 203.0.113.42 10.0.0.1 41234 993\r\n
-<TLS ClientHello...>
-```
-
-Enable in config:
-
-```yaml
-services:
-  imaps:
-    enabled: true
-    haproxy_protocol: true   # per-listener flag
-
-general:
-  haproxy:
-    enabled: true            # global flag (controls all haproxy_protocol: true listeners)
-    trustedNets:
-      - "10.0.0.0/8"        # only accept PROXY headers from these source IPs
-    timeout: 3               # seconds to wait for the PROXY header
-```
-
-The director reads the PROXY header before TLS handshake. After the header is parsed,
-`conn.RemoteAddr()` returns the real client IP for the rest of the connection — this IP
-is used in logs and forwarded to the backend via XCLIENT (if enabled).
-
-Connections from IPs not in `trustedNets` have the PROXY header silently ignored; the
-raw TCP address is used instead.
-
----
-
-## XCLIENT forwarding
-
-After connecting to a backend pod, the director can forward the real client IP via the
-`XCLIENT` command so the backend session sees the original client instead of the director's
-pod IP. This is important for per-IP connection limits, logging, and audit trails.
-
-Enable in config:
-
-```yaml
-services:
-  imaps:
-    xclient_protocol: true   # director will send XCLIENT to imaps backend
-  lmtp:
-    xclient_protocol: true
-
-general:
-  xclient:
-    trustedNets:
-      - "10.0.0.0/8"        # written into the backend config; backend trusts these IPs
-```
-
-Wire format per protocol:
-
-| Protocol | Director sends | Backend responds |
-|:---|:---|:---|
-| IMAP / IMAPS | `XCONN XCLIENT ADDR=<ip>\r\n` | `XCONN OK XCLIENT\r\n` |
-| POP3 / POP3S | `XCLIENT ADDR=<ip>\r\n` | `+OK XCLIENT accepted\r\n` |
-| LMTP | `XCLIENT ADDR=<ip>\r\n` | `220 2.0.0 OK\r\n` |
-
-XCLIENT is sent immediately after the backend greeting is consumed, before auth replay.
-The backend must list the director's pod CIDR in its own `xclient.trustedNets` — the
-`general.xclient.trustedNets` value in the helm chart is written to the backend config
-for this purpose.
-
----
-
-## mTLS (internal connections)
-
-All director-to-backend and director-to-director connections use mTLS when
-`internal_tls.enabled: true`. Certificate and CA are mounted from the same k8s Secret
-used by all internal components.
-
-```yaml
-internal_tls:
-  enabled: true
-  cert: /etc/yarilo/internal-tls/tls.crt
-  key:  /etc/yarilo/internal-tls/tls.key
-  ca:   /etc/yarilo/internal-tls/ca.crt
-```
-
-When `enabled: false` (default), all internal connections are plain TCP. Acceptable when
-a service mesh (Istio, Linkerd) handles transport security.
-
----
+::: warning
+With internal TLS on and no ring name in the certificate, peers cannot verify each other and the ring never converges. The director logs an error when this happens.
+:::
 
 ## Helm values
 
-All director settings live under `components.director` in `helm/values.yaml`.
+All director settings live under `components.director` in `helm/values.yaml`. The keys are the config keys in snake_case:
 
-| Helm value | Config key | Description |
-|:---|:---|:---|
-| `components.director.directorPort` | `director_service.listen` | Ring protocol port (`:9102`). |
-| `components.director.userExpire` | `director_service.user_expire` | User→backend TTL (seconds). |
-| `components.director.pingInterval` | `director_service.ping_interval` | Peer keepalive interval (seconds). |
-| `components.director.pingTimeout` | `director_service.ping_timeout` | Peer keepalive timeout (seconds). |
-| `components.director.backends[]` | `director_service.mail_servers[]` | Static backend list. |
-| `components.director.internalTLS.enabled` | `internal_tls.enabled` | Enable mTLS on internal connections. |
-| `components.director.tls.secretName` | — | k8s Secret for the external (client-facing) TLS cert. |
-| `components.director.listeners.*` | `services.*` | Per-protocol listener ports and enable flags. |
-| `general.haproxy.enabled` | `services.*.haproxy_protocol` | Enable HAProxy PROXY protocol on all listeners. |
-| `general.haproxy.trustedNets` | `general.haproxy.haproxy_trusted_networks` | Source IPs trusted to send PROXY headers. |
-| `general.haproxy.timeout` | `general.haproxy.timeout` | Seconds to wait for PROXY header. |
-| `general.xclient.enabled` | `services.*.xclient_protocol` | Enable XCLIENT forwarding on all listeners. |
-| `general.xclient.trustedNets` | `general.xclient.trusted_nets` | CIDRs written to backend config as trusted XCLIENT sources. |
+| Helm value | Config key |
+|:---|:---|
+| `components.director.directorPort` | `director_service.listen` |
+| `components.director.api.port` | `director_service.api.listen` |
+| `components.director.api.allowed_nets` | `director_service.api.allowed_nets` |
+| `components.director.backends[]` | `director_service.mail_servers[]` |
+| `components.director.peers` | `director_service.peers` |
+| `components.director.internalTLS.ringTlsServerName` | `director_service.ring_tls_server_name` |
+| `components.director.<key>` | `director_service.<key>`, for every other key on this page |
 
-### Minimal helm values (single-node IMAPS + LMTP)
+`shutdown.session_grace_period` and `shutdown.kill_timeout` are fixed in the chart at `30` and `5` and have no Helm value.
+
+Run three replicas with one static backend:
 
 ```yaml
 components:
   director:
     enabled: true
-    listeners:
-      imaps:
-        enabled: true
-        port: 993
-        containerPort: 10993
-      lmtp:
-        enabled: true
-        port: 24
-        containerPort: 10024
+    replicas: 3
     backends:
       - host: yarilo-imap.yarilo-backend.svc.cluster.local
         port: 993
         tag: ""
-      - host: yarilo-lmtp.yarilo-backend.svc.cluster.local
-        port: 24
-        tag: ""
-    tls:
-      secretName: yarilo-tls
-
-general:
-  haproxy:
-    enabled: false
-  xclient:
-    enabled: false
 ```
+
+This setup:
+
+- seeds the ring from the headless `-director-ring` Service, since `peers` is empty;
+- generates the ring secret and the API token into Secrets;
+- leaves client listeners to the login components, each pointing `director_addr` at the `-director` Service.
+
+## Placement and kick pacing
+
+These keys are described in [Deployment](./DEPLOYMENT):
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `assignment_policy` | `hash` | How a new user gets a backend: `hash`, `least_sessions` or `domain`. See [placement policy](./DEPLOYMENT#initial-placement-policy-—-director-service-assignment-policy-797). |
+| `director_domain_expire` | `900` | Seconds a domain keeps its backend with no session on it, under `domain`. |
+| `director_domain_rebalance_percent` | `0` (chart: `20`) | How far the busiest backend of a tag may rise above the quietest before one domain moves. `0` never moves one. |
+| `director_domain_rebalance_interval` | `60` | Seconds between rebalance checks. |
+| `director_domain_rebalance_cooldown` | `600` | Seconds a moved domain is left alone. |
+| `user_kick_delay` | `2` | Seconds an admin-initiated kick waits. See [kick pacing](./DEPLOYMENT#kick-pacing-—-user-kick-delay-and-max-parallel-kicks-740). |
+| `max_parallel_kicks` | `100` | Sessions kicked per batch when a backend goes down. |
 
 ## Session routing & sticky assignments
 
@@ -279,13 +168,13 @@ Every login proxy (imap/pop3/submission/managesieve/lmtp) routes sessions one of
 > `least_sessions` never reads the username at all, so it silently defeats the
 > hash template. See [Owner/shared namespaces](/OWNER_SHARED_NS#routing-within-a-farm-users-who-share-must-land-on-one-backend).
 
-`director_service.username_hash` (default `""`, Helm: `components.director.username_hash`) is the username→hash-key template (#850), which uses the same `director_username_hash` expression syntax so an existing value migrates **verbatim** — set `username_hash: "%Lu"` for a legacy `director_username_hash = %Lu`. Supported variables: `%u` (whole username), `%n` (local part, before the first `@`), `%d` (domain, after the first `@`), each with an optional `%L` lowercase modifier, plus `%%` for a literal percent. This is a real routing lever, not just config parity: `%Ld` hashes on the **domain only** so a whole domain (and its shared mailboxes/ACLs) lands on one backend, and `%Ln` hashes on the local part only for alias-domain installs. A domain-less username follows the reference semantics — `%n` is the whole username, `%d` is empty (so a `%d` template routes every domain-less account to one backend). When `username_hash` is set it — not `username_hash_lowercase` — governs case-folding (the ingress no longer pre-lowercases, so `%u` is truly case-sensitive), and the `USER-KICKED` payload keeps the session's original-case username so login-side kick matching (#701) still lands. An empty value derives the template from `username_hash_lowercase` (`%Lu` / `%u`) for byte-identical back-compat with pre-#850 clusters. An invalid template aborts director startup. (yarilo's uint32 fold is little-endian since #738 — deliberately not byte-compatible with the reference's ring, a scenario our architecture never produces; we borrow the routing semantics, not the byte layout.)
+`director_service.username_hash` (default `""`, Helm: `components.director.username_hash`) is the username→hash-key template (#850), which uses the reference's username-hash expression syntax, so an existing template migrates **verbatim** — `%Lu` stays `%Lu`. Supported variables: `%u` (whole username), `%n` (local part, before the first `@`), `%d` (domain, after the first `@`), each with an optional `%L` lowercase modifier, plus `%%` for a literal percent. This is a real routing lever, not just config parity: `%Ld` hashes on the **domain only** so a whole domain (and its shared mailboxes/ACLs) lands on one backend, and `%Ln` hashes on the local part only for alias-domain installs. A domain-less username follows the reference semantics — `%n` is the whole username, `%d` is empty (so a `%d` template routes every domain-less account to one backend). When `username_hash` is set it — not `username_hash_lowercase` — governs case-folding (the ingress no longer pre-lowercases, so `%u` is truly case-sensitive), and the `USER-KICKED` payload keeps the session's original-case username so login-side kick matching (#701) still lands. An empty value derives the template from `username_hash_lowercase` (`%Lu` / `%u`) for byte-identical back-compat with pre-#850 clusters. An invalid template aborts director startup. (yarilo's uint32 fold is little-endian since #738 — deliberately not byte-compatible with the reference's ring, a scenario our architecture never produces; we borrow the routing semantics, not the byte layout.)
 
-**`%d` domain-hash — read before you use it.** The hash is applied **within a tag**, not globally: every `LOOKUP` carries a per-user tag (#737, tag = NFS shard) and the ring is tag-scoped (`LookupBackendByTag`), exactly like the reference's per-tag `mail_host_get_by_hash`. So a `%Ld` template routes a domain to **one backend per tag** — if the domain's mailboxes are spread across tags (the tag is assigned per user by userdb, independent of the hash), those users land on different tag rings and different backends; `%d` does **not** collapse a multi-tag domain onto a single host. The failure mode to avoid is putting one large domain entirely in **one** tag: there `%Ld` pins the whole domain to a single backend with **no load rebalancing** (yarilo, like the reference, distributes only by consistent hashing + vhost capacity weighting; it never auto-spreads a hot key). The cure is spreading the domain across tags via userdb, not changing the hash. Use `%Ld` only when a domain's shared mailboxes/ACLs genuinely must be storage-local within a tag.
+**`%d` domain-hash — read before you use it.** The hash is applied **within a tag**, not globally: every `LOOKUP` carries a per-user tag (#737, tag = NFS shard) and the ring is tag-scoped (`LookupBackendByTag`), exactly like the reference's per-tag lookup. So a `%Ld` template routes a domain to **one backend per tag** — if the domain's mailboxes are spread across tags (the tag is assigned per user by userdb, independent of the hash), those users land on different tag rings and different backends; `%d` does **not** collapse a multi-tag domain onto a single host. The failure mode to avoid is putting one large domain entirely in **one** tag: there `%Ld` pins the whole domain to a single backend with **no load rebalancing** (yarilo, like the reference, distributes only by consistent hashing + vhost capacity weighting; it never auto-spreads a hot key). The cure is spreading the domain across tags via userdb, not changing the hash. Use `%Ld` only when a domain's shared mailboxes/ACLs genuinely must be storage-local within a tag.
 
-**Backend evacuation — graceful vs force (#849).** `yarctl director backends flush <ip|all>` drains a backend. By default the drain is **graceful and throttled**: the host is taken out of the ring and its users are migrated in a self-clocked window of at most `director_service.max_parallel_moves` (default `5`, Helm: `components.director.max_parallel_moves`) confirmed-kills — each user's old sessions must confirm gone before the next user is pulled in, so a planned drain (rolling upgrade, maintenance) spreads the re-login across the surviving pods instead of stampeding them all at once. `--force` restores the pre-#849 behaviour (kick every session immediately); `--max-parallel N` overrides the window for one run. Re-login is deterministic without a proactive pin move: the evacuating host is already excluded from the ring, so a kicked user's re-`LOOKUP` rehashes to the same surviving backend it would have been moved to, and the confirmed-kill hold (#847) makes that re-`LOOKUP` wait until the old session is gone (no split-writer window). The drain is orchestrated by the single director that receives the request; if that director is lost mid-drain the operator re-runs `flush` (drain-state is not replicated across directors — matching the reference's `self_host` origination). Matches the reference's forced-flush and max-parallel drain behaviour.
+**Backend evacuation — graceful vs force (#849).** `yarctl director backends flush <ip|all>` drains a backend. By default the drain is **graceful and throttled**: the host is taken out of the ring and its users are migrated in a self-clocked window of at most `director_service.max_parallel_moves` (default `5`, Helm: `components.director.max_parallel_moves`) confirmed-kills — each user's old sessions must confirm gone before the next user is pulled in, so a planned drain (rolling upgrade, maintenance) spreads the re-login across the surviving pods instead of stampeding them all at once. `--force` restores the pre-#849 behaviour (kick every session immediately); `--max-parallel N` overrides the window for one run. Re-login is deterministic without a proactive pin move: the evacuating host is already excluded from the ring, so a kicked user's re-`LOOKUP` rehashes to the same surviving backend it would have been moved to, and the confirmed-kill hold (#847) makes that re-`LOOKUP` wait until the old session is gone (no split-writer window). The drain is orchestrated by the single director that receives the request; if that director is lost mid-drain the operator re-runs `flush` (drain-state is not replicated across directors — matching the reference, where the originating director drives the drain). Matches the reference's forced-flush and max-parallel drain behaviour.
 
-**Per-user flush hook (#848).** `director_service.flush_program` (default `""` = disabled, Helm: `components.director.flush_program`) is an optional external executable run once per user **after** a deliberate relocation — an admin `USER-MOVE` or a graceful evacuation — has been confirmed ring-wide, i.e. after that user's old sessions are gone. Operators hook mailbox-cache flush, external session cleanup, metrics, etc. It is called as `flush_program FLUSH <username> <username_hash> <old_backend> <new_backend>` (`new_backend` is empty when the user was kicked with no surviving backend to land on). It is **best-effort and asynchronous** with a bounded timeout: a slow or failing hook is logged and never blocks the ring/`LOOKUP` path or fails the move (the routing change already committed). The bound is `director_service.flush_program_timeout` (seconds, default `10`, Helm: `components.director.flush_program_timeout`); `0` selects the default rather than disabling the bound. Raise it for a hook that legitimately takes longer — and note what best-effort means for diagnosing one: a run that exceeds the bound is killed, and the only trace is a `WARN` on the director (`flush hook failed (best-effort, move already committed)` with `err="signal: killed"`). Nothing surfaces on the hook's own side, so a script that always overruns simply never completes, silently, until someone reads the director's log. Only the director that **originated** the move runs it — mass/reactive paths (`backend-down` auto-kick, `--force` flush) deliberately do not trigger it, and a move that creates a fresh pin with no prior host is skipped. This is yarilo's analog of the reference's `director_flush_socket` (which runs its hook at the same point — the ring-wide `USER-KILLED-EVERYWHERE`); the program runs in the director pod's context, `exec.Command` only (no fork). A unix-socket hook variant is a possible future follow-up. An **offline** user — one with no active sessions when the move starts — confirms after `user_kill_confirm_grace` (~1s) instead of waiting out `user_kill_timeout`, so the hook fires promptly for the common admin case of moving a user who isn't currently connected (#870); a user with live sessions still confirms only once those sessions have drained.
+**Per-user flush hook (#848).** `director_service.flush_program` (default `""` = disabled, Helm: `components.director.flush_program`) is an optional external executable run once per user **after** a deliberate relocation — an admin `USER-MOVE` or a graceful evacuation — has been confirmed ring-wide, i.e. after that user's old sessions are gone. Operators hook mailbox-cache flush, external session cleanup, metrics, etc. It is called as `flush_program FLUSH <username> <username_hash> <old_backend> <new_backend>` (`new_backend` is empty when the user was kicked with no surviving backend to land on). It is **best-effort and asynchronous** with a bounded timeout: a slow or failing hook is logged and never blocks the ring/`LOOKUP` path or fails the move (the routing change already committed). The bound is `director_service.flush_program_timeout` (seconds, default `10`, Helm: `components.director.flush_program_timeout`); `0` selects the default rather than disabling the bound. Raise it for a hook that legitimately takes longer — and note what best-effort means for diagnosing one: a run that exceeds the bound is killed, and the only trace is a `WARN` on the director (`flush hook failed (best-effort, move already committed)` with `err="signal: killed"`). Nothing surfaces on the hook's own side, so a script that always overruns simply never completes, silently, until someone reads the director's log. Only the director that **originated** the move runs it — mass/reactive paths (`backend-down` auto-kick, `--force` flush) deliberately do not trigger it, and a move that creates a fresh pin with no prior host is skipped. The hook runs at the same point as the reference's flush hook, after the ring-wide `USER-KILLED-EVERYWHERE`; the program runs in the director pod's context, `exec.Command` only (no fork). A unix-socket hook variant is a possible future follow-up. An **offline** user — one with no active sessions when the move starts — confirms after `user_kill_confirm_grace` (~1s) instead of waiting out `user_kill_timeout`, so the hook fires promptly for the common admin case of moving a user who isn't currently connected (#870); a user with live sessions still confirms only once those sessions have drained.
 
 ### Tag sharding models
 
@@ -296,13 +185,13 @@ Every director `LOOKUP` carries a mandatory tag field — there is no full-ring 
 
 ## Ring formation & design history
 
-Director replicas self-organize into a ring at runtime (#750 phase 1 — replaces the earlier static full-mesh `peers` list, #700): members are ordered by `(ip, port)` and each dials only its right neighbor, never a full mesh. Every member count is a fully valid, service-serving state (never refuses service) — a lone director is an ordinary N=1 ring, no peer machinery runs at all. `components.director.peers` is now a **seed list**: each entry is tried in turn for a one-time `DIRECTOR-JOIN`, after which membership maintains itself via propagation. Left empty (the default), at `replicas > 1` the seed auto-derives to the headless `<release>-director-ring:9102` Service (#751/#764) — never the ClusterIP `<release>-director` Service — because only the headless name resolves directly to every ready pod's IP, which is what the DNS fan-out needs to poll each peer; the ClusterIP resolves to a single virtual IP that load-balances dials randomly and reintroduces the formation partition. An explicit list overrides this (non-k8s / manual seeding). `components.director.ring_secret` (auto-generated into Secret `<release>-director-ring-secret`, mirroring the API token) authenticates joins via HMAC-SHA256 — leaving it unset rejects every join attempt outright, so that replica can only ever run standalone. `components.director.min_members` (default 3) is an install-time warning only, no runtime effect. Phase 1 covers ring topology, membership propagation, and the HMAC join core; dial-back verification + CIDR filtering (phase 2), full user/backend state snapshot on connect (phase 3), and members_hash anti-entropy (phase 4) are tracked separately.
+Director replicas self-organize into a ring at runtime (#750 phase 1 — replaces the earlier static full-mesh `peers` list, #700): members are ordered by `(ip, port)` and each dials only its right neighbor, never a full mesh. Every member count is a fully valid, service-serving state (never refuses service) — a lone director is an ordinary N=1 ring, no peer machinery runs at all. `components.director.peers` is now a **seed list**: each entry is tried in turn for a one-time `DIRECTOR-JOIN`, after which membership maintains itself via propagation. Left empty (the default), at `replicas > 1` the seed auto-derives to the headless `<release>-director-ring:9102` Service (#751/#764) — never the ClusterIP `<release>-director` Service — because only the headless name resolves directly to every ready pod's IP, which is what the DNS fan-out needs to poll each peer; the ClusterIP resolves to a single virtual IP that load-balances dials randomly and reintroduces the formation partition. An explicit list overrides this (non-k8s / manual seeding). `components.director.ring_secret` (auto-generated into Secret `<release>-director-ring-secret`, mirroring the API token) authenticates joins via HMAC-SHA256 — leaving it unset rejects every join attempt outright, so that replica can only ever run standalone. `components.director.min_members` (default 3) is an install-time warning only, no runtime effect. Phase 1 covered ring topology, membership propagation and the HMAC join core. Later work added dial-back verification of a joiner and CIDR filtering (`join_allowed_nets`), the user-state snapshot on connect (#772) and periodic anti-entropy, described below.
 
 **#754 (found in the first live 3-replica sandbox test)** fixed a phase-1 regression where killing one ring member left the membership set permanently corrupted: a dead member's tombstone wasn't propagated (an ordering bug meant `DIRECTOR-REMOVE` was announced before the outgoing connection needed to send it existed) and, separately, a plain member-list union on every reconnect could silently resurrect a member some other node had already correctly evicted. Membership now carries a proper tombstone set, exchanged alongside the member list on every ring connection; `Member` ordering also now sorts by parsed IP octets instead of string comparison (`"10.0.0.17" < "10.0.0.6"` as strings, backwards from the real address).
 
 **#755** fixed `yarctl director ...` returning 403 from every pod, including the director pod's own shell — the director admin API token and URL were never plumbed to `yarilo-backend-api` (the standard admin plane) or reliably available for local use. Both are now wired via a shared Helm env-injection helper, and the empty-by-default `api.allowed_nets` (see #759) means the bearer token is the sole gate rather than a cluster-specific CIDR. The `smoketest` binary now carries a `-director-api <url>` check (bearer token from `-director-api-token` or `DIRECTOR_API_TOKEN`/`YARILO_ADMIN_TOKEN`) that fails loudly on a 403/401 and asserts a member list on 200 — run it in-cluster (a Job or `kubectl exec` on `yarilo-backend-api`, where the token env is already injected) since the director API is a ClusterIP; `smoke.yml` gained an optional `director_api` input for the same check from an in-cluster runner.
 
-**#758** replaced the ring's single-edge event-forward path (one connection picked at accept time — `dialConn`, or a `passiveConn` reserved for the N=2 tie-break's passive member) with a broadcast to every currently live ring connection except whichever one an event just arrived on, matching the reference's `director_update_send` skip-arrival model instead of a fixed per-connection role that could go stale mid-connection across an N=3→N=2 shrink.
+**#758** replaced the ring's single-edge event-forward path (one connection picked at accept time — `dialConn`, or a `passiveConn` reserved for the N=2 tie-break's passive member) with a broadcast to every currently live ring connection except whichever one an event just arrived on, matching the reference's skip-arrival forwarding instead of a fixed per-connection role that could go stale mid-connection across an N=3→N=2 shrink.
 
 **#759 (found in a live 3-pod simultaneous-start sandbox test)** fixed a load-balanced ClusterIP seed routing a pod's own `DIRECTOR-JOIN` dial back to itself: this looked like an ordinary, immediate join success (a self-join is a harmless no-op), so `joinLoop` stopped retrying the seed forever, leaving the pod stuck as a permanently isolated N=1 that never discovered any real peer. `handleJoin` now rejects a self-dial explicitly, so the existing generic retry keeps dialing the seed until kube-proxy routes it elsewhere. Also dropped `components.director.api.allowed_nets`'s hardcoded kubeadm-shaped default (`10.96.0.0/12` + `10.244.0.0/16`) — wrong for any cluster with different service/pod CIDRs, silently 403ing every request including well-authenticated ones — in favor of an empty default (token-only auth; CIDR filtering is opt-in defense-in-depth once an operator knows their real cluster CIDRs).
 
