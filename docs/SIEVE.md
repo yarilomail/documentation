@@ -27,7 +27,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 `spamtest` / `spamtestplus` / `virustest` (RFC 5235) are backed by a configured status header (see `sieve_spamtest_status_header` / `sieve_virustest_status_header` below); with no header configured the tests report "not scanned".
 
-`imapsieve` (RFC 6785) runs Sieve scripts on **IMAP events** — message `APPEND`, `COPY`/`MOVE`, and flag change (`STORE`) — not just LMTP delivery. A script is bound to a mailbox through the IMAP METADATA annotation `/shared/imapsieve/script` (`SETMETADATA "<mailbox>" (/shared/imapsieve/script "<name>")`), or server-wide under INBOX; the value names a script in `imapsieve_script_dir`. Admin `imapsieve_global_before` / `imapsieve_global_after` scripts wrap the bound one. Bound scripts live in `imapsieve_script_dir`; in the Helm chart, set `sieve.imapsieve_scripts` (a `name: content` map) and a ConfigMap is rendered and mounted read-only at `imapsieve_script_dir` in the IMAP pods. Scripts require `["imapsieve", "environment"]` and branch on the event via `environment "imap.cause"` (`APPEND` / `COPY` / `FLAG`); the RFC 6785 items `imap.mailbox`, `imap.email`, `imap.user`, `imap.changedflags` and the vendor `vnd.yarilo.mailbox-from` / `vnd.yarilo.mailbox-to` (COPY source/destination) are also available. (Enable with `imapsieve_enabled`; the IMAP-side event hooks land incrementally — APPEND first.)
+`imapsieve` (RFC 6785) runs Sieve scripts on **IMAP events** — message `APPEND`, `COPY`/`MOVE`, and flag change (`STORE`) — not just LMTP delivery. A script is bound to a mailbox through the IMAP METADATA annotation `/shared/imapsieve/script` (`SETMETADATA "<mailbox>" (/shared/imapsieve/script "<name>")`), or server-wide under INBOX; the value names a script in `imapsieve_script_dir`. Admin `imapsieve_global_before` / `imapsieve_global_after` scripts wrap the bound one. Bound scripts live in `imapsieve_script_dir`; in the Helm chart, set `sieve.imapsieve_scripts` (a `name: content` map) and a ConfigMap is rendered and mounted read-only at `imapsieve_script_dir` in the IMAP pods. Scripts require `["imapsieve", "environment"]` and branch on the event via `environment "imap.cause"` (`APPEND` / `COPY` / `FLAG`); the RFC 6785 items `imap.mailbox`, `imap.email`, `imap.user`, `imap.changedflags` and the vendor `vnd.yarilo.mailbox-from` / `vnd.yarilo.mailbox-to` (COPY source/destination) are also available. Enable it with `imapsieve_enabled`; all three causes — `APPEND`, `COPY` and `FLAG` — are wired.
 
 `mboxmetadata` / `servermetadata` (RFC 5490 §4) expose IMAP METADATA (RFC 5464) annotations to scripts: `metadata "<mailbox>" "<entry>" "<value>"` / `metadataexists "<mailbox>" "<entry>"...` read per-mailbox annotations, and `servermetadata "<entry>" "<value>"` / `servermetadataexists "<entry>"...` read server-scoped ones. Entry names are the wire-format `/private/…` or `/shared/…` paths; values come from the same dict the IMAP `GETMETADATA`/`SETMETADATA` commands use, so a script sees exactly what a client set. Delivery-time lookups are scoped to the recipient's personal namespace. `extlists` is **not** advertised yet — its backing data source is not wired.
 
@@ -50,6 +50,10 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_submission_ssl` | string | `"no"` | Transport security: `no` \| `smtps` \| `starttls` |
 | `sieve_submission_timeout` | int | `30` | Connect and command timeout in seconds |
 | `sieve_submission_auth_secret` | string | `""` | Name of a Kubernetes Secret containing `user` and `password` keys for SMTP AUTH. Leave empty for unauthenticated relay |
+| `sieve_default_name` | string | `"yarilo"` | Name of the per-user default script, seeded as `<name>.sieve` on first delivery |
+| `sieve_extensions` | list | `[]` | Extensions users may `require`. Empty allows all; a non-empty list is enforced at `PUTSCRIPT` and at delivery |
+| `sieve_scripts_driver` | string | `""` (= `fs`) | Where scripts are stored: `fs` = files in the user's home; `redis` = the dict named by `sieve_scripts_dict` |
+| `sieve_scripts_dict` | string | `""` | Name of the dict in `dicts:` used when `sieve_scripts_driver: redis`. Ignored for `fs` |
 
 All keys keep the `sieve_` prefix even under the `sieve:` section, matching the config koanf tags.
 
@@ -110,10 +114,10 @@ clamped; `0` = no limit).
 
 ### Notifications (RFC 5435 `enotify`)
 
-The `notify` extension (RFC 5435) allows scripts to send notifications via an external method URI. Yarilo supports the `mailto:` method — the notification is sent as an email via the same `sieve_submission_host` as redirect and vacation.
+The `enotify` extension (RFC 5435) allows scripts to send notifications via an external method URI. Yarilo supports the `mailto:` method — the notification is sent as an email via the same `sieve_submission_host` as redirect and vacation.
 
 ```sieve
-require ["notify"];
+require ["enotify"];
 notify :message "New mail arrived" "mailto:admin@example.com";
 ```
 
@@ -153,7 +157,7 @@ sieve:
 
 ## Yarilo-specific extensions
 
-Yarilo ships four proprietary Sieve extensions under the `vnd.yarilo.*` namespace. They must be listed in the `require` statement of any script that uses them.
+Yarilo ships six proprietary Sieve extensions under the `vnd.yarilo.*` namespace. They must be listed in the `require` statement of any script that uses them.
 
 ---
 
@@ -314,4 +318,4 @@ On first delivery for a new user, yarilo seeds a default `yarilo.sieve` script:
 keep;
 ```
 
-Operators can replace this via ManageSieve or by writing a script to the user's dict storage directly.
+Operators can replace this via ManageSieve, or by writing the script where `sieve_scripts_driver` keeps it: a file in the user's home (`fs`, the default) or the dict named by `sieve_scripts_dict` (`redis`).
