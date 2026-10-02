@@ -141,15 +141,16 @@ resolved per-user limits:
 | `quota_storage_percentage` | `100` | Scale the storage limit: `limit·pct/100`. |
 | `quota_message_percentage` | `100` | Scale the message-count limit. |
 | `quota_storage_extra` | `` | Byte headroom added to the storage limit after scaling. |
-| `quota_storage_grace` | `10M` | Storage overshoot allowed on **inbound delivery (LMTP/LDA) only** — never interactive IMAP. Lets a nearly-full mailbox accept one more delivery. |
+| `quota_storage_grace` | `10M` | Storage overshoot allowed on **inbound delivery (LMTP/LDA) only**, never on interactive IMAP. It lets the one delivery that crosses the limit through, as long as it lands within the grace. A mailbox already at or over its limit accepts no further delivery, however much grace is left. |
 | `quota_ignore_unlimited` | `false` | Omit the quota root from GETQUOTA/GETQUOTAROOT for unlimited users. |
 | `quota_mailbox_count` | `0` | Cap the number of mailboxes (folders). Enforced at CREATE — `NO [LIMIT] Maximum number of mailboxes reached`. `0` = unlimited. |
-| `quota_mailbox_message_count` | `0` | Cap messages in a single mailbox. Enforced on save — `NO [OVERQUOTA] Too many messages in the mailbox` (LMTP `552`). `0` = unlimited. |
+| `quota_mailbox_message_count` | `0` | Cap on messages in a single mailbox. A mailbox holds up to this many; the save past it is refused with `NO [OVERQUOTA] Too many messages in the mailbox` (LMTP `552 5.2.2`, or `452 4.2.2` with `protocol.lmtp.quota_full_tempfail`). `0` = unlimited. |
 | `quota_hidden` | `false` | Omit the quota root from GETQUOTA/GETQUOTAROOT for **every** user (enforcement still applies). Broader than `quota_ignore_unlimited`. |
 
-Effective storage limit = `rule_limit · quota_storage_percentage/100 + quota_storage_extra`
-(`+ quota_storage_grace` on LMTP delivery). The scaled limit is what GETQUOTA reports and
-what every enforcement point checks.
+Effective storage limit = `rule_limit · quota_storage_percentage/100 + quota_storage_extra`.
+The scaled limit is what GETQUOTA reports and what every enforcement point checks. On LMTP
+delivery, and in the quota-status policy service, `quota_storage_grace` lets the delivery
+that crosses this limit through. It does not raise the limit.
 
 ### Quota warnings
 
@@ -204,12 +205,33 @@ quota:
 - Empty `quota_over_status_mask` disables it. Currently wired for IMAP logins
   (POP3 lacks the usage-count path — a separate task).
 
-## quota_status_nouser
+## quota-status actions
 
-The `yarilo-quota-status` policy service returns `quota_status_nouser` when the
-recipient is unknown in userdb (default `REJECT Unknown user`). A backend lookup
-**error** still fails open (`DUNNO`); set `quota_status_nouser: ""` to accept
-unknown recipients (`DUNNO`) and let a later Postfix restriction decide.
+Every answer of the `yarilo-quota-status` policy service is a setting under
+`components.quotaStatus` in the chart (`quota_status:` in `yarilo.yaml`). In the
+over-quota and too-large actions, `%{error}` is replaced by the reason.
+
+| Key | Default | Returned when |
+|:---|:---|:---|
+| `quota_status_success` | `OK` | The message fits: under the limit, or within the storage grace for the delivery that crosses it. Also for an ignored folder or a user without limits. |
+| `quota_status_overquota` | `554 5.2.2 %{error}` | The mailbox is full, with `%{error}` = `quota.quota_exceeded_message`. Also when INBOX already holds `quota_mailbox_message_count` messages, with `%{error}` = `Too many messages in the mailbox`. |
+| `quota_status_toolarge` | `""` | The message is larger than `quota.quota_mail_size`, or larger than the user's whole storage limit. Empty uses `quota_status_overquota`. |
+| `quota_status_nouser` | `REJECT Unknown user` | The recipient is unknown in userdb. Empty answers `DUNNO`, so a later Postfix restriction decides. |
+
+The default refusal `554 5.2.2` is permanent: the MTA bounces the message to the
+sender at once. To have the MTA keep it queued and retry instead, set for example
+`quota_status_overquota: "DEFER_IF_PERMIT %{error}"` or
+`"452 4.2.2 %{error}"`.
+
+When the size is not known yet (an MTA asking at `RCPT` without a `SIZE`), the
+check counts one byte, so a mailbox already at or over its limit is still refused.
+
+A userdb lookup that fails, or a mailbox that cannot be counted, answers
+`DEFER_IF_PERMIT` with the reason. The MTA retries later; it neither accepts the
+message unchecked nor bounces it.
+
+A request without a recipient, such as Postfix's end-of-message call, answers
+`DUNNO`.
 
 ## IMAP wire (RFC 9208)
 
