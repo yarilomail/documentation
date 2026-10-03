@@ -95,7 +95,6 @@ components:
         xclient: false     # trust mode 2; leave off when internalTLS is on
     internalTLS:
       enabled: true
-      secretName: yarilo-internal-tls
 
   jmapLogin:               # the client-facing proxy
     enabled: true

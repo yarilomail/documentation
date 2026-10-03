@@ -577,21 +577,94 @@ Every internal **client** dial (auth / warden / locks / backend-api / backend /
 fts / the login pods) verifies the peer against a single pinned name,
 `internal_tls.server_name` — **not** the dialed host. Internal services are
 reached by short name, FQDN, or pod IP interchangeably, so host-based
-verification is unreliable; the shared internal-tls cert instead carries one
-stable SAN and every client pins it. Because all internal components share one
-cert, mutual auth attests **"cluster member"**, not a specific service identity
-(true per-service identity would need per-service certs — a separate redesign).
+verification is unreliable; every internal certificate instead carries one
+stable SAN and every client pins it. Which component a peer *is* comes from its
+role, below.
 
-The chart defaults `server_name` to `<release>-internal` and injects that name
-into the director cert SANs; **the shared internal-tls secret you provide MUST
-carry `<release>-internal` as a SAN** (`hack/internal-ca-sandbox.yaml` shows a
-self-signed CA chain that does). `internal_tls.enabled=true` with an empty
+The chart defaults `server_name` to `<release>-internal` and puts that name in
+every certificate it makes; **a certificate you provide MUST carry
+`<release>-internal` as a SAN**. `internal_tls.enabled=true` with an empty
 `server_name` fails **loudly at startup** (`mtls.ClientConfig` errors with a fix
 hint) rather than as a cryptic "ServerName must be specified" on the first dial.
 `saslLogin` and `quotaStatus` now also carry an `internalTLS` block/mount — every
 component that dials an internal service needs the cert mounted.
 
 The director **ring** dial is separate — see below.
+
+#### Peer roles (#2132)
+
+Each internal certificate names the one component it speaks for in a DNS SAN
+`<role>.role.yarilo.internal`, and each internal listener accepts only the
+roles that are meant to call it. `.internal` is reserved for private use and
+never resolves publicly, so the name cannot collide with a service. Other DNS
+SANs are not identity.
+
+| Listener | Accepted roles |
+|:---|:---|
+| auth client port | imap-login, pop3-login, submission-login, managesieve-login, jmap-login, sasl-login, imap, pop3, lmtp, managesieve, submission, admin |
+| auth master port | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, quota-status, lmtp-login, admin |
+| warden | auth, imap-login, pop3-login, submission-login, managesieve-login, lmtp-login, jmap-login, backend-api, imap |
+| locks | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, admin |
+| dict | imap, pop3, lmtp, managesieve |
+| director | director (ring), the login roles and backend-api (LOOKUP), backend-reg (registration) |
+| director admin API | admin |
+| backend-api | admin, backend-api |
+| backend imap / pop3 / lmtp / managesieve / submission | the matching login: imap-login, pop3-login, lmtp-login, managesieve-login, submission-login |
+| jmap internal | jmap-login |
+| FTS | imap, pop3, lmtp, managesieve, backend-api, jmap |
+
+The roles are `auth`, `warden`, `locks`, `dict`, `director`, `fts`,
+`backend-api`, `backend-reg`, `imap`, `pop3`, `lmtp`, `managesieve`,
+`submission`, `jmap`, `imap-login`, `pop3-login`, `submission-login`,
+`managesieve-login`, `lmtp-login`, `jmap-login`, `sasl-login`, `quota-status`,
+and `admin` for the operator tools (yarctl, yarilo-migrate, the smoketest).
+
+- A certificate with two role SANs, or a label outside this list, is refused.
+- The director also checks the role per command: ring commands only from
+  `director`, registration only from `backend-reg`.
+- A refusal is logged with the peer certificate (subject, serial, role SANs),
+  the listener and the roles it expected.
+- **This release accepts a certificate without a role** and logs it once per
+  listener and certificate, so a rolling upgrade from a shared certificate
+  keeps internal connections up. The next release refuses it.
+- With `internal_tls` off, each server logs once at startup that roles are not
+  checked.
+- The FTS port and the director admin API are now behind internal mTLS as
+  well. The admin API keeps its token.
+
+**Certificates from the chart.** A component with `internalTLS.enabled` and an
+empty `secretName` gets `<release>-<role>-internal-tls`, made by the chart
+(`genSignedCert`, 10 years) and signed by:
+
+- `internalTLS.ca.secretName`, an existing `kubernetes.io/tls` Secret holding
+  the CA certificate and key, for example the one cert-manager keeps for a CA
+  Issuer. On a real install a missing Secret fails the render;
+- or, when that is empty, a CA the chart makes once and keeps in
+  `<release>-internal-ca` (with `helm.sh/resource-policy: keep`).
+
+A certificate is kept from one upgrade to the next and re-issued only when its
+Secret is missing, the CA changed, or `internalTLS.certGeneration` was raised.
+**There is no renewal by age:** a Helm template cannot read a certificate's
+expiry. For renewal over time use cert-manager.
+
+**Limitation:** the chart finds its existing Secrets with `lookup`, which sees
+the cluster only on `helm install` / `helm upgrade`. `helm template`,
+`--dry-run` and renderers such as Argo CD get no answers and mint new
+certificates on every render. Render against the cluster, or use cert-manager
+or your own Secrets.
+
+**cert-manager.** With `internalTLS.certManager.enabled` and
+`internalTLS.certManager.issuerRef`, the chart renders one `Certificate` per
+role with the same DNS names, and cert-manager makes and renews the Secrets.
+
+**Your own certificates.** Set `secretName` per component. Each certificate
+carries `<role>.role.yarilo.internal` for that component, plus
+`<release>-internal`. The co-located backend pod mounts one Secret per
+container, so a single operator Secret there carries no role.
+
+**yarctl** presents the `admin` certificate. The chart mounts it at
+`/etc/yarilo/admin-tls` in the backend-api containers only: anywhere else
+would make that pod an admin. Run yarctl there.
 
 #### Ring mTLS — `director_service.ring_tls_server_name` (#753)
 
