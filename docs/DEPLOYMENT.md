@@ -602,8 +602,8 @@ SANs are not identity.
 | Listener | Accepted roles |
 |:---|:---|
 | auth client port | imap-login, pop3-login, submission-login, managesieve-login, jmap-login, sasl-login, imap, pop3, lmtp, managesieve, submission, admin |
-| auth master port | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, quota-status, admin |
-| warden | auth, imap-login, pop3-login, submission-login, managesieve-login, lmtp-login, jmap-login, backend-api |
+| auth master port | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, quota-status, lmtp-login, admin |
+| warden | auth, imap-login, pop3-login, submission-login, managesieve-login, lmtp-login, jmap-login, backend-api, imap |
 | locks | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, admin |
 | dict | imap, pop3, lmtp, managesieve |
 | director | director (ring), the login roles and backend-api (LOOKUP), backend-reg (registration) |
