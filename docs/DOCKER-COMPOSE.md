@@ -129,6 +129,10 @@ Wire Postfix to yarilo:
   `smtpd_sasl_path = inet:127.0.0.1:12325`
 - Reject over-quota recipients: `check_policy_service inet:127.0.0.1:12340` in
   `smtpd_recipient_restrictions`
+- Mail that Sieve sends (redirect, vacation, notify, report): set
+  `sieve.sieve_submission_host` to your MTA. The shipped `localhost:25` points
+  inside the container, where no MTA listens, so those messages fail until it
+  is changed.
 
 ::: note
 For a public deployment you also need MX, SPF, DKIM (signed at the MTA) and
