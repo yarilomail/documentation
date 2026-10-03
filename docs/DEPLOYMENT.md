@@ -558,6 +558,7 @@ locks_service:
   mode: remote
   listen: ":9104"
   redis: "redis://redis.yarilo.svc.cluster.local:6379/0"
+  redis_password: "${YARILO_REDIS_PASSWORD}"   # from a Secret, see below
 
 # session binaries reach yarilo-locks via the ClusterIP Service.
 locks_client:
@@ -570,6 +571,30 @@ internal_tls:
   key:  /etc/yarilo/tls/tls.key
   ca:   /etc/yarilo/tls/ca.crt
 ```
+
+#### Redis password
+
+A Redis that requires a password gets it from a Secret, never from the
+ConfigMap. In the chart, `redis.passwordSecret` (`name`, `key`, default
+`password`) puts it into the `YARILO_REDIS_PASSWORD` environment variable of
+every process that opens Redis: auth (session tokens), warden, locks, dict,
+quota-status, backend-api and the session containers. The bundled Redis then
+starts with `--requirepass` from the same Secret.
+
+The config names the variable next to each Redis URL, and the loader expands
+it at startup:
+
+| Client | Key |
+|:---|:---|
+| auth session tokens | `auth.token.redis_password` |
+| warden | `warden_service.redis_password` |
+| locks | `locks_service.redis_password` |
+| a dict with `driver: redis` (quota clone, ACL owner registry, Sieve vacation and duplicate) | `password` in its `settings` |
+
+The chart renders the first three; a redis dict is the operator's, so add
+`password: "${YARILO_REDIS_PASSWORD}"` to its settings. A separate password
+wins over one inside the URL. Do not put the password in the URL: the URL is
+rendered into the ConfigMap as written.
 
 #### Internal client dials — `internal_tls.server_name` (#816)
 
@@ -1014,7 +1039,7 @@ set to the tag and its own NFS PV.
 ### Shared services
 - `Deployment yarilo-auth` — stateless (userdb in an external SQL/LDAP store).
 - `Deployment yarilo-warden` — 1 replica with `state_backend: memory`, any N with `redis`.
-- Redis (bundled or external) — state for warden and locks.
+- Redis (bundled or external) — state for warden, locks and session tokens, and redis dicts; its password comes from `redis.passwordSecret`.
 
 **Why co-located, not per-protocol StatefulSets:**
 - **Routing coherence (the whole point).** Consistent hashing cannot give both
