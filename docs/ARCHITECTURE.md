@@ -236,97 +236,53 @@ internal/
 pkg/
   mailbox/         — MailboxBackend + IndexBackend interfaces
   config/          — YAML config via koanf
-helm/
-  yarilo-shared/   — shared services (yarilo-auth, yarilo-warden, Redis)
-    Chart.yaml
-    values.yaml
-    templates/
-      auth-deployment.yaml
-      warden-deployment.yaml
-      redis-statefulset.yaml
-  yarilo-director/ — director pool (login-proxies + director StatefulSet)
-    Chart.yaml
-    values.yaml
-    templates/
-      imap-login-deployment.yaml
-      pop3-login-deployment.yaml
-      submission-login-deployment.yaml
-      lmtp-login-deployment.yaml
-      director-statefulset.yaml   — 3 pods peer-sync
-  yarilo-backend/  — backend pool (one release per tag, 4 StatefulSets per protocol)
-    Chart.yaml
-    values.yaml      — per-protocol replicaCount + HPA config
-    templates/
-      imap-statefulset.yaml
-      pop3-statefulset.yaml
-      submission-statefulset.yaml
-      lmtp-statefulset.yaml
-      locks-deployment.yaml
-      nfs-pv.yaml                 — per-tag NFS share
+helm/              — one chart, one release per installation
+  Chart.yaml
+  values.yaml
+  templates/
+    statefulset-backend.yaml    — co-located backend: every protocol container, fts, backend-api, backend-reg
+    deployment-<component>.yaml — auth, warden, locks, dict, director, the login proxies, quota-status
+    deployment-imap.yaml, …     — per-protocol backends, rendered only with backend.coLocated: false
+    secret-internal-tls.yaml    — per-role internal mTLS certificates
+    statefulset-redis.yaml      — bundled Redis (redis.bundled)
+    service-*.yaml, secret-*.yaml, configmap*.yaml
+helm_values/
+  values-sandbox.yaml           — the sandbox stand
 ```
 
 ---
 
 ## Helm chart structure
 
-**Three charts**, one per deployment layer. Third-party storage (NFS, Redis HA) is outside the yarilo charts.
+**One chart, one release.** Which workloads render is decided by values:
+`components.<name>.enabled`, `components.backend.coLocated` and
+`redis.bundled`. Topology changes are values changes, never a different chart
+or binary. External storage (NFS, an external Redis) is outside the chart.
 
 ```sh
-# Once per installation — shared infrastructure services
-helm install yarilo-shared ./helm/yarilo-shared -f values-prod.yaml
-
-# Once per installation — director pool
-helm install yarilo-director ./helm/yarilo-director -f values-prod.yaml
-
-# One release per tag — backend pool with its own NFS shard
-helm install yarilo-backend-a ./helm/yarilo-backend --set tag=a -f values-prod.yaml
-helm install yarilo-backend-b ./helm/yarilo-backend --set tag=b -f values-prod.yaml
-# ...
+helm upgrade --install yarilo ./helm -n yarilo -f values-prod.yaml
 ```
 
-### values-prod.yaml (per chart) — example
+### values-prod.yaml — example
 
-**yarilo-shared:**
 ```yaml
-auth:
-  replicas: 2
-warden:
-  replicas: 2
-  redis:
-    address: redis.shared.svc:6379
-```
-
-**yarilo-director:**
-```yaml
-director:
-  replicas: 3      # peer-sync ring, fixed size
-imapLogin: { replicas: 2 }
-pop3Login: { replicas: 2 }
-submissionLogin: { replicas: 2 }
-lmtpProxy: { replicas: 2 }
-```
-
-**yarilo-backend (per tag):**
-```yaml
-tag: a
-imap:
-  replicas: 3
-  hpa: { minReplicas: 3, maxReplicas: 10, metric: connCount }
-pop3:
-  replicas: 1
-  hpa: { minReplicas: 1, maxReplicas: 3, metric: pollRate }
-submission:
-  replicas: 2
-  hpa: { minReplicas: 2, maxReplicas: 5, metric: outboundRate }
-lmtp:
-  replicas: 3
-  hpa: { minReplicas: 3, maxReplicas: 15, metric: deliveryQueue }
-locks:
-  replicas: 2
-nfs:
-  server: nfs-a.storage.svc
-  path: /export/yarilo-a
-  size: 5Ti
+components:
+  director:
+    enabled: true
+    replicas: 3          # peer-sync ring
+  imapLogin: { enabled: true, replicas: 2 }
+  pop3Login: { enabled: true, replicas: 2 }
+  submissionLogin: { enabled: true, replicas: 2 }
+  lmtpLogin: { enabled: true, replicas: 2 }
+  auth: { replicas: 2 }
+  warden: { replicas: 2 }
+  locks: { replicas: 2 }
+  backend:
+    coLocated: true
+    replicas: 3          # co-located backend pods
+redis:
+  bundled: false
+  externalUrl: redis://redis.shared.svc:6379/0
 ```
 
 All pod labels include `app.kubernetes.io/part-of: yarilo` for cluster-wide log tailing:
@@ -339,63 +295,42 @@ stern -l app.kubernetes.io/part-of=yarilo
 
 ## k8s workloads
 
-### yarilo-shared chart
+As rendered with the director topology (the sandbox values).
 
 | Workload | Type | Service | Replicas | Notes |
 |:---|:---|:---|:---|:---|
-| `yarilo-auth` | Deployment | ClusterIP :9100 | 2+ | stateless, HPA, userdb queries external SQL/LDAP |
-| `yarilo-warden` | Deployment | ClusterIP :9101 | 2 | state in Redis (HA), conn+session counters |
-| `redis-shared` | StatefulSet (or external) | ClusterIP :6379 | per-Redis-HA-design | state backend for warden |
+| `yarilo-auth` | Deployment | ClusterIP :9100 (client), :9102 (master) | 1+ | passdb/userdb chain |
+| `yarilo-warden` | Deployment | ClusterIP :9101 | 2 | connection and session accounting, state in Redis |
+| `yarilo-locks` | Deployment | ClusterIP :9104 | 2 | cross-pod write coordination, state in Redis |
+| `yarilo-dict` | Deployment | ClusterIP :9107 | 1+ | dict service |
+| `yarilo-director` | Deployment | ClusterIP :9102, headless `-director-ring` :9102, `-director-api` :9103 | 3 | peer-sync ring; backends register themselves by lease |
+| `yarilo-imap-login` | Deployment | LoadBalancer :993 / :143 | 1+ | TLS terminator and proxy |
+| `yarilo-pop3-login` | Deployment | LoadBalancer :995 / :110 | 1+ | |
+| `yarilo-submission-login` | Deployment | LoadBalancer :587 | 1+ | |
+| `yarilo-managesieve-login` | Deployment | LoadBalancer :4190 | 1+ | |
+| `yarilo-jmap-login` | Deployment | LoadBalancer :443 | 1+ | |
+| `yarilo-lmtp-login` | Deployment | ClusterIP :24 | 1+ | MTA-facing |
+| `yarilo-sasl-login` | Deployment | LoadBalancer :12325 | 1+ | SASL for an MTA |
+| `yarilo-quota-status` | Deployment | LoadBalancer :12340 | 1+ | quota policy service |
+| `yarilo-backend` | StatefulSet | headless: imap :10143, pop3 :10110, submission :10587, lmtp :10024, sieve :14190, jmap :10443, backend-api :9105 | N | co-located: imap, pop3, submission, lmtp, managesieve, jmap, fts, backend-api, backend-reg in one pod |
+| `yarilo-redis` | StatefulSet | ClusterIP :6379 | 1 | only with `redis.bundled: true` |
 
-### yarilo-director chart
-
-| Workload | Type | Service | Replicas | Notes |
-|:---|:---|:---|:---|:---|
-| `yarilo-director` | StatefulSet | Headless :9102 + ClusterIP :9103 (admin API) | 3 | peer-sync ring; backends report their own health by lease |
-| `yarilo-imap-login` | Deployment | LoadBalancer :993 / :143 | 2+ | TLS terminator + proxy, HPA |
-| `yarilo-pop3-login` | Deployment | LoadBalancer :995 / :110 | 2+ | HPA |
-| `yarilo-submission-login` | Deployment | LoadBalancer :465 / :587 | 2+ | HPA |
-| `yarilo-lmtp-login` | Deployment | ClusterIP/NodePort :24 | 2+ | MTA-facing, IP allowlist via NetworkPolicy |
-
-### yarilo-backend chart (one release per tag)
-
-| Workload | Type | Service | Replicas | Notes |
-|:---|:---|:---|:---|:---|
-| `yarilo-backend-<tag>-imap` | StatefulSet | Headless :10993 | N (HPA) | sticky ring per pod, NFS RWX |
-| `yarilo-backend-<tag>-pop3` | StatefulSet | Headless :10110 | M (HPA) | sticky ring per pod, NFS RWX |
-| `yarilo-backend-<tag>-submission` | StatefulSet | Headless :10587 | P (HPA) | sticky ring per pod, NFS RWX |
-| `yarilo-backend-<tag>-lmtp` | StatefulSet | Headless :10024 | Q (HPA) | sticky ring per pod, NFS RWX |
-| `yarilo-locks-<tag>` | Deployment | ClusterIP :9104 | 2 | cross-pod write coordination, state in Redis |
-| `redis-<tag>` | StatefulSet (or shared) | ClusterIP :6379 | 1+ | state backend for locks |
-| NFS PV `<tag>` | PV/PVC | — | RWX | shared by all 4 StatefulSets in the tag |
-
-**Why StatefulSet for backend and director:**
-- Director: the peer-sync ring needs stable identities (`director-0`, `director-1`, `director-2`) for initial discovery
-- Backend session processes: the director routes a user to one pod by stable DNS (`backend-a-imap-2.headless.svc`), which needs a StatefulSet with a headless Service for stable pod names
-
-**Why 4 StatefulSets, one per protocol, instead of 1 StatefulSet with 4 containers:**
-- Independent scaling — POP3 is typically 1 pod, LMTP under mass delivery 10+ pods
-- Process isolation — a crash of one protocol does not touch the others
-- Right-sized resources — each with its own CPU/RAM limits and HPA metric
+**Why one co-located StatefulSet:** one pod owns all of a user's per-user
+resources for every protocol, so the director keeps one ring and one user map,
+and the pod's IP serves every protocol (the login proxy picks the port).
+Co-locating fts gives each user index a single writer. Independent
+per-protocol scaling is given up for routing coherence (#788). The backend is a
+StatefulSet for stable pod identities behind the headless Service.
 
 **Trade-off:** cross-protocol writes to one mailbox (LMTP delivery + IMAP STORE) meet in the mailbox's own files; see [Locks](#locks) for where a lock is taken and where it is not.
 
-### Security context per workload
+### Security context
 
-| Workload | runAsUser | Capabilities | Storage |
-|:---|:---|:---|:---|
-| `yarilo-imap-login` | `nobody` | NET_BIND_SERVICE | none |
-| `yarilo-pop3-login` | `nobody` | NET_BIND_SERVICE | none |
-| `yarilo-submission-login` | `nobody` | NET_BIND_SERVICE | none |
-| `yarilo-lmtp-login` | `nobody` | NET_BIND_SERVICE | none |
-| `yarilo-imap` | `yarilo` | none | RWX PVC (NFS) |
-| `yarilo-pop3` | `yarilo` | none | RWX PVC (NFS) |
-| `yarilo-submission` | `yarilo` | none | RWX PVC (NFS, for the Sent folder) |
-| `yarilo-lmtp` | `yarilo` | none | RWX PVC (NFS) |
-| `yarilo-auth` | `yarilo` | none | none |
-| `yarilo-warden` | `yarilo` | none | none |
-| `yarilo-director` | `yarilo` | none | none |
-| `yarilo-locks` | `yarilo` | none | none |
+Every workload runs with the same context: `runAsNonRoot`, uid and gid 1000,
+`fsGroup` 1000, no privilege escalation, a read-only root filesystem, and all
+capabilities dropped except `NET_BIND_SERVICE`
+(`podSecurityContext` / `containerSecurityContext` in values). The mail volume
+is mounted only by the backend containers.
 
 ---
 
