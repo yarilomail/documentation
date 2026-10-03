@@ -50,7 +50,7 @@ Version: **2.3.x line** (beta). Last reviewed 2026-10-02. 2.4.1 is not released;
 | BINARY | yes | RFC 3516 |
 | NOTIFY | partial | RFC 5465; annotation/metadata events are not reported |
 | METADATA | yes | RFC 5464, when a metadata dict is configured |
-| ACL | yes | RFC 4314, enforced on every path — **off by default** (`acl.enabled`), so shared and public mailboxes are open to any authenticated user until it is turned on. See [Namespaces](/NAMESPACE) |
+| ACL | yes | RFC 4314, enforced on every path — **off by default** (`acl.enabled`); a configuration with a shared, public or other users namespace and ACL off is refused at startup. See [Namespaces](/NAMESPACE) |
 | QUOTA | yes | RFC 9208 |
 | ID | yes | RFC 2971; always offered before login, after login only while `imap_id_send` is non-empty |
 | COMPRESS | no | |

@@ -19,11 +19,13 @@ Shared/Public** mailboxes carry real storage; **Other Users**
 (`user/<owner>/...`) is declared but `SELECT` under that prefix
 returns `NO "Other Users namespace requires ACL-1 + NS-3"`.
 
-Access control (RFC 4314) is implemented and enforced on every path — but
-it is **off by default**. With `acl.enabled: false`, which is the chart
-default, **any authenticated user reads and writes everything under
-Shared/Public**; the namespace is cooperative-trust until you turn
-enforcement on.
+Access control (RFC 4314) is implemented and enforced on every path, and
+it is **off by default** (`acl.enabled: false`). A shared, public or other
+users namespace needs it: with ACL off every authenticated user would read,
+write and expunge everything under it, so a configuration that declares one
+with `acl.enabled: false` is refused at startup, naming the namespace and the
+key. A folder everyone may read is a grant of `anyone lrs`, not ACL turned
+off.
 
 With `acl.enabled: true`, rights are checked on `SELECT`, on every read
 and write, and on `LIST` — a user without the lookup right does not learn
@@ -292,7 +294,6 @@ to `true` to expose it to all users.
 
 | Behaviour | Phase that delivers it |
 |:---|:---|
-| `LIST` / `SELECT` enforce per-folder rights (anyone with creds reads/writes Shared/Public) | ACL-1 (RFC 4314) |
 | `RENAME` across namespaces (`Personal/foo` → `Shared/foo`) | declined with `NO`; design TBD |
 | `Other Users` namespace (`user/alice/INBOX`) actually opens alice's mailbox | ACL-1 + NS-3 |
 | Quota debit on writes to `user/alice/*` charges alice (owner-paid) | QUOTA-1 + NS-3 |
