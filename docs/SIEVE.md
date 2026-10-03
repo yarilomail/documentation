@@ -99,7 +99,10 @@ When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
 
 ### Vacation dedup (RFC 5230 §4.5)
 
-Yarilo enforces the per-sender reply interval specified in the vacation action (`:days` or `:seconds`, default 7 days). The last-sent timestamp is stored in the user's dict under `priv/sieve/vacation/<handle>/<sender>`. Dict drivers with TTL support (Redis) expire the entry automatically; other drivers use the stored timestamp for manual comparison.
+Yarilo enforces the per-sender reply interval specified in the vacation action (`:days` or `:seconds`, default 7 days). The last-sent timestamp lives where the scripts live, and there is no separate vacation dict:
+
+- `sieve_scripts_driver: fs` (the default): in `.yarilo.sieve-vacation` in the user's home;
+- a dict scripts driver: in that dict under `priv/sieve/vacation/<handle>/<sender>`. Dict drivers with TTL support (Redis) expire the entry automatically; other drivers use the stored timestamp for manual comparison.
 
 Vacation replies are skipped when:
 - The sender address is empty or `<>`.
