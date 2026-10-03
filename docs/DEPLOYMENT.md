@@ -634,9 +634,17 @@ admin API.
 - The FTS port and the director admin API are now behind internal mTLS as
   well. The admin API keeps its token.
 
-**Certificates from the chart.** A component with `internalTLS.enabled` and an
-empty `secretName` gets `<release>-<role>-internal-tls`, made by the chart
-(`genSignedCert`, 10 years) and signed by:
+**On by default (#2138).** Internal mTLS is one switch, `internalTLS.enabled`,
+`true` by default. It drives the config, the mounts and the certificates of every
+component. The former `components.<name>.internalTLS.enabled` flags are refused
+with a render error that names the switch: one of them could turn TLS on in the
+config of a component that got no certificate. Per-component `secretName` stays,
+for your own certificates. With the switch off, every internal port is plain and
+each server logs that roles are not checked.
+
+**Certificates from the chart.** Every component without its own `secretName`
+gets `<release>-<role>-internal-tls`, made by the chart (`genSignedCert`,
+10 years) and signed by:
 
 - `internalTLS.ca.secretName`, an existing `kubernetes.io/tls` Secret holding
   the CA certificate and key, for example the one cert-manager keeps for a CA
@@ -649,11 +657,29 @@ Secret is missing, the CA changed, or `internalTLS.certGeneration` was raised.
 **There is no renewal by age:** a Helm template cannot read a certificate's
 expiry. For renewal over time use cert-manager.
 
-**Limitation:** the chart finds its existing Secrets with `lookup`, which sees
-the cluster only on `helm install` / `helm upgrade`. `helm template`,
-`--dry-run` and renderers such as Argo CD get no answers and mint new
-certificates on every render. Render against the cluster, or use cert-manager
-or your own Secrets.
+**A plain `helm install` needs nothing else:** with neither cert-manager nor
+`ca.secretName`, the chart makes the CA once and every certificate from it.
+
+**Limitation, GitOps renderers.** The chart finds its existing Secrets with
+`lookup`, which sees the cluster only on `helm install` / `helm upgrade`.
+`helm template`, `--dry-run` and renderers such as Argo CD get no answers:
+
+- **without `ca.secretName`** they make a **new CA** on every render. Pods
+  restarted after different syncs then trust different CAs, and internal links
+  break. Such installs must set `internalTLS.ca.secretName` to a CA Secret made
+  once outside the chart, or use `internalTLS.certManager`;
+- **with `ca.secretName`** the leaf certificates are still minted again on every
+  render, but they all chain to the same CA, so links hold. The Secrets show a
+  diff on every sync.
+
+The install notes (`NOTES.txt`) repeat this when the chart makes its own CA.
+
+**Upgrading a release that ran with internal TLS off.** Turning it on switches
+every internal link from plain to TLS at once. While the rollout runs, new pods
+speak TLS and old ones do not, so internal calls between old and new pods fail
+until the last pod has restarted. Plan the upgrade as a short outage, or set
+`internalTLS.enabled: false` before upgrading and switch it on in a window of
+your choosing.
 
 **cert-manager.** With `internalTLS.certManager.enabled` and
 `internalTLS.certManager.issuerRef`, the chart renders one `Certificate` per
@@ -675,6 +701,48 @@ container, so a single operator Secret there carries no role.
   already hold (its API token and director certificate), and no path to mail.
 
 No other container holds either certificate.
+
+#### NetworkPolicy (#2138)
+
+With `networkPolicy.enabled` (the default) the chart renders ingress policies
+that say on the network layer what the role matrix says in the handshake:
+
+- **one per internal listener:** the server pod admits on that port only the
+  pods whose roles the listener accepts (the [peer roles](#peer-roles-2132)
+  table). The co-located backend pod holds the imap, pop3, lmtp, managesieve,
+  submission, jmap, fts, backend-api and backend-reg roles, so on the network it
+  is one source, `backend`; the per-role split stays with mTLS. Traffic inside a
+  pod is not policed;
+- **MTA-facing ports:** lmtp-login, sasl-login and quota-status, from
+  `networkPolicy.mtaFrom`;
+- **telemetry and health** (8080; 8080-8088 on the backend pod) of every pod a
+  policy selects, from `networkPolicy.telemetryFrom`.
+
+The client-facing login ports carry no policy and stay open. Egress is not
+restricted. The policies need a CNI that enforces them (Calico, Cilium, …).
+
+| Key | Default | Meaning |
+|:---|:---|:---|
+| `networkPolicy.enabled` | `true` | render the policies |
+| `networkPolicy.adminFrom` | `[]` | peers for operator tools outside the chart's pods (smoketest, yarilo-migrate) on the admin, auth and locks ports; empty: `kubectl exec` into backend-api or director |
+| `networkPolicy.mtaFrom` | `[]` (everyone) | who may reach the MTA-facing ports |
+| `networkPolicy.telemetryFrom` | `[]` (everyone) | who may reach telemetry and health; kubelet probes come from the node and keep passing when it is narrowed (checked on Calico) |
+
+Narrowing to a Postfix in a neighbouring namespace, and to Prometheus in
+`monitoring`:
+
+```yaml
+networkPolicy:
+  mtaFrom:
+    - namespaceSelector:
+        matchLabels: { kubernetes.io/metadata.name: postfix }
+  telemetryFrom:
+    - namespaceSelector:
+        matchLabels: { kubernetes.io/metadata.name: monitoring }
+  adminFrom:
+    - podSelector:
+        matchLabels: { job-name: smoketest }
+```
 
 #### Ring mTLS — `director_service.ring_tls_server_name` (#753)
 
