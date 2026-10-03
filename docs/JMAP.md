@@ -93,8 +93,6 @@ components:
       jmap:
         containerPort: 10443
         xclient: false     # trust mode 2; leave off when internalTLS is on
-    internalTLS:
-      enabled: true
 
   jmapLogin:               # the client-facing proxy
     enabled: true
