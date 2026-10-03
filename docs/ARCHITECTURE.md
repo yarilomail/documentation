@@ -12,7 +12,7 @@ If something in the code contradicts this document — the code is wrong.
 - **Process lightness** — each component does one thing; goroutines per session within each process.
 - **Fault tolerance** — crash of one Pod does not affect others; k8s restarts failed Pods automatically.
 - **Scalability** — stateless components scale horizontally via HPA; stateful components use director affinity.
-- **Isolation** — k8s securityContext + NetworkPolicy provides component isolation; no cross-component storage access.
+- **Isolation** — one non-root, read-only security context for every pod, internal mTLS with a role per component, and a NetworkPolicy per internal listener; only the backend mounts mail storage.
 
 ---
 
@@ -339,7 +339,7 @@ is mounted only by the backend containers.
 ### IMAP (port 993)
 
 ```
-client ──TLS:993──► yarilo-imap-login (nobody)
+client ──TLS:993──► yarilo-imap-login
                         │ TLS handshake
                         │ speak IMAP pre-auth (CAPABILITY / AUTHENTICATE / LOGIN)
                         │ collect username + password from client
@@ -353,13 +353,13 @@ client ──TLS:993──► yarilo-imap-login (nobody)
                         │ FAIL → send NO to client, close
                         │ OK:
                         │   send tag OK to client
-                        │   dial yarilo-imap pod :10993 (plain TCP, internal ClusterIP)
-                        │   XCONN XCLIENT ADDR=<clientIP> SESSION=<id> TOKEN=<tok> USER=<user>
-                        │   goroutine: proxy TLS conn ↔ TCP conn
+                        │   dial the backend pod :10143 ──mTLS (role imap-login)──►
+                        │   YARILO preamble: client address, session id, token, user
+                        │   goroutine: proxy client TLS conn ↔ internal mTLS conn
                         │
-                    yarilo-imap (yarilo uid)
-                        │ accepts plain TCP from imap-login
-                        │ receives XCONN XCLIENT preamble (ADDR/SESSION/TOKEN/USER)
+                    yarilo-imap (container in the co-located backend pod)
+                        │ accepts only the imap-login role on :10143
+                        │ reads the YARILO preamble
                         │ VERIFY(token, user=<username>) ──mTLS──► yarilo-auth :9100
                         │   → validates token AND checks token was issued to <username>
                         │   → token consumed (one-time); returns confirmed username
@@ -369,36 +369,36 @@ client ──TLS:993──► yarilo-imap-login (nobody)
                         │ maildir access via RWX PVC
                         │ on disconnect → goroutine exits
                         │
-                    yarilo-imap-login (still running, TLS proxy goroutine)
-                        read TLS → write TCP → yarilo-imap
-                        read TCP → write TLS → client
-                        goroutine exits when TCP conn closes
+                    yarilo-imap-login (still running, proxy goroutine)
+                        client TLS ↔ internal mTLS ↔ yarilo-imap
+                        goroutine exits when either side closes
 ```
 
 ### POP3 / Submission
 
-Same pattern as IMAP. Login pod proxies to session pod via plain TCP after auth.
+Same pattern as IMAP: after auth the login pod proxies to the backend pod over internal mTLS, and each backend port accepts only its own login role.
 
 ### LMTP (port 24)
 
-LMTP is proxied through yarilo-director to ensure delivery reaches the backend that
-owns the recipient's mailbox (consistent-hash affinity, same as IMAP/POP3).
+LMTP goes through `yarilo-lmtp-login`, which routes each recipient to the backend
+that owns its mailbox (the same ring as IMAP/POP3).
 
 ```
-MTA ──TCP:24──► yarilo-director (yarilo uid)
-                    │ read LMTP preamble (extract recipient username)
-                    │ ring lookup → yarilo-lmtp pod address
-                    │ dial yarilo-lmtp pod :10024 (plain TCP, internal ClusterIP)
-                    │ goroutine: proxy TCP conn ↔ TCP conn
+MTA ──TCP:24──► yarilo-lmtp-login
+                    │ per recipient: warden CONNECT, auth session token
+                    │ LOOKUP ──mTLS──► yarilo-director :9102 → backend pod
+                    │ at DATA: one connection per recipient
+                    │   ──mTLS (role lmtp-login)──► backend pod :10024
+                    │   YARILO preamble with that recipient's token
                     │
-                yarilo-lmtp (yarilo uid)
-                    auth lookup ──mTLS──► yarilo-auth :9100
-                    goroutine per delivery
-                    write to maildir via RWX PVC
+                yarilo-lmtp (container in the co-located backend pod)
+                    accepts only the lmtp-login role on :10024
+                    VERIFY ──mTLS──► yarilo-auth :9100
+                    writes the mailbox on the mail volume
 ```
 
-LMTP has no login phase — trusted MTAs connect directly to the director's ClusterIP or
-NodePort (protected by network policy; not exposed via LoadBalancer).
+lmtp-login is not exposed through a LoadBalancer; `networkPolicy.mtaFrom` narrows
+who may reach port 24.
 
 ---
 
@@ -448,19 +448,20 @@ Rules that must never be violated:
 
 ## Service communication (mTLS RPC)
 
-Components talk over **mTLS TCP** through k8s Services (not classic IPC over pipes or Unix sockets — this is RPC).
-Plain TCP is used only on the data plane between a login proxy and a backend pod inside the trust boundary (ClusterIP + NetworkPolicy).
+Components talk over **mTLS TCP** through k8s Services (not classic IPC over pipes or Unix sockets — this is RPC),
+the data plane between a login proxy and a backend pod included. Which role each port accepts is the
+[peer roles](/DEPLOYMENT#peer-roles-2132) table; the NetworkPolicies say the same on the network layer.
 
 | From | To | Transport | Protocol |
 |:---|:---|:---|:---|
 | `*-login` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited AUTH/CONT/CANCEL — SASL bytes relayed, mechanism runs in the service → session token |
 | `*-login` | `yarilo-warden` | mTLS TCP :9101 | TAB-delimited (connection counting) |
 | `*-login` | `yarilo-director` | mTLS TCP :9102 | TAB-delimited LOOKUP |
-| `*-login` | `yarilo-imap/pop3/submission` | plain TCP ClusterIP | XCLIENT preamble (ADDR/SESSION/TOKEN/USER), then raw protocol bytes (proxy) |
+| `*-login` | backend pod (imap/pop3/submission/managesieve) | mTLS TCP, the protocol's backend port | YARILO preamble (address, session, token, user), then raw protocol bytes (proxy) |
 | `yarilo-imap/pop3/submission/managesieve/lmtp` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited VERIFY(token, user=) — token + username binding check → userdb fields |
 | `yarilo-imap/pop3/submission/lmtp/managesieve/jmap` | `yarilo-dict` | mTLS TCP :9107 | TAB-delimited dict verbs, the dict named on the wire (`pkg/dict/proxy`) — engines live only in the service |
 | `yarilo-fts`, `yarilo-quota-status` | `yarilo-auth` | mTLS TCP :9102 (master) | TAB-delimited USER — **userdb lookup** for callers that hold no session token |
-| `yarilo-director` | `yarilo-lmtp` | plain TCP ClusterIP | raw LMTP bytes (proxy) |
+| `yarilo-lmtp-login` | backend pod (lmtp) | mTLS TCP :10024 | YARILO preamble per recipient, then raw LMTP bytes |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-locks-<tag>` | mTLS TCP :9104 | TAB-delimited (LOCK/UNLOCK/RENEW) |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-warden` | mTLS TCP :9101 | TAB-delimited (SESSION events) |
 
@@ -468,63 +469,19 @@ Plain TCP is used only on the data plane between a login proxy and a backend pod
 
 ## mTLS
 
-All internal TCP services (auth, warden, director, locks, health) require mutual TLS.
-Every pod presents a certificate; the peer verifies it against the internal CA.
-Connections without a valid certificate are rejected.
+Every internal TCP listener requires mutual TLS: auth, warden, director (ring,
+LOOKUP and its admin API), locks, dict, backend-api, FTS, and each backend
+protocol port. A peer's certificate must chain to the internal CA **and** carry
+a role (`<role>.role.yarilo.internal`) that the listener accepts; the director
+also checks the role per command. Clients verify the server against one pinned
+name, `internal_tls.server_name`.
 
-### Certificate provisioning
-
-cert-manager issues certificates per Deployment via `Certificate` resources:
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: yarilo-auth
-spec:
-  secretName: yarilo-auth-tls
-  issuerRef:
-    kind: ClusterIssuer
-    name: yarilo-internal-ca
-  dnsNames:
-    - yarilo-auth.yarilo.svc.cluster.local
-  duration: 24h
-  renewBefore: 6h
-```
-
-Internal CA is a self-signed ClusterIssuer managed by cert-manager.
-All pod TLS configs reference the same CA bundle for peer verification.
-
-### Go TLS config pattern
-
-**Server (e.g. yarilo-auth):**
-```go
-tlsCfg := &tls.Config{
-    Certificates: []tls.Certificate{cert},
-    ClientAuth:   tls.RequireAndVerifyClientCert,
-    ClientCAs:    caPool,
-    MinVersion:   tls.VersionTLS13,
-}
-```
-
-**Client (e.g. yarilo-imap-login calling auth):**
-```go
-tlsCfg := &tls.Config{
-    Certificates: []tls.Certificate{cert},
-    RootCAs:      caPool,
-    ServerName:   "yarilo-auth.yarilo.svc.cluster.local",
-    MinVersion:   tls.VersionTLS13,
-}
-```
-
-Certificates and CA bundle mounted from k8s Secrets into each pod at:
-```
-/etc/yarilo/tls/tls.crt
-/etc/yarilo/tls/tls.key
-/etc/yarilo/tls/ca.crt
-```
-
-Paths configurable via `values.yaml` — never hardcoded.
+Certificates are mounted at `/etc/yarilo/internal-tls/{tls.crt,tls.key,ca.crt}`,
+one Secret per component. The chart makes them from the internal CA, or
+cert-manager issues them, or the operator provides them; the role table, the
+issuance options and the re-issue rules are in
+[Peer roles](/DEPLOYMENT#peer-roles-2132). Internal TLS is on by default
+(`internalTLS.enabled`).
 
 ---
 
@@ -1097,9 +1054,12 @@ nothing: it fails instead, and the gate installs the tool.
 
 | Threat | Mitigation |
 |:---|:---|
-| Exploit in TLS/SASL handling | `yarilo-imap-login` runs as `nobody`, no PVC access, NetworkPolicy blocks storage pods |
-| Cross-pod unauthorized access | mTLS on all internal services — certificate required |
-| MITM between pods | mTLS with internal CA verification |
-| Cross-user maildir access | Each session pod runs as `yarilo` uid; NetworkPolicy; director affinity prevents concurrent access |
-| Auth bypass | `yarilo-auth` reachable only via mTLS; NetworkPolicy restricts access to login pods |
+| Exploit in TLS/SASL handling | login pods run non-root with a read-only root and no mail volume; a login pod holds only its own role, so it reaches only auth, warden, the director's LOOKUP and its own backend port |
+| A compromised pod calling internal services | each listener accepts only the roles meant to call it, checked in the handshake; NetworkPolicies admit only those pods on the network layer |
+| Cross-pod unauthorized access | mTLS on every internal listener: a certificate from the internal CA with an accepted role |
+| MITM between pods | mTLS; clients verify the server against the internal CA and the pinned name |
+| Session without authentication | a backend accepts a session only with a one-time token that auth issued to that user (VERIFY binds token and user) |
+| Cross-user mailbox access | only the backend mounts the mail volume; a session opens only the user its token names; director affinity keeps a user on one pod |
+| Auth bypass | no process but auth verifies a credential; its ports admit only the roles in the matrix |
+| Admin API abuse | backend-api and the director admin API need a token and an `admin` (or, on the director, `director-admin`) certificate |
 | Connection flooding | `yarilo-warden` enforces `max_userip_connections` globally across all login replicas |
