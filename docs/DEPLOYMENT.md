@@ -607,7 +607,7 @@ SANs are not identity.
 | locks | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, admin |
 | dict | imap, pop3, lmtp, managesieve |
 | director | director (ring), the login roles and backend-api (LOOKUP), backend-reg (registration) |
-| director admin API | admin |
+| director admin API | admin, director-admin |
 | backend-api | admin, backend-api |
 | backend imap / pop3 / lmtp / managesieve / submission | the matching login: imap-login, pop3-login, lmtp-login, managesieve-login, submission-login |
 | jmap internal | jmap-login |
@@ -617,7 +617,9 @@ The roles are `auth`, `warden`, `locks`, `dict`, `director`, `fts`,
 `backend-api`, `backend-reg`, `imap`, `pop3`, `lmtp`, `managesieve`,
 `submission`, `jmap`, `imap-login`, `pop3-login`, `submission-login`,
 `managesieve-login`, `lmtp-login`, `jmap-login`, `sasl-login`, `quota-status`,
-and `admin` for the operator tools (yarctl, yarilo-migrate, the smoketest).
+`admin` for the operator tools (yarctl, yarilo-migrate, the smoketest), and
+`director-admin`, the director pod's console, which reaches only the director
+admin API.
 
 - A certificate with two role SANs, or a label outside this list, is refused.
 - The director also checks the role per command: ring commands only from
@@ -662,9 +664,17 @@ carries `<role>.role.yarilo.internal` for that component, plus
 `<release>-internal`. The co-located backend pod mounts one Secret per
 container, so a single operator Secret there carries no role.
 
-**yarctl** presents the `admin` certificate. The chart mounts it at
-`/etc/yarilo/admin-tls` in the backend-api containers only: anywhere else
-would make that pod an admin. Run yarctl there.
+**yarctl** presents the certificate the chart mounts at `/etc/yarilo/admin-tls`:
+
+- **backend-api containers:** the `admin` certificate. yarctl there addresses
+  the backend plane; `admin` is also accepted by the director admin API.
+- **director pod:** the `director-admin` certificate, with
+  `YARILO_ADMIN_TYPE=director`, its own API on `https://localhost` and the
+  pinned name. Run director commands from there, for example
+  `yarctl ring status`. A compromised director pod gains nothing it does not
+  already hold (its API token and director certificate), and no path to mail.
+
+No other container holds either certificate.
 
 #### Ring mTLS — `director_service.ring_tls_server_name` (#753)
 
