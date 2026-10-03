@@ -93,7 +93,7 @@ With `internal_tls.enabled: true`, the `director_service.listen` port requires a
 
 Ring peers are dialled by pod IP, so the dial verifies a fixed server name, `ring_tls_server_name`, which defaults to `<release>-director-ring`. That name must be a SAN in the director's certificate.
 
-The shared internal-tls Secret has no such SAN. Let the chart issue a director-specific certificate with `components.director.internalTLS.certificate.enabled: true`, or provide your own Secret in `components.director.internalTLS.secretName`.
+The certificate the chart makes for the `director` role carries it, along with `<release>-director` and the role SAN `director.role.yarilo.internal`. With cert-manager, `components.director.internalTLS.certificate.enabled: true` renders the same names; a Secret of your own in `components.director.internalTLS.secretName` must carry them too. The director port also checks the role per command: ring commands only from `director`, registration only from `backend-reg` ([Peer roles](/DEPLOYMENT#peer-roles-2132)).
 
 ::: warning
 With internal TLS on and no ring name in the certificate, peers cannot verify each other and the ring never converges. The director logs an error when this happens.
