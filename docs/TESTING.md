@@ -36,13 +36,24 @@ Trigger `smoke.yml` (`workflow_dispatch`) with:
 | `pop3s_port` | POP3S port (leave empty to skip) |
 | `telemetry_url` | Telemetry base URL, e.g. `http://10.0.0.1:8080` |
 | `insecure` | Skip TLS cert verification (`true`/`false`) |
+| `director_api` | Director admin API base URL; empty skips the director check. Reachable only from an in-cluster or port-forwarded runner |
 
-Requires GitHub Actions repository secrets:
+The accounts come from repository **variables**, their passwords and the
+director token from **secrets**:
+
+| Variable | Value |
+|:---|:---|
+| `SMOKE_IMAP_USER` | IMAP test account, e.g. `u1@d00001.test` |
+| `SMOKE_QUOTA_OVER_USER` | account kept over quota, for the over-quota checks |
+| `SMOKE_ACL_PEER_USER` | second account, for the ACL checks |
+| `SMOKE_ACL_SHARED_PREFIX` | the namespace prefix the ACL checks share through |
 
 | Secret | Value |
 |:---|:---|
-| `SMOKE_IMAP_USER` | IMAP test account, e.g. `u1@d00001.test` |
-| `SMOKE_IMAP_PASS` | IMAP test account password |
+| `SMOKE_IMAP_PASS` | password of `SMOKE_IMAP_USER` |
+| `SMOKE_QUOTA_OVER_PASS` | password of `SMOKE_QUOTA_OVER_USER` |
+| `SMOKE_ACL_PEER_PASS` | password of `SMOKE_ACL_PEER_USER` |
+| `SMOKE_DIRECTOR_API_TOKEN` | director admin API token |
 
 ### Run imaptest manually against sandbox
 
@@ -88,8 +99,8 @@ diffing the skipped list by hand on each rollout:
 | `-require-all` | a check disabled by a missing flag is a failure |
 | `-require-all-except=<areas>` | comma-separated areas `-require-all` does not demand |
 
-Every check belongs to an area — `telemetry`, `smtp`, `pop3s`, `lmtp-login`,
-`managesieve`, `sieve`, `imap`, `director`, `jmap` — and an exemption names
+Every check belongs to an area — `telemetry`, `smtp`, `pop3s`, `pop3`,
+`lmtp-login`, `managesieve`, `sieve`, `imap`, `director`, `jmap` — and an exemption names
 areas, so `-require-all -require-all-except=jmap` demands everything the
 deployment runs while forgiving a service it does not.
 
@@ -104,7 +115,7 @@ Three properties are worth knowing before relying on it:
 - `-require-all-except` without `-require-all` is rejected for the same reason:
   alone it reads as "demand everything except this" while demanding nothing.
 
-`components.jmap` ships disabled, which is why the nine JMAP checks are the
+`components.jmap` ships disabled, which is why the JMAP checks are the
 usual exemption — and why `-require-all` is off by default. Which areas a
 deployment owes is an operator decision, not a property of the binary.
 
@@ -204,7 +215,7 @@ generator: LMTP delivery and persistent IMAP sessions, with a configurable
 corpus. It is separate from the smoke tests, which answer "is it up"; this
 answers "what does it cost".
 
-Three Jobs in [`hack/loadtest/`](https://github.com/yarilomail/yarilo/tree/main/hack/loadtest/), each for a different
+Six Jobs in [`hack/loadtest/`](https://github.com/yarilomail/yarilo/tree/main/hack/loadtest/), each for a different
 question:
 
 | Job | Drives | Read alongside |
