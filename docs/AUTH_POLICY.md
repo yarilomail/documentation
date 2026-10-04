@@ -80,6 +80,11 @@ A key under its `auth.policy` name is dropped. Through the chart,
 `12` ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)); the chart
 offers no way around it until that is fixed.
 
+`auth_policy_server_api_header` and `auth_policy_hash_nonce` are taken
+literally: they do not expand `${ENV}`, so neither can be read from a Secret,
+and the chart writes both into the config ConfigMap
+([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)).
+
 ## Wire shape
 
 Every request is `POST {url}?command={allow|report}` with header
