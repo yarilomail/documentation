@@ -40,7 +40,7 @@ files live in
 
 - Docker Engine 24+ with the Compose v2 plugin (`docker compose version`)
 - Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and — loopback-only by
-  default — 24, 12325, 12340. Override in `.env`.
+  default — 24, 12345, 12340. Override in `.env`.
 - ~512 MB RAM
 
 ### Quickstart
@@ -127,7 +127,7 @@ docker compose exec yarilo-imap \
 | ManageSieve | 4190 | login proxy |
 | JMAP | 8443 | login proxy, HTTPS |
 | LMTP | 24 (loopback) | unauthenticated — for your MTA only |
-| SASL auth | 12325 (loopback) | fronting MTA: `smtpd_sasl_type = dovecot` |
+| SASL auth | 12345 (loopback) | fronting MTA: `smtpd_sasl_type = dovecot` |
 | Quota policy | 12340 (loopback) | fronting MTA: `check_policy_service` |
 
 Wiring a fronting Postfix — LMTP delivery, SASL auth, quota policy — is

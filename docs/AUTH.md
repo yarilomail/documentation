@@ -503,38 +503,24 @@ auth:
 
 ---
 
-## Postfix SASL integration (`auth_service.sasl_listen`)
+## Postfix SASL integration (`yarilo-sasl-login`)
 
-`yarilo-auth` can expose its SASL auth-client protocol on a second, plain-TCP listener so a fronting MTA (Postfix) can authenticate SMTP users against it — see the `main.cf` snippet below. The main listener (`:9100`) uses mTLS and is reserved for yarilo login pods; the SASL listener is plain TCP so Postfix can connect without certificates.
-
-| Key | Default | Description |
-|:---|:---|:---|
-| `auth_service.sasl_listen` | `""` | Address for the Postfix SASL listener. Empty = disabled. Recommended: `:12345`. |
-
-```yaml
-auth_service:
-  listen: ":9100"
-  sasl_listen: ":12345"
-```
-
-Helm:
-
-```yaml
-components:
-  auth:
-    saslListen: ":12345"
-```
+Postfix does not talk to `yarilo-auth`. A separate service, `yarilo-sasl-login`
+(port 12345), speaks Postfix's SASL protocol and relays each exchange to
+`yarilo-auth`, which runs the mechanism. Enable it with
+`components.saslLogin.enabled: true`.
 
 Postfix `main.cf`:
 
 ```
 smtpd_sasl_type = dovecot
-smtpd_sasl_path = inet:[yarilo-auth.<namespace>.svc]:12345
+smtpd_sasl_path = inet:yarilo-sasl-login.<namespace>.svc:12345
 smtpd_sasl_auth_enable = yes
 smtpd_sasl_security_options = noanonymous
 ```
 
-The Kubernetes Service exposes the configured port on the `yarilo-auth` ClusterIP automatically when `saslListen` is non-empty — no manual service patch needed.
+Where to publish it, and how to restrict who reaches it, depends on where
+Postfix runs: see [MTA-facing services](/DEPLOYMENT#mta-facing-services-sasl-login-and-quota-status).
 
 ---
 

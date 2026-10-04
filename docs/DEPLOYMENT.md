@@ -769,6 +769,64 @@ networkPolicy:
         matchLabels: { job-name: smoketest }
 ```
 
+#### MTA-facing services: sasl-login and quota-status
+
+Two services exist only for the MTA (Postfix), never for mail clients:
+
+| Service | Port | What it does |
+|:---|:---|:---|
+| `yarilo-sasl-login` | 12345 | SASL authentication for Postfix (`smtpd_sasl_type = dovecot`): Postfix hands over the login and password a client sent, and gets yes or no |
+| `yarilo-quota-status` | 12340 | Postfix policy service: answers whether a message fits the recipient's quota |
+
+Both answer to anyone who reaches them. sasl-login takes passwords in clear
+text and is a password oracle; quota-status tells which addresses exist and how
+full they are. Pick the variant that matches where the MTA runs.
+
+**Postfix in the same cluster (recommended).** Keep the chart default,
+`service.type: ClusterIP`, so neither port leaves the cluster, and narrow
+`networkPolicy.mtaFrom` to the MTA's namespace:
+
+```yaml
+networkPolicy:
+  mtaFrom:
+    - namespaceSelector:
+        matchLabels: { kubernetes.io/metadata.name: postfix }
+```
+
+```
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = inet:yarilo-sasl-login.<namespace>.svc:12345
+smtpd_recipient_restrictions = ..., check_policy_service inet:yarilo-quota-status.<namespace>.svc:12340
+```
+
+**Postfix outside the cluster.** Publish both with `service.type:
+LoadBalancer`, as the production examples and the sandbox do, and restrict the
+sources on every layer that can:
+
+- `components.saslLogin.trusted_nets`: the MTA's addresses; sasl-login refuses
+  any other peer. Empty means everyone.
+- `networkPolicy.mtaFrom`: the same addresses as an `ipBlock`. This is the only
+  in-chart restriction for quota-status, which has no `trusted_nets`.
+- The load balancer: a source-range annotation of your provider, through
+  `service.annotations`, or an internal (non-public) load balancer. The chart
+  renders no `loadBalancerSourceRanges`.
+- Keep the path off the public internet (an internal network or a VPN):
+  passwords cross it in clear text.
+- `components.saslLogin.haproxy` with `haproxy_nets` when a proxy in front hides
+  the MTA's address.
+
+```yaml
+components:
+  saslLogin:
+    service: { type: LoadBalancer }
+    trusted_nets: ["203.0.113.10/32"]
+  quotaStatus:
+    service: { type: LoadBalancer }
+networkPolicy:
+  mtaFrom:
+    - ipBlock: { cidr: 203.0.113.10/32 }
+```
+
 #### Ring mTLS — `director_service.ring_tls_server_name` (#753)
 
 The director dials its ring peers (JOIN, right-neighbor, seed polls) by
