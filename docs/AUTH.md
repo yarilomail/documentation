@@ -529,7 +529,7 @@ Settings of `yarilo-auth` itself, under `auth:`.
 | `internal_failure_delay_ms` | `2000` | The same for internal failures, such as a passdb that does not answer. |
 | `cache.auth_cache_size` | off | Size of the in-process cache of passdb answers (`"100M"`, `"512k"`); empty or `0` disables it. |
 | `cache.auth_cache_ttl` | `1800` | Seconds a successful answer is kept. |
-| `cache.auth_cache_negative_ttl` | `1800` | Seconds an unknown-user answer is kept. A wrong password is not cached. |
+| `cache.auth_cache_negative_ttl` | `1800` | Seconds a failed answer is kept. Every entry carries a digest of the password that produced it, so a cached failure answers only the same password again and cannot lock out the right one. |
 
 A cached answer outlives a password change or a deleted user until its TTL
 runs out; `yarctl auth cache flush [<user-mask> …]` evicts entries at once
