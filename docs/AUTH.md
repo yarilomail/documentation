@@ -506,7 +506,7 @@ auth:
 ## Postfix SASL integration (`yarilo-sasl-login`)
 
 Postfix does not talk to `yarilo-auth`. A separate service, `yarilo-sasl-login`
-(port 12325), speaks Postfix's SASL protocol and relays each exchange to
+(port 12345), speaks Postfix's SASL protocol and relays each exchange to
 `yarilo-auth`, which runs the mechanism. Enable it with
 `components.saslLogin.enabled: true`.
 
@@ -514,7 +514,7 @@ Postfix `main.cf`:
 
 ```
 smtpd_sasl_type = dovecot
-smtpd_sasl_path = inet:yarilo-sasl-login.<namespace>.svc:12325
+smtpd_sasl_path = inet:yarilo-sasl-login.<namespace>.svc:12345
 smtpd_sasl_auth_enable = yes
 smtpd_sasl_security_options = noanonymous
 ```

@@ -775,7 +775,7 @@ Two services exist only for the MTA (Postfix), never for mail clients:
 
 | Service | Port | What it does |
 |:---|:---|:---|
-| `yarilo-sasl-login` | 12325 | SASL authentication for Postfix (`smtpd_sasl_type = dovecot`): Postfix hands over the login and password a client sent, and gets yes or no |
+| `yarilo-sasl-login` | 12345 | SASL authentication for Postfix (`smtpd_sasl_type = dovecot`): Postfix hands over the login and password a client sent, and gets yes or no |
 | `yarilo-quota-status` | 12340 | Postfix policy service: answers whether a message fits the recipient's quota |
 
 Both answer to anyone who reaches them. sasl-login takes passwords in clear
@@ -795,7 +795,7 @@ networkPolicy:
 
 ```
 smtpd_sasl_type = dovecot
-smtpd_sasl_path = inet:yarilo-sasl-login.<namespace>.svc:12325
+smtpd_sasl_path = inet:yarilo-sasl-login.<namespace>.svc:12345
 smtpd_recipient_restrictions = ..., check_policy_service inet:yarilo-quota-status.<namespace>.svc:12340
 ```
 

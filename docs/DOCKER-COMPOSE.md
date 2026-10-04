@@ -35,7 +35,7 @@ in the shared `mail` volume. No external database is required.
 
 - Docker Engine 24+ with the Compose v2 plugin (`docker compose version`)
 - Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and — loopback-only
-  by default — 24, 12325, 12340. Override in `.env`.
+  by default — 24, 12345, 12340. Override in `.env`.
 - ~512 MB RAM
 
 ## Quickstart
@@ -105,7 +105,7 @@ printf 'a login user@example.test changeit\r\nb select INBOX\r\nc logout\r\n' \
 | ManageSieve | 4190 | login proxy |
 | JMAP | 8443 | login proxy, HTTPS |
 | LMTP | 24 (loopback) | unauthenticated — for your MTA only |
-| SASL auth | 12325 (loopback) | Postfix `smtpd_sasl_type = dovecot` |
+| SASL auth | 12345 (loopback) | Postfix `smtpd_sasl_type = dovecot` |
 | Quota policy | 12340 (loopback) | Postfix `check_policy_service` |
 
 ## TLS
@@ -126,7 +126,7 @@ Wire Postfix to yarilo:
 
 - Deliver local recipients: `mailbox_transport = lmtp:inet:127.0.0.1:24`
 - SMTP AUTH against yarilo: `smtpd_sasl_type = dovecot`,
-  `smtpd_sasl_path = inet:127.0.0.1:12325`
+  `smtpd_sasl_path = inet:127.0.0.1:12345`
 - Reject over-quota recipients: `check_policy_service inet:127.0.0.1:12340` in
   `smtpd_recipient_restrictions`
 - Mail that Sieve sends (redirect, vacation, notify, report): set
