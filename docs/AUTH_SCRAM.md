@@ -115,23 +115,21 @@ the database.
 Omit `--password` to read it from stdin (one line).
 
 The output is the literal value to drop into the SQL `password`
-column. Existing PLAIN-or-BCRYPT users keep working unchanged —
-they just don't get SCRAM advertisement.
+column. Existing PLAIN-or-BCRYPT users keep working with PLAIN and
+LOGIN unchanged. SCRAM is still offered to them — advertisement is
+not per user — and a SCRAM attempt by such a user fails like a wrong
+password, so a client that picks SCRAM on its own needs the verifier
+first.
 
 ## Mechanism advertisement
 
-`yarilo` advertises each SCRAM mech only when at least one
-configured passdb exposes verifiers in that digest family. The
-type assertion is per-family:
-
-- `SCRAM-SHA-256` / `SCRAM-SHA-256-PLUS` light up when the
-  Authenticator implements `SCRAMSha256Lookup`.
-- `SCRAM-SHA-1` / `SCRAM-SHA-1-PLUS` light up when the
-  Authenticator implements `SCRAMSha1Lookup`.
-
-A deployment that provisions only SHA-256 verifiers never
-advertises the SHA-1 mechs, and vice versa. Discovery happens
-at session-setup time per connection:
+`yarilo-auth` announces a SCRAM family when a passdb in its chain
+can serve verifiers of that family at all; whether a given user has
+one is read during the exchange, not at the handshake. The `sql`,
+`passwd-file` and `static` drivers all serve both families, so a
+chain with any of them announces all four mechanisms — whatever
+verifiers are actually stored. The login proxies offer what the
+service announced:
 
 - **IMAP** — matching mechs appear in the `CAPABILITY` reply.
 - **POP3** — `CAPA` lists them after `SASL`.
@@ -229,13 +227,17 @@ exposes the `+PLUS` capability.
 
 ## Tuning notes
 
-- The verifier derivation runs once per user-registration; the
-  per-login cost is only HMAC + SHA-256 + memcmp — negligible
-  relative to PBKDF2 of 600 000 rounds. Raise iterations as
-  hardware budgets grow without runtime penalty.
-- SCRAM does not benefit from the `auth.cache` (the SCRAM
-  exchange itself replaces what the cache would shortcut). Leave
-  the cache configured for PLAIN/LOGIN/OAUTHBEARER traffic.
+- For a SCRAM exchange the verifier derivation ran once, at
+  registration; the per-login cost is only HMAC + SHA-256 + memcmp.
+- A **PLAIN or LOGIN** login against the same verifier is different:
+  the server re-derives it from the password, which is the full
+  PBKDF2 — 600 000 rounds by default — on every such login. Raising
+  the iteration count raises that cost too.
+- SCRAM does not benefit from the `auth.cache` (the SCRAM exchange
+  itself replaces what the cache would shortcut). PLAIN/LOGIN does:
+  with the cache on, a repeated login skips the PBKDF2. Keep it
+  configured where clients log in with PLAIN against SCRAM
+  verifiers.
 - For multi-tenant deployments, rotate verifiers per-tenant by
   re-running `scram-verifier` and pushing fresh blobs through
   the SQL passdb's update path. There is no cluster-wide
