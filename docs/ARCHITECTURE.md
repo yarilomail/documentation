@@ -504,11 +504,15 @@ drop the `replace` directive and the patches branch.
 
 | Library | Reason | Tracking PR |
 |:---|:---|:---|
-| `github.com/emersion/go-imap/v2` | Server-side CONDSTORE + QRESYNC (RFC 7162) for Phase IMAP-E | [emersion/go-imap#756](https://github.com/emersion/go-imap/pull/756) |
-| `github.com/emersion/go-imap/v2` | Server-side METADATA (RFC 5464) for Phase IMAP-G | [emersion/go-imap#717](https://github.com/emersion/go-imap/pull/717) |
+| `github.com/emersion/go-imap/v2` | Server-side CONDSTORE + QRESYNC (RFC 7162) | [emersion/go-imap#756](https://github.com/emersion/go-imap/pull/756) (open) |
+| `github.com/emersion/go-imap/v2` | Server-side METADATA (RFC 5464) | [emersion/go-imap#717](https://github.com/emersion/go-imap/pull/717) — closed upstream without a merge, so the patch stays on the fork |
+| `github.com/emersion/go-sasl` | Server-side mechanisms upstream does not ship: LOGIN, SCRAM-SHA-256/-1 with `-PLUS`, XOAUTH2 | none — permanent patches |
+| `github.com/emersion/go-smtp` | XCLIENT on both sides of a proxy, and the reply texts operators and MTAs expect | none — permanent patches |
+| `github.com/foxcpp/go-sieve` | Sieve interpreter patches | — |
 
 `go.mod` keeps the upstream import path so storage-layer code reads
-naturally; only the `replace` line points elsewhere.
+naturally; only the `replace` line points elsewhere. The exit plan above
+applies to patches that track an upstream PR; the permanent ones stay.
 
 ---
 
@@ -628,18 +632,15 @@ defaults for `OpSettings` that the caller can override per-op.
 
 ### CLI
 
-`yarctl dict <command>` exposes the full surface for ops debugging:
-`lookup`, `iterate`, `set`, `unset`, `atomic-inc`, `expire-scan`,
-`commit-batch` (stdin TAB-delimited script), `drivers`. The dict is
-selected either via `--config PATH --dict NAME` (production config) or
-ad-hoc via `--driver` + repeated `--setting key=value` (debugging). See
-[DICT.md](DICT.md) for the full reference.
+`yarctl backend dict <command>` exposes the full surface for ops
+debugging: `drivers`, `exists`, `lookup`, `iterate`, `set`, `unset`,
+`atomic-inc`, `expire-scan`, `commit-batch` (stdin TAB-delimited script).
+It is a client of `yarilo-backend-api`, which owns the configured dicts;
+the CLI names a dict and never opens one itself. See [DICT.md](DICT.md)
+for the full reference.
 
 ### Deferred from this phase
 
-- Standalone dict-server / dict-proxy daemon — yarilo uses redis/sql
-  for cross-pod sharing, so a separate proxy daemon is not currently
-  needed.
 - LDAP / CDB read-only drivers — niche, add when a customer asks.
 - Async callback API — `context.Context` cancellation already covers
   the cancellation use cases.
@@ -665,7 +666,7 @@ Each namespace MAY use its own separator (permitted by the model; we follow it).
 | Phase | Delivers |
 |:---|:---|
 | **NS-1a** (`v1.20`) | Wire-protocol: `NAMESPACE` response driven by `cfg.Namespaces[]`. Only Personal carries real mailboxes. |
-| **NS-1b** (`v1.21`, shipped) | Per-namespace storage routing via in-session `nsHandle` dispatch keyed on namespace prefix. Each implemented namespace opens its own `UserMailbox` + `UserIndex` + per-namespace `subscriptions-<ns>` file at login. `LIST` traverses every implemented namespace (personal first, then by prefix). `SELECT`/`STATUS`/`APPEND`/`COPY`/`MOVE`/`SUBSCRIBE` route by prefix. METADATA `/private/*` on shared/public mailboxes embeds a SHA-256 hash of the accessing user in the dict key (`priv/box/<guid>/u-<userhash>/<entry>`) so users do not see each other's private annotations on the same folder; `/shared/*` stays global. Other Users (`user/<owner>/...`) is declared in the wire spec but `SELECT` under it returns `NO`. |
+| **NS-1b** (`v1.21`, shipped) | Per-namespace storage routing via in-session `nsHandle` dispatch keyed on namespace prefix. Each implemented namespace opens its own `UserMailbox` + `UserIndex` + per-namespace `subscriptions-<ns>` file at login. `LIST` traverses every implemented namespace (personal first, then by prefix). `SELECT`/`STATUS`/`APPEND`/`COPY`/`MOVE`/`SUBSCRIBE` route by prefix. METADATA `/private/*` on shared/public mailboxes embeds a SHA-256 hash of the accessing user in the dict key (`priv/box/<guid>/u-<userhash>/<entry>`) so users do not see each other's private annotations on the same folder; `/shared/*` stays global. Other users' mailboxes arrive with NS-2. |
 | **ACL-1** | RFC 4314 — required for Shared / Other Users / Public to be actually usable (without it any user reads anyone's stuff). Enforcement primitives shipped (#490); namespace-aware LMTP/Sieve delivery + POST-right shipped (#503/#504). |
 | **NS-2 (owner-templated)** | Owner-templated shared / other namespaces (`prefix: user/%u/`, `location: maildir:%h`): the location variables expand against the **owner** (userdb lookup), and the `nsHandle` is built **on demand per owner** and cached per session. Owner-tier ACL: the owner's own session has implicit full rights; a peer is gated by the owner's ACL. **Same farm tag only** — resolves the owner's storage when the owner's mailbox carries the same farm tag (same PV) as the session's mailbox; a different-farm owner is NS-3. Works in standalone and single-farm backend. Design: [OWNER_SHARED_NS.md](OWNER_SHARED_NS.md) (#499 item 3). |
 | **NS-3** | Director routing: when accessing `user/alice/*` and alice's mailbox carries a **different farm tag** (its data is on a PV the accessing pod does not mount), route just the owner-access leg to a pod in alice's farm (cross-pod RPC or namespace-pinned pool). Same-farm access (incl. standalone and single-farm backend) works without this. NS-2 fails closed (`NO` / LMTP implicit-keep) when the owner is on a different farm tag. Cross-farm owner access is not implemented ([#544](https://github.com/yarilomail/yarilo/issues/544)). |
@@ -692,12 +693,12 @@ Per-namespace backends are constructed at backend startup, one
 the namespace dispatcher and route every mailbox operation through it
 based on the `prefix:` match.
 
-### Quota: owner-paid
+### Quota
 
-When QUOTA-1 lands: storage consumed in `user/alice/INBOX` counts
-against alice's quota, not the accessing user's. Public / Shared
-namespaces use their own system-wide quota root (declared in the
-`quota:` config block).
+A save is checked against the quota of the session's user, whatever
+namespace it lands in; the message is stored, and later counted, in the
+owner's mailbox. Owner-paid quota is not implemented, and shared or public
+namespaces have no quota root of their own.
 
 ### What lives in dict
 
@@ -722,7 +723,7 @@ exposes:
 | Plane | Binary | Port | Surface |
 |:---|:---|:---|:---|
 | **Director** | `yarilo-director` | `:9103` `/api/director/...` | ring / backends / users / peers — routing topology |
-| **Backend**  | `yarilo-backend-api` | `:9105` `/api/backend/<service>/...` | dict (today); acl / quota / folder / user / mailbox (future) |
+| **Backend**  | `yarilo-backend-api` | `:9105` `/api/backend/<service>/...` | `dict`, `acl`, `quota`, `folder`, `message`, `user`, `subscriptions`, `specialuse`, `metadata`, `index`, `fts`, `mdbox`, `sessions`, `who`, `warden`, `health` — see [BACKEND-API](BACKEND-API.md) |
 
 Both speak JSON over HTTPS with Bearer-token auth + IP allow-list.
 The `yarctl` CLI is a thin HTTP client over both — operator
