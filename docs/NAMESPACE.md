@@ -13,11 +13,11 @@ yarilo supports the three RFC 9051 namespace classes:
 | **Shared** | `Shared/` | Folders shared between groups of users (or all users), gated by ACL. |
 | **Public** (a variant of Shared) | `Public/` | Folders accessible to every authenticated user. |
 
-This page covers **NS-1a** (wire-protocol, `v1.20`) + **NS-1b**
-(storage routing, `v1.21`). With NS-1b shipped, **Personal and
-Shared/Public** mailboxes carry real storage; **Other Users**
-(`user/<owner>/...`) is declared but `SELECT` under that prefix
-returns `NO "Other Users namespace requires ACL-1 + NS-3"`.
+Personal, shared and public namespaces carry their own storage. Other
+users' mailboxes are reached through an **owner-templated** namespace
+(`prefix: "user/%u/"`, see [below](#owner-templated-namespaces)), which
+resolves each owner's storage on demand. A `type: other` namespace with a
+fixed prefix has no owner to resolve: `SELECT` under it answers `NO`.
 
 Access control (RFC 4314) is implemented and enforced on every path, and
 it is **off by default** (`acl.enabled: false`). A shared, public or other
@@ -43,7 +43,7 @@ namespaces:
   - type: personal              # required: personal | other | shared
     prefix: ""                  # mailbox name prefix; "" reserved for personal
     separator: "/"              # one character; different per-namespace allowed
-    list: "yes"                 # LIST exposure: yes | children | no
+    list: "yes"                 # LIST exposure: yes | children | no — quote it
     subscriptions: true         # track SUBSCRIBE state for this namespace
     inbox: true                 # owns the magic "INBOX" mailbox (set on exactly one)
     location: "maildir:%h"      # storage URL; varexpand %u/%h/%n/%d/%i
@@ -52,6 +52,11 @@ namespaces:
       Sent:  { auto: subscribe, special_use: "\\Sent" }
       Junk:  { auto: create,    special_use: "\\Junk" }
 ```
+
+`list` takes exactly `yes`, `children` or `no`. A boolean — `true`, `false`,
+or an unquoted `yes`/`no` where the YAML reader treats it as one — is
+refused at startup with `unknown list mode`. Left out, it is `children` for
+an owner-templated prefix and `yes` for any other.
 
 `location:` may be written as the pair `mail_driver:` and `mail_path:`, the
 spelling a 2.4 configuration already has. Giving both forms for one namespace
@@ -146,7 +151,7 @@ namespaces:
   - type: personal
     prefix: ""
     separator: "/"
-    list: true
+    list: "yes"
 ```
 
 Equivalent to pre-v1.20 behaviour — the IMAP `NAMESPACE` response is
@@ -159,27 +164,28 @@ namespaces:
   - type: personal
     prefix: ""
     separator: "/"
-    list: true
+    list: "yes"
     inbox: true
     location: "maildir:%h"
 
   - type: shared
     prefix: "Shared/"
     separator: "/"
-    list: true
+    list: "yes"
     location: "maildir:/var/yarilo/shared"
 
   - type: other                # the reference's "Other Users" namespace
     prefix: "user/%u/"         # %u ⇒ owner-templated (client sees "user/alice/INBOX")
     separator: "/"
-    list: true
+    list: children             # the default for an owner-templated prefix
     location: "maildir:%h"     # %h/%u/%n/%d expand against the OWNER (alice)
 ```
 
-### Owner-templated namespaces (NS-2, designed)
+### Owner-templated namespaces
 
-When a namespace `prefix` contains an owner variable (`%u`, `%n`, or `%d` — e.g.
-`user/%u/`), the namespace is **owner-templated**: the `%u/%n/%d/%h` variables
+When a namespace `prefix` contains the owner variable `%u` (e.g. `user/%u/`),
+the namespace is **owner-templated** — `%n` and `%d` are not owner variables
+in a prefix: the `%u/%n/%d/%h` variables
 in its `location` expand against the **owner** whose name fills the prefix slot,
 not the logged-in user. Accessing `user/alice/Sent` extracts `owner = alice`,
 looks alice up in the userdb, and resolves `location` against alice's storage.
@@ -187,10 +193,14 @@ The owner's own session has implicit full rights; a peer is gated by the
 owner's ACL. Fixed prefixes (no variable, e.g. `Shared/`, `Public/`) are
 unaffected and resolve to one path for everyone.
 
-This is **same-farm** in item 3 (#499) — the owner is resolved when its mailbox
-carries the same farm tag (same PV) as the session's mailbox (covers standalone
-and single-farm backend). An owner on a **different farm tag** (data on another
-PV) is NS-3. See [OWNER_SHARED_NS.md](OWNER_SHARED_NS.md) for the full design.
+The owner is resolved when its mailbox carries the same farm tag (same PV)
+as the session's — standalone and single-farm deployments. An owner on a
+**different farm tag** is not reachable yet
+([yarilo#544](https://github.com/yarilomail/yarilo/issues/544)). `LIST ""
+"user/%"` lists the owners who granted the caller something when
+`acl_sharing_map` names a dict for the owner registry; without it, an owner is
+reached only by naming it. See [OWNER_SHARED_NS.md](OWNER_SHARED_NS.md) for
+the design.
 
 Wire shape (post-AUTHENTICATE):
 
@@ -208,7 +218,7 @@ yarilo follows the reference: each namespace MAY use a different separator.
 
 | Field | Constraint |
 |:---|:---|
-| `separator` | exactly one character. Missing → defaults to `/`. Multi-char → falls back to `/` with a warning at startup. |
+| `separator` | exactly one character. Missing, or more than one character, → `.`, with a warning at startup for the latter. The chart also defaults it to `.`. Only when `namespaces:` is omitted altogether is the single default namespace `/`. |
 
 Useful when migrating from a legacy the reference deployment that used `.` for
 personal mailboxes (mbox legacy) and `/` for shared:
@@ -218,11 +228,11 @@ namespaces:
   - type: personal
     prefix: ""
     separator: "."
-    list: true
+    list: "yes"
   - type: shared
     prefix: "Shared/"
     separator: "/"
-    list: true
+    list: "yes"
 ```
 
 ---
@@ -256,48 +266,31 @@ folder tree. The standalone helm chart leaves shared roots **empty by
 default** — operators opt in by populating `cfg.Namespaces` and
 mounting a PV at the chosen `location:`.
 
-## Quota interaction (NS-1b + QUOTA-1)
+## Quota interaction
 
-Quota is **owner-paid**: storage consumed in `user/alice/INBOX` counts
-against alice's quota, not against the user accessing it. Public/Shared
-namespaces have their own system-wide quota root (configured in the
-`quota:` block, not here). See [QUOTA.md](QUOTA.md) when QUOTA-1 lands.
-
----
-
-## Hidden namespaces (`list: false`)
-
-`list: false` keeps a namespace addressable internally (NS-1b storage
-routing respects it) without advertising it in the `NAMESPACE` response.
-Used for staging — declare and configure backends for a shared
-namespace, smoke-test access from privileged accounts, then flip `list`
-to `true` to expose it to all users.
+A save is checked against the quota of the **session's** user, whichever
+namespace it lands in: an `APPEND` to `user/alice/INBOX` by bob counts against
+bob's limit, while the message itself is stored, and later counted, in alice's
+mailbox. Owner-paid quota is not implemented, and shared or public namespaces
+have no quota root of their own — `quota:` has no per-namespace setting. See
+[Quota](QUOTA.md).
 
 ---
 
-## What works in NS-1b (`v1.21`)
+## Current limits
 
 | Behaviour | Status |
 |:---|:---|
-| `SELECT Shared/marketing/announcements` opens a mailbox on the shared backend | ✅ |
-| `CREATE Shared/team` lands under the configured `location:` (separate filesystem root) | ✅ |
-| `APPEND` / `FETCH` / `STORE` / `EXPUNGE` / `SEARCH` on shared mailboxes | ✅ |
-| `LIST "" "*"` returns mailboxes from every configured namespace, each row prefixed with its namespace prefix and emitting its own separator | ✅ |
-| `SUBSCRIBE Shared/team` persists to a per-namespace subscription file (`subscriptions-shared`) — separate from `subscriptions` (personal) | ✅ |
-| `COPY` / `MOVE` between personal and shared namespaces | ✅ |
-| `RENAME` within a single namespace | ✅ |
-| `GETMETADATA` / `SETMETADATA` on shared folders, with `/private/*` stored **per accessing user** (SHA-256 hash of username), `/shared/*` global to the folder | ✅ |
-| `SELECT user/alice/INBOX` (Other Users) | `NO "Other Users namespace requires ACL-1 + NS-3"` |
-| `LIST` of `user/*` patterns | returns empty (namespace declared but unimplemented) |
+| `RENAME` across namespaces (`foo` → `Shared/foo`) | refused with `NO` |
+| An owner whose mailbox is on another farm tag | not reachable; [yarilo#544](https://github.com/yarilomail/yarilo/issues/544) |
+| A `type: other` namespace with a fixed prefix | `NO`: there is no owner to resolve; use an owner-templated prefix |
+| Owner variables other than `%u` in a prefix | not supported |
 
-## What does NOT work yet (post-NS-1b)
-
-| Behaviour | Phase that delivers it |
-|:---|:---|
-| `RENAME` across namespaces (`Personal/foo` → `Shared/foo`) | declined with `NO`; design TBD |
-| `Other Users` namespace (`user/alice/INBOX`) actually opens alice's mailbox | ACL-1 + NS-3 |
-| Quota debit on writes to `user/alice/*` charges alice (owner-paid) | QUOTA-1 + NS-3 |
-| Director routes `user/alice/*` to alice's backend pod in multi-pod deployments | NS-3 |
+Everything else — `SELECT`, `APPEND`, `FETCH`, `STORE`, `EXPUNGE`, `SEARCH`,
+`COPY`/`MOVE` between namespaces, `RENAME` within one, metadata, `LIST`
+across every configured namespace, and per-namespace subscriptions
+(`subscriptions-<prefix>` beside the personal `subscriptions`) — works on
+shared, public and owner-templated namespaces, gated by ACL.
 
 ## Virtual mailboxes
 
@@ -325,14 +318,14 @@ The type is `personal` even though the definitions are shared: what the
 mailboxes show is the user's own mail, which is what RFC 2342 calls personal.
 Only the definition files are common to everyone.
 
-In the chart, `virtualDefinitions:` carries those files, one key per mailbox,
-and mounts them at that path in every backend container.
+In the chart, `virtual_definitions:` carries those files, one key per
+mailbox, and mounts them at `/etc/yarilo/virtual` in every backend container.
 
 ## Mixed storage drivers across namespaces
 
 The `location:` URL's driver prefix is honoured per-namespace.
 When a namespace declares a `location:` whose driver differs from
-the globally-configured `cfg.Storage.Mailbox`, yarilo constructs a
+the globally-configured `storage.mail_driver`, yarilo constructs a
 separate `MailboxBackend` instance of the requested driver and
 routes that namespace's ops through it. Namespaces using the same
 non-default driver share their backend instance.
@@ -347,17 +340,17 @@ namespaces:
   - type: personal
     prefix: ""
     separator: "/"
-    list: true
-    # personal inherits maildir from storage.mailbox
+    list: "yes"
+    # personal inherits maildir from storage.mail_driver
   - type: shared
     prefix: "Shared/"
     separator: "/"
-    list: true
+    list: "yes"
     location: "mdbox:/var/yarilo/shared"   # shared uses mdbox
   - type: shared
     prefix: "Public/"
     separator: "/"
-    list: true
+    list: "yes"
     location: "dbox:/var/yarilo/public"    # public uses dbox
 ```
 
@@ -370,6 +363,24 @@ Constraints:
 - `IndexBackend` is uniform (fileindex) across all namespaces;
   yarilo does not switch index implementations per namespace.
 - The configured driver in `location:` must be one of
-  `maildir`, `dbox`, `mdbox`. Mismatched / unknown driver names
+  `maildir`, `sdbox` (or `dbox`), `mdbox`, `virtual`. Mismatched / unknown driver names
   fail at backend startup so a typo does not silently fall back
   to maildir.
+
+## Helm
+
+The chart renders `namespaces:` from the values of the same name. From 2.4.2
+it renders `list` only when it is set, so an omitted one keeps the default
+above, and it turns an unquoted `yes`/`no` (a YAML boolean to Helm) back into
+`yes`/`no`. **In 2.4.1** quote `list` and set it on every entry: that chart
+renders an omitted `list` as `false` and an unquoted `yes` as `true`, and the
+pods then refuse to start ([yarilo#2164](https://github.com/yarilomail/yarilo/issues/2164)).
+
+```yaml
+namespaces:
+  - type: personal
+    prefix: ""
+    separator: "/"
+    list: "yes"
+    inbox: true
+```
