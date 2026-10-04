@@ -22,7 +22,7 @@ A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters �
 | `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`. |
 | `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; negative = never. |
 | `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; negative = never. |
-| `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2 ([yarilo#2167](https://github.com/yarilomail/yarilo/pull/2167)). |
+| `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2 ([yarilo#2168](https://github.com/yarilomail/yarilo/pull/2168)). |
 
 ```yaml
 auth:
