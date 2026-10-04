@@ -24,8 +24,8 @@ the operator has no OIDC infrastructure.
 
 ## Configuration
 
-`auth.oauth2` in `yarilo.yaml` (or `components.auth.oauth2` in Helm
-`values.yaml`) is a list. Each entry becomes one passdb in the
+`auth.oauth2` in `yarilo.yaml` is a list (the Helm names are
+[below](#helm)). Each entry becomes one passdb in the
 auth chain, placed **ahead of SQL** so an OAUTHBEARER login
 resolves through the validator before SQL ever sees the bearer
 token as a plaintext password.
@@ -53,6 +53,7 @@ Four validation modes:
 | `oauth2_fields` | `[]` | Claim names whose values are projected onto the auth response as `userdb_<claim>` fields. |
 | `oauth2_token_expire_grace_seconds` | `60` | Clock-skew tolerance after the token's `exp`. |
 | `oauth2_http_timeout_ms` | `5000` | Round-trip cap for introspection / tokeninfo / discovery / JWKS refresh. |
+| `oauth2_prefer_introspection` | `false` | `discovery` mode only: when the document advertises both, validate through the introspection endpoint instead of the JWKS. |
 
 ### Introspection sub-modes
 
@@ -64,6 +65,27 @@ selected), `oauth2_introspection_mode` picks the transport:
 | `post` (default) | RFC 7662: POST `application/x-www-form-urlencoded` with `token=<token>` in the body |
 | `auth` | POST with `Authorization: Bearer <token>` header, empty body |
 | `get` | GET `<url>?token=<token>` |
+
+### Helm
+
+The chart builds `auth.oauth2` from `components.auth.oauth2`, where every
+key is the `auth.oauth2` name without the `oauth2_` prefix — with two more
+changes: `oauth2_scope` is `scopes` and `oauth2_fields` is `extra_fields`.
+
+```yaml
+components:
+  auth:
+    oauth2:
+      - mode: discovery
+        issuer_url: https://accounts.google.com
+        audience: "1234567890-abcdef.apps.googleusercontent.com"
+        scopes: [openid, email]
+        username_validation_format: "%Lu"
+        extra_fields: [sub, hd]
+```
+
+A key under its `oauth2_` name is dropped without a warning
+([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
 
 ## Wire shapes
 
@@ -183,7 +205,7 @@ auth:
       oauth2_introspection_url: https://keycloak.example/realms/yarilo/protocol/openid-connect/token/introspect
       oauth2_introspection_mode: post
       oauth2_client_id: yarilo-auth
-      oauth2_client_secret: "{{ .Values.secrets.keycloakClient }}"
+      oauth2_client_secret: "<client secret>"
       oauth2_issuers: [https://keycloak.example/realms/yarilo]
       oauth2_audience: yarilo-auth
       oauth2_username_attribute: email
@@ -194,6 +216,10 @@ auth:
 
 - Keycloak's introspection endpoint requires client credentials
   HTTP Basic auth.
+- `oauth2_client_secret` is taken literally: unlike a passdb `dsn`, it
+  does not expand `${ENV}`, so it cannot be read from a Secret, and the
+  chart writes it into the config ConfigMap
+  ([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)).
 - `oauth2_active_attribute: active` + `oauth2_active_value: "true"` enforces the
   RFC 7662 `active` field explicitly even when client + server
   versions disagree on the default.
@@ -244,7 +270,7 @@ mixes OAuth and legacy SQL accounts handles both with one chain.
   pod).
 - `introspection` / `tokeninfo` / `discovery` send the token to
   the configured endpoint. Use HTTPS endpoints exclusively.
-- The auth-cache (`auth.cache.size_bytes > 0`) caches validated
+- The auth cache (`auth.cache.auth_cache_size` set) caches validated
   tokens as HMAC, not plaintext. Set
   `auth.cache.auth_cache_ttl` shorter than the token's typical `exp`
   so revocation propagates within one cache window.
