@@ -1,6 +1,6 @@
 # Authentication configuration
 
-Yarilo authenticates IMAP/POP3/Submission credentials against an ordered chain of `passdb` entries. The first passdb that returns a definitive result (success or failure for a known user) wins. Unknown users fall through to the next entry.
+Yarilo authenticates IMAP/POP3/Submission credentials against an ordered chain of `passdb` entries. The first passdb that returns a definitive result (success or failure for a known user) wins. Unknown users fall through to the next entry. A temporary failure — a database that does not answer — stops the chain there: the login is answered as a temporary failure, not passed to the next entry.
 
 ---
 
@@ -10,14 +10,18 @@ A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters �
 
 | Key | Description |
 |:---|:---|
-| `driver` | Backend type: `sqlite` \| `mysql` \| `postgres` \| `passwd-file`. |
+| `driver` | Backend type: `sqlite` \| `mysql` \| `postgres` \| `passwd-file` \| `static`. |
 | `dsn` | SQL drivers: driver-specific connection string. `${ENV_VAR}` is expanded at startup. |
 | `passwd_file_path` | `passwd-file` driver: path to the user file. `${ENV_VAR}` is expanded at startup. |
 | `passdb_sql_query` | SQL: optional custom SELECT for authentication. Defaults to the built-in `yarilo_users` schema. See [Custom queries](#custom-queries). |
-| `userdb_sql_query` | SQL: optional separate userdb lookup (`home`, `mail`). When unset, userdb fields come from `passdb_sql_query`. |
+| `userdb_sql_query` | SQL: the userdb lookup (`home`, `mail`, extra fields) used by delivery, quota-status and the backend API. When unset, the built-in `SELECT username, home, mail FROM yarilo_users WHERE username = %u AND enabled = 1` runs — so with your own schema, set it. See [Contract](#contract). |
 | `userdb_sql_iterate_query` | SQL: optional list-users query for admin tooling. |
 | `passdb_default_password_scheme` | Assumed scheme when stored password has no `{SCHEME}` prefix and no crypt(3) marker. Default: `PLAIN` (SQL), `CRYPT` (passwd-file). |
 | `skip_schema` | SQL: `true` to skip `CREATE TABLE IF NOT EXISTS yarilo_users` on startup — use when connecting to an existing schema. |
+| `max_open_conns` | SQL: connections the entry's pool may hold. Default per driver: mysql `25`, postgres `8`, sqlite `1`; negative = unlimited. |
+| `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`. |
+| `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; negative = never. |
+| `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; negative = never. |
 
 ```yaml
 auth:
@@ -190,6 +194,9 @@ The `password` column accepts a `{SCHEME}hash` prefix. Without a prefix, the for
 |:---|:---|:---|:---|
 | Bcrypt | `{BCRYPT}` / `{BLF-CRYPT}` | `$2a$.../`$2b$.../`$2y$...` | Recommended for new deployments. |
 | SHA-512 crypt | `{SHA512-CRYPT}` | `$6$salt$hash` | Linux user import path. |
+| crypt(3) | `{CRYPT}` | `$2…$` or `$6$…` | Picks bcrypt or SHA-512 crypt by the hash marker. The passwd-file default. |
+| SCRAM-SHA-256 | `{SCRAM-SHA-256}` | `iter,salt,stored_key,server_key` | Serves SCRAM and PLAIN/LOGIN from one value; see [SCRAM](/AUTH_SCRAM). |
+| SCRAM-SHA-1 | `{SCRAM-SHA-1}` | `iter,salt,stored_key,server_key` | As above, for clients without SHA-256. |
 | Plain | `{PLAIN}` / `{CLEARTEXT}` | literal | **Dev only.** Never store production passwords in plain text. |
 
 Autodetection (no `{SCHEME}` prefix):
@@ -198,7 +205,7 @@ Autodetection (no `{SCHEME}` prefix):
 |:---|:---|
 | `$2a$` / `$2b$` / `$2y$` | BCRYPT |
 | `$6$` | SHA512-CRYPT |
-| anything else | PLAIN |
+| anything else | `passdb_default_password_scheme` — `PLAIN` for SQL unless set |
 
 ### Generating a bcrypt hash
 
@@ -261,7 +268,7 @@ auth:
 ### Contract
 
 - **`passdb_sql_query` must return a `password` column.** Columns are matched **by name, not position**, so the order is free; use `AS` aliases to map an existing schema (`pw_hash AS password`). `home`, `mail` and `enabled` are optional — an absent `enabled` counts as active. `password` is the only value used downstream when `userdb_sql_query` is also set.
-- **`userdb_sql_query` must return:** `home`, `mail`. Called after a successful auth to fill in mailbox location from an authoritative source.
+- **`userdb_sql_query` must return:** `home`, `mail`. It answers every userdb lookup — after a login, and on its own for LMTP delivery, quota-status and the backend API, where no password is involved. **Unset, it is not taken from `passdb_sql_query`:** the built-in query against `yarilo_users` runs, and on your own schema every such lookup fails. Set it whenever `passdb_sql_query` is set.
 - **`userdb_sql_iterate_query` must return one column:** `username`.
 
 > **PostgreSQL with a `BOOLEAN` enabled column.** The built-in `yarilo_users`
@@ -283,7 +290,7 @@ Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column ali
 |:---|:---|
 | `username` / `user` | Canonical username (overrides the login for master-user flows). |
 | `original_user` | The login as typed before normalisation. |
-| `master_user` | Master user when the login used master-user syntax. |
+| `master_user` | On a userdb answer: the master when the login impersonated a user. On a passdb answer, a true value (`master_user=yes`) grants this login master rights — see [Master users](/MASTER_USERS). |
 | `login_user` | Login user for delegated lookups (equals `username` otherwise). |
 
 **System identity & groups**
@@ -313,8 +320,7 @@ Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column ali
 | `mail` / `mail_location` | Per-user mail location (`maildir:~/Maildir`, `mdbox:…`), with `:INDEX=`, `:CONTROL=`, `:ALT=`, `:VOLATILEDIR=` modifiers. |
 | `mail_path` | Base mailbox path (derived from `mail` when unset). |
 | `mail_inbox_path` | Explicit INBOX path override. |
-| `mail_volatile_path` / `mail_index_path` / `mail_control_path` / `mail_alt_path` | Direct overrides for the corresponding mail-location modifier (win over modifiers embedded in `mail`). |
-| `mail_volatile_path` / `mail_index_path` / `mail_control_path` / `mail_alt_path` | The reference implementation's names for exactly those four fields, accepted so a userdb query written for it works unchanged. |
+| `mail_volatile_path` / `mail_index_path` / `mail_control_path` / `mail_alt_path` | Direct overrides for the corresponding mail-location modifier (win over modifiers embedded in `mail`). The names are the reference implementation's too, so a userdb query written for it works unchanged. |
 | `mail_uid` / `mail_gid` | Ownership for mail files, distinct from the system `uid`/`gid`. |
 | `mailbox_format` / `mail_driver` | `maildir` \| `sdbox` \| `mdbox` — the storage backend that opens this user's mail. Wins over the driver prefix in `mail`. A name yarilo does not implement is refused and the prefix stands. |
 | `mail_attribute_dict` | Dict URL backing RFC 5464 METADATA. |
@@ -477,7 +483,7 @@ ORDER BY username
 ```
 
 Leaving `= 1` in place breaks only enumeration: mail keeps flowing while
-`yarilo-admin user list` fails, which makes the cause easy to miss.
+`yarctl backend user iterate` fails, which makes the cause easy to miss.
 
 ### Example: split passdb across hot/cold sources
 
@@ -491,6 +497,9 @@ auth:
       passdb_sql_query: |
         SELECT pw_hash AS password, '/srv/' || %n AS home, '' AS mail, 1 AS enabled
         FROM auth_cache WHERE email = %u
+      userdb_sql_query: |
+        SELECT '/srv/' || %n AS home, '' AS mail
+        FROM auth_cache WHERE email = %u
 
     # Authoritative store — falls through when not in cache.
     - driver: mysql
@@ -499,6 +508,76 @@ auth:
       passdb_sql_query: |
         SELECT password, mail_home AS home, '' AS mail, enabled
         FROM users WHERE email = %u
+      userdb_sql_query: |
+        SELECT mail_home AS home, '' AS mail
+        FROM users WHERE email = %u AND enabled = 1
+```
+
+Each entry carries its own `userdb_sql_query`: without one, delivery to a user
+of that source would look them up in `yarilo_users`.
+
+---
+
+## Attempts, delays and the auth cache
+
+Settings of `yarilo-auth` itself, under `auth:`.
+
+| Key | Default | Meaning |
+|:---|:---|:---|
+| `auth_max_attempts` | `3` | Failed authentications one IMAP or POP3 connection may make before it is closed. Submission closes after the first. |
+| `auth_failure_delay` | `2` | Seconds every failed reply — wrong password, unknown user, malformed exchange — is held back, so the timing does not tell an unknown user from a wrong password. `0` disables it, for tests. |
+| `internal_failure_delay_ms` | `2000` | The same for internal failures, such as a passdb that does not answer. |
+| `cache.auth_cache_size` | off | Size of the in-process cache of passdb answers (`"100M"`, `"512k"`); empty or `0` disables it. |
+| `cache.auth_cache_ttl` | `1800` | Seconds a successful answer is kept. |
+| `cache.auth_cache_negative_ttl` | `1800` | Seconds a failed answer is kept. Every entry carries a digest of the password that produced it, so a cached failure answers only the same password again and cannot lock out the right one. |
+
+A cached answer outlives a password change or a deleted user until its TTL
+runs out; `yarctl auth cache flush [<user-mask> …]` evicts entries at once
+([yarctl](/YARILO-ADMIN#auth)). Further layers — the cross-pod penalty and an
+external policy server — are on [Auth penalty](/AUTH_PENALTY) and
+[Auth policy](/AUTH_POLICY).
+
+---
+
+## Helm
+
+The chart builds `auth:` from `components.auth`. Two differences from the
+keys on this page matter:
+
+- **Names.** In `components.auth.passdb[]` the chart reads the older names:
+  `passwd_file`, `password_query`, `user_query`, `iterate_query` and
+  `default_pass_scheme`. `driver`, `dsn`, `skip_schema`, `static_password`,
+  `nopassword` and `fields` are the same, and so are the pool settings
+  `max_open_conns`, `max_idle_conns`, `conn_max_lifetime` and
+  `conn_max_idle_time`. From 2.4.2 a key under the name this page uses fails
+  the render and names the chart's; in 2.4.1 it is dropped without a warning,
+  and the pool settings are not passed on at all
+  ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)). The same
+  holds for `components.auth.oauth2[]` (the names without `oauth2_`, with
+  `scopes` and `extra_fields` for `oauth2_scope` and `oauth2_fields`) and for
+  `components.auth.policy` (`url`, `api_header`, `hash_truncate_bits`,
+  `check_before`, … for the `auth_policy_*` keys).
+- **Delays and cache.** `auth_max_attempts` and `internal_failure_delay_ms`
+  keep their names, `auth_failure_delay` is `failure_delay`, and the cache is
+  `cache.cache_size` (default `"100M"`, so the cache is on), `cache.ttl_seconds`
+  and `cache.negative_ttl_seconds`. From 2.4.2 a `failure_delay` or
+  `internal_failure_delay_ms` of `0` reaches the config; in 2.4.1 it is
+  rendered as the default.
+
+```yaml
+components:
+  auth:
+    passdb:
+      - driver: mysql
+        dsn: "${YARILO_DB_DSN}"
+        skip_schema: true
+        password_query: |
+          SELECT password, active AS enabled FROM mailbox WHERE username = %u
+        user_query: |
+          SELECT home, maildir AS mail FROM mailbox WHERE username = %u
+    failure_delay: 2
+    cache:
+      cache_size: "100M"
 ```
 
 ---
