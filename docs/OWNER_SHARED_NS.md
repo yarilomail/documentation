@@ -7,8 +7,14 @@ single fixed path every session sees today.
 
 This is the yarilo equivalent of the reference's `index/shared/shared-storage.c`.
 
-Status: **design** — no code yet. Items 1 (delivery-through-namespaces, #503)
-and 2 (POST-right, #504) are done and live-verified.
+Status: **implemented** for owners on the session's farm tag — owner
+extraction (`pkg/mailbox/ownertemplate.go`), on-demand owner handles in IMAP
+(`internal/imap/owner_resolve.go`), owner-templated LMTP delivery
+(`internal/lmtp/server.go` `deliveryTarget`) and the owner registry (§3.9).
+An owner on another farm tag is still NS-3
+([yarilo#544](https://github.com/yarilomail/yarilo/issues/544)). The page
+keeps the design reasoning; for configuration, see
+[Namespaces](NAMESPACE).
 
 ---
 
@@ -358,12 +364,12 @@ A `SETACL` drops the cached answer of the principal it names — the recipient,
 the group, or everyone — on the backend that served the command. So a user
 who is granted a mailbox by someone connected to the same backend sees it in
 their very next LIST; on the other backends it appears **within an hour**.
-An administrator's `acl registry rebuild` clears every cached answer
-everywhere it runs.
+An administrator's `yarctl backend acl registry rebuild <owner> --namespace NS`
+clears every cached answer everywhere it runs.
 
-The admin surface does not use the cache: `GET /acl/registry/owners` (and
-`yarctl acl registry owners`) reads the registry directly, so an operator is
-always told what the dict says now.
+The admin surface does not use the cache: `POST /api/backend/acl/registry/list`
+(and `yarctl backend acl registry list <user>`) reads the registry directly,
+so an operator is always told what the dict says now.
 
 The interval is what keeps LIST off the dict service: without it every LIST
 of every session iterates the registry — two or three paths per command,
@@ -1029,6 +1035,9 @@ line the parser then refuses to read back.
 
 ## 9. Implementation checklist (phased, one PR each)
 
+All five steps are done; the list is kept as the record of how the work was
+split.
+
 1. **Owner-extraction primitive** in `pkg/mailbox` — `OwnerTemplated(prefix)
    bool`, `ExtractOwner(prefix, name, sep) (owner, rel string, ok bool)` +
    table tests. Pure, no I/O.
@@ -1052,9 +1061,6 @@ and 2.
   owner-access leg to a pod in the owner's farm when the owner's mailbox is on a
   different farm tag (different PV). This design fails closed (`NO` / implicit
   keep) until then.
-- **Per-owner LIST enumeration** (`LIST "" "user/%"` showing every owner you
-  can see) — needs the dict-backed share discovery, item 5. This design
-  resolves an *explicitly named* owner; it does not enumerate owners.
 - **`%n`/`%d` split-slot prefixes** — v1 does `%u` (full username); split forms
   are a follow-up.
 - **Owner-paid quota** on cross-owner writes — QUOTA-1.
