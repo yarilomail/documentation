@@ -76,11 +76,12 @@ names:
 | `check_after` | `auth_policy_check_after_auth` |
 | `report_after` | `auth_policy_report_after_auth` |
 
-A key under its `auth.policy` name is dropped. Through the chart,
-`check_before`, `check_after` and `report_after` cannot be turned off — a
-`false` is rendered as `true` — and `hash_truncate_bits: 0` is rendered as
-`12` ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)); the chart
-offers no way around it until that is fixed.
+From 2.4.2 a key under its `auth.policy` name fails the render and names the
+chart's, and `check_before`, `check_after` and `report_after` set to `false`
+and `hash_truncate_bits: 0` reach the config. In 2.4.1 such a key is dropped,
+the three switches cannot be turned off through the chart (a `false` is
+rendered as `true`), and `hash_truncate_bits: 0` is rendered as `12`
+([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
 
 `auth_policy_server_api_header` and `auth_policy_hash_nonce` expand `${ENV}`,
 so both can come from a Secret; 2.4.1 and earlier take them literally
