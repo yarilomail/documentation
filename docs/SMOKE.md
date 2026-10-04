@@ -21,88 +21,31 @@ The harness lives in [`app/smoketest-e2e`](https://github.com/yarilomail/yarilo/
 
 ---
 
-## Quick local run
+## Running it
 
-Generate a self-signed cert + seed a bcrypt-hashed user in SQLite, then start yarilo and run the smoke binary.
+The harness needs a running stack: sessions authenticate through
+`yarilo-auth`, so a single server process cannot stand in for one. Locally,
+that is the [Docker Compose](DOCKER-COMPOSE) stack, with a user created as
+described in [Creating the first user](DOCKER-COMPOSE#creating-the-first-user).
+The binary is not in the image; run it from a checkout:
 
 ```sh
-# 1. Workspace
-mkdir -p /tmp/yarilo-smoke/{tls,data,mail}
-cd /tmp/yarilo-smoke
-
-# 2. Self-signed test certificate (30 days)
-openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 \
-  -keyout tls/key.pem -out tls/cert.pem -days 30 -nodes \
-  -subj "/CN=mail.smoke.local" \
-  -addext "subjectAltName=DNS:mail.smoke.local,DNS:localhost,IP:127.0.0.1"
-
-# 3. Seed bcrypt user in SQLite (uses the same passdb code yarilo does)
-go run /path/to/yarilo/app/smoketest-e2e/seed/main.go \
-  /tmp/yarilo-smoke/data/users.db alice@smoke.local wonderland
-
-# 4. Start yarilo with the smoke config (see below)
-go build -o /tmp/yarilo /path/to/yarilo/app/yarilo
-/tmp/yarilo -config /tmp/yarilo-smoke/yarilo.yaml &
-
-# 5. Run the smoke
-go run /path/to/yarilo/app/smoketest-e2e/ -insecure
-
-# Expected:
-# [PASS] submission AUTH PLAIN over STARTTLS
-# [PASS] LMTP deliver to mailbox
-# [PASS] IMAPS LOGIN + SELECT INBOX + FETCH
-# [PASS] POP3S USER/PASS + STAT + RETR
+go run ./app/smoketest-e2e \
+  -host 127.0.0.1 -user user@example.test -pass changeit \
+  -submission-port 587 -lmtp-port 24 -imaps-port 993 -pop3s-port 995
 ```
 
-`-insecure` accepts the self-signed certificate. Drop the flag when running against staging/prod with a real CA-signed cert.
+LMTP on 24 is published on the loopback interface only, so run it on the
+Docker host. Each step prints `[PASS]` or `[FAIL]` with its name, in the
+order of the table above.
 
----
+The compose stack's certificate is self-signed, and `-insecure` defaults to
+`true`, so the command above does not verify it. Against a deployment with a
+real certificate, pass `-insecure=false`: leaving the flag out does **not**
+turn verification on.
 
-## Smoke config (`/tmp/yarilo-smoke/yarilo.yaml`)
-
-Uses high ports (9000+) to avoid needing root.
-
-```yaml
-mode: single
-general:
-  ssl:
-    ssl_server_cert_file: /tmp/yarilo-smoke/tls/cert.pem
-    ssl_server_key_file:  /tmp/yarilo-smoke/tls/key.pem
-  haproxy:
-    haproxy_trusted_networks: ["127.0.0.1/32"]
-  xclient:
-    trusted_nets: ["127.0.0.1/32"]
-  limits:
-    mail_max_userip_connections: 0
-
-services:
-  imaps:       { enabled: true, port: 9993, ssl_mode: ssl }
-  imap:        { enabled: true, port: 9143, ssl_mode: starttls }
-  submission:  { enabled: true, port: 9587, ssl_mode: starttls }
-  submissions: { enabled: true, port: 9465, ssl_mode: ssl }
-  pop3:        { enabled: true, port: 9110, ssl_mode: starttls }
-  pop3s:       { enabled: true, port: 9995, ssl_mode: ssl }
-  lmtp:        { enabled: true, port: 9024, ssl_mode: "no" }
-
-protocol:
-  submission:
-    hostname: mail.smoke.local
-    submission_max_mail_size: 41943040
-  lmtp:
-    add_received_header: true
-
-auth:
-  passdb:
-    - driver: sqlite
-      dsn: /tmp/yarilo-smoke/data/users.db
-
-storage:
-  mail_driver: maildir
-  maildir_root: /tmp/yarilo-smoke/mail
-
-log:
-  level: debug
-```
+`app/smoketest-e2e/seed` writes a bcrypt user into a SQLite userdb file, for a
+stack whose `yarilo-auth` reads one you can reach from the host.
 
 ---
 
@@ -116,11 +59,11 @@ log:
 -lmtp-port        plain TCP LMTP         (default: 9024)
 -imaps-port       IMAPS                  (default: 9993)
 -pop3s-port       POP3S                  (default: 9995)
--insecure         skip TLS verify         (default: true)
+-insecure         skip TLS verify         (default: true — pass -insecure=false to verify)
 -timeout          per-step timeout        (default: 10s)
 ```
 
-Against a real deployment, point `-host` at the public hostname and use the standard ports `587 / 24 / 993 / 995`, no `-insecure`.
+Against a real deployment, point `-host` at the public hostname, use the standard ports `587 / 24 / 993 / 995`, and pass `-insecure=false`.
 
 ---
 
@@ -136,10 +79,15 @@ If you want strict recipient validation at the LMTP layer (instead of trusting t
 
 | Code | Meaning |
 |:---|:---|
-| 0 | All four steps passed. |
+| 0 | All seven steps passed. |
 | 1 | One or more steps failed (details on stderr). |
 
-## JMAP header forms and property validation
+## The per-rollout gate (`app/smoketest`)
+
+The two sections below describe `app/smoketest`, the per-rollout gate covered
+in [Testing](TESTING), not the end-to-end harness above.
+
+### JMAP header forms and property validation
 
 The last JMAP check is the only one that **writes**. It appends its own message
 to a folder of its own, `YariloSmoke`, reads it back through every `header:*`
@@ -167,7 +115,7 @@ What it asserts beyond the forms themselves:
   indistinguishable from a property yarilo has not implemented;
 - `headers` lists every field in the order the message carries them.
 
-## What the smoke test writes, and what it removes
+### What the gate writes, and what it removes
 
 It writes. Run it against an account whose mail you are willing to have touched
 in the ways below, and nothing else.
