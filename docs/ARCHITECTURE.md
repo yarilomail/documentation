@@ -310,8 +310,8 @@ As rendered with the director topology (the sandbox values).
 | `yarilo-managesieve-login` | Deployment | LoadBalancer :4190 | 1+ | |
 | `yarilo-jmap-login` | Deployment | LoadBalancer :443 | 1+ | |
 | `yarilo-lmtp-login` | Deployment | ClusterIP :24 | 1+ | MTA-facing |
-| `yarilo-sasl-login` | Deployment | LoadBalancer :12345 | 1+ | SASL for an MTA |
-| `yarilo-quota-status` | Deployment | LoadBalancer :12340 | 1+ | quota policy service |
+| `yarilo-sasl-login` | Deployment | ClusterIP :12345 | 1+ | SASL for an MTA; LoadBalancer only for an MTA outside the cluster |
+| `yarilo-quota-status` | Deployment | ClusterIP :12340 | 1+ | quota policy service; LoadBalancer only for an MTA outside the cluster |
 | `yarilo-backend` | StatefulSet | headless: imap :10143, pop3 :10110, submission :10587, lmtp :10024, sieve :14190, jmap :10443, backend-api :9105 | N | co-located: imap, pop3, submission, lmtp, managesieve, jmap, fts, backend-api, backend-reg in one pod |
 | `yarilo-redis` | StatefulSet | ClusterIP :6379 | 1 | only with `redis.bundled: true` |
 
