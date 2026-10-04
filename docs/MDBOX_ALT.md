@@ -15,17 +15,11 @@ storage:
   mail_alt_path: "/mnt/cold/%d/%n"   # "" = disabled (default)
 ```
 
-`mail_alt_path` supports the same template variables as
-`mail_home`:
-
-| Variable | Expands to |
-|:---|:---|
-| `%u` | Full username (`alice@example.com`) |
-| `%Lu` | Lowercased full username |
-| `%n` | Local part (`alice`) |
-| `%Ln` | Lowercased local part |
-| `%d` | Domain (`example.com`) |
-| `%Ld` | Lowercased domain |
+`mail_alt_path` is a path template like `mail_home`, with the same variables
+and filters — `%u`, `%n`, `%d`, `%h`, the hash buckets and the `%{…}` forms;
+see [Path templates](/STORAGE#path-templates). There is no `%L` modifier: a
+lowercased path is written `%{user | lower}`, and a template the server cannot
+expand stops startup, naming the key.
 
 The alt directory mirrors the primary mdbox layout:
 
@@ -42,10 +36,13 @@ exists in both primary and alt simultaneously.
 
 ```yaml
 # values.yaml
-imap:
-  storage:
-    mdboxAltStoragePath: "/mnt/cold/%d/%n"
+storage:
+  mail_alt_path: "/mnt/cold/%d/%n"
 ```
+
+The chart passes `storage.mail_alt_path` through unchanged. The older
+spellings `mdbox_alt_storage_path` and `alt_dir` are pre-beta aliases of the
+same key.
 
 A separate PVC (or NFS export) should be mounted at the cold path —
 typically a cheaper storage class (HDD-backed, object-gateway, etc.).
@@ -74,10 +71,16 @@ saved) is strictly before the cutoff are eligible.
 
 ### Fetch transparency
 
-When a session fetches a message whose primary `m.<N>` file has been
-moved, the driver automatically opens the alt file. The IMAP client
-sees no difference. The fallback only fires on `ENOENT` — any other
-open error (permissions, I/O) is returned as-is.
+`altmove` marks every message it relocates in the folder index, so a fetch
+of a moved message opens the alt file directly, without trying primary
+first. The IMAP client sees no difference.
+
+The mark is a hint, not the truth. If it lags — the move finished but the
+index was not updated yet — a fetch that finds no primary file (`ENOENT`)
+tries the alt file before giving up; any other open error (permissions,
+I/O) is returned as-is. In the other direction, a mark whose alt copy is
+missing or unreadable falls back to primary rather than being reported as
+corruption.
 
 ### Refcount and COPY
 
@@ -105,41 +108,43 @@ yarctl backend mdbox purge alice@example.com
 yarctl backend mdbox altmove alice@example.com --before 2025-01-01T00:00:00Z
 ```
 
-### Automation via CronJob
+### Running it on a schedule
 
-```yaml
-# k8s CronJob — monthly cold-tier sweep for messages older than 90 days
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: mdbox-altmove
-spec:
-  schedule: "0 2 1 * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-          - name: altmove
-            image: ghcr.io/yarilomail/yarilo:latest
-            command:
-            - yarctl
-            - backend
-            - mdbox
-            - altmove
-            - alice@example.com
-            - --before
-            - "{{ now | date \"2006-01-02T15:04:05Z\" | dateModify \"-2160h\" }}"
-          restartPolicy: OnFailure
+`yarctl` is already configured in every container of a backend pod: it
+carries the backend-api token and the `admin` client certificate, and, with
+a director, it sends each user's command to the pod that owns that user
+([yarctl configuration](/YARILO-ADMIN#configuration)). A sweep is therefore
+simplest run there, with the cutoff computed by the shell at run time:
+
+```sh
+# cold-tier sweep: messages older than 90 days, one user per line on stdin
+kubectl exec -i <backend-pod> -c yarilo-backend-api -- sh -c '
+  before=$(date -u -d "@$(( $(date +%s) - 90*86400 ))" +%Y-%m-%dT%H:%M:%SZ)
+  while read -r user; do
+    yarctl backend mdbox altmove "$user" --before "$before"
+  done' < users.txt
 ```
 
-In practice, drive the user list from the SQL passdb iterate_query
-and loop per user.
+Drive the user list from the passdb (the SQL `iterate_query`, for example)
+and schedule the command where your other operator jobs run.
 
-## Wire compatibility with the reference
+A Kubernetes CronJob of its own needs what that container already has: the
+backend-api URL and token, the `admin` client certificate from the
+`<release>-admin-internal-tls` Secret with its CA and server name, and the
+director admin URL so commands are routed by user. Without the routing, the
+job talks to one backend-api and becomes a second writer for every user that
+pod does not own.
 
-The on-disk format of moved `m.<N>` files is identical to primary
-files — same dbox v2 record layout. The reference's `mail_alt_path` and
-yarilo's `mail_alt_path` are interchangeable at the
-filesystem level, enabling live migration between the two servers
-without data conversion.
+## On-disk format and the reference
+
+A moved `m.<N>` file has the same format as a primary one — the same dbox v2
+record layout — and the alt tier mirrors the primary layout, so the records
+in it parse in either direction ([mdbox on-disk layout](/STORAGE#mdbox-on-disk-layout-rotation)).
+
+A store is still not interchangeable between the servers, because
+the index that says which message lives where is each server's own. An mdbox
+store of the reference is taken over by
+[adoption](/MIGRATION#adoption-this-server-takes-over-the-store-in-place):
+on first open this server converts the index and the other server can no
+longer serve the store. The reverse is not possible — the reference cannot
+read a yarilo index.
