@@ -23,8 +23,7 @@ connection limits, the policy hook is overkill.
 
 ## Configuration
 
-`auth.policy` in `yarilo.yaml` (or `components.auth.policy` in Helm
-`values.yaml`):
+`auth.policy` in `yarilo.yaml` (the Helm names are [below](#helm)):
 
 ```yaml
 auth:
@@ -56,6 +55,57 @@ auth:
 | `auth_policy_check_after_auth` | `true` | POST `?command=allow` AFTER the chain result is known. Reject downgrades a successful auth (account-takeover detection) |
 | `auth_policy_report_after_auth` | `true` | POST `?command=report` fire-and-forget after every decision. Telemetry pipeline; never blocks the wire reply |
 
+### Helm
+
+The chart builds `auth.policy` from `components.auth.policy`, with shorter
+names:
+
+| `components.auth.policy` | `auth.policy` |
+|:---|:---|
+| `url` | `auth_policy_server_url` |
+| `api_header` | `auth_policy_server_api_header` |
+| `api_header_secret_ref` | `auth_policy_server_api_header` from a Secret |
+| `hash_mech` | `auth_policy_hash_mech` |
+| `hash_nonce` | `auth_policy_hash_nonce` |
+| `hash_nonce_secret_ref` | `auth_policy_hash_nonce` from a Secret |
+| `hash_truncate_bits` | `auth_policy_hash_truncate` |
+| `timeout_ms` | `timeout_ms` |
+| `reject_on_fail` | `auth_policy_reject_on_fail` |
+| `log_only` | `auth_policy_log_only` |
+| `check_before` | `auth_policy_check_before_auth` |
+| `check_after` | `auth_policy_check_after_auth` |
+| `report_after` | `auth_policy_report_after_auth` |
+
+A key under its `auth.policy` name is dropped. Through the chart,
+`check_before`, `check_after` and `report_after` cannot be turned off — a
+`false` is rendered as `true` — and `hash_truncate_bits: 0` is rendered as
+`12` ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)); the chart
+offers no way around it until that is fixed.
+
+`auth_policy_server_api_header` and `auth_policy_hash_nonce` expand `${ENV}`,
+so both can come from a Secret; 2.4.1 and earlier take them literally
+([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)). Through the
+chart, name the Secret in `*_secret_ref` to keep the value out of the config
+ConfigMap:
+
+```yaml
+components:
+  auth:
+    policy:
+      url: https://wforce.internal:8084/
+      api_header_secret_ref:
+        name: yarilo-policy
+        key: api_header   # the default
+      hash_nonce_secret_ref:
+        name: yarilo-policy
+        key: hash_nonce   # the default
+```
+
+The chart renders `"${YARILO_AUTH_POLICY_API_HEADER}"` and
+`"${YARILO_AUTH_POLICY_HASH_NONCE}"` and sets both variables in the
+`yarilo-auth` pod from the Secret. Setting a value and its `*_secret_ref`
+together fails the render.
+
 ## Wire shape
 
 Every request is `POST {url}?command={allow|report}` with header
@@ -67,7 +117,7 @@ Every request is `POST {url}?command={allow|report}` with header
   "fail_type": "policy" | "internal" | "credentials" | "expired" | "disabled" | "account" | "",
   "login": "alice@example.com",
   "protocol": "imap",
-  "pwhash": "ae",
+  "pwhash": "ae30",
   "remote": "203.0.113.42",
   "session_id": "<unique-per-attempt>",
   "tls": true,
@@ -179,7 +229,7 @@ setReport(report)
 
 - `auth_policy_check_before_auth` + `auth_policy_check_after_auth` doubles the per-attempt latency.
   Most operators disable `auth_policy_check_after_auth` once `auth_policy_check_before_auth` is
-  trusted; `auth_policy_report_after_auth` is fire-and-forget so it doesn't add
+  trusted (not possible through the chart yet, see [Helm](#helm)); `auth_policy_report_after_auth` is fire-and-forget so it doesn't add
   perceived latency.
 - The HTTP client uses keep-alive — a single yarilo-auth pod
   reuses connections to the policy server across thousands of
