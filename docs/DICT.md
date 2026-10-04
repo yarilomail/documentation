@@ -22,7 +22,7 @@ configuring and operating dicts.
 | **Driver** | The backing implementation (`file`, `redis`, `sql`, `memory`, `fail`) |
 | **Settings** | Driver-specific configuration map (path / addr / dsn / ...) |
 | **Namespace** | `priv/` (per-user) and `shared/` (per-resource) key prefixes — application convention; not enforced by drivers |
-| **OpSettings** | Per-call context: username, home dir, TTL — passed by callers, used by drivers |
+| **OpSettings** | Per-call context: username, home dir, TTL — passed by callers, used by drivers; through the dict service the TTL travels with the transaction |
 
 ## YAML schema
 
@@ -132,7 +132,7 @@ Settings:
 | `addr` | string | yes | — | `host:port` |
 | `password` | string | no | `""` | AUTH; empty = no auth |
 | `db` | int | no | `0` | Logical database |
-| `prefix` | string | no | `""` | Per-dict key prefix |
+| `prefix` | string | no | `""` | Per-dict key prefix, taken literally. A `%`-variable is refused at startup: the dict opens once per process, so nothing would expand it, and a per-user key already carries `priv/<user>/` |
 | `dial_timeout` | string | no | `5s` | Go duration |
 
 ### sql
