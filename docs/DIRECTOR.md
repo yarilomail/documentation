@@ -74,7 +74,7 @@ This is the static backend list loaded at startup. Each `host` resolves to one o
 | `host` | Hostname, typically a headless Service such as `yarilo-imap.yarilo-backend.svc.cluster.local`. |
 | `port` | Backend port the login pod dials. |
 | `tag` | Pool label. Empty is the default pool. |
-| `vhosts` | Ring weight, `1`–`100`. Omit for the default. Under `assignment_policy: least_sessions`, `0` means drain. |
+| `vhosts` | Ring weight, `1`–`100`. Omit for the default (`100`). `0` routes no users to it (under `assignment_policy: least_sessions` it drains). |
 
 Configure two static backends:
 

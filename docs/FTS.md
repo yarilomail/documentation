@@ -633,7 +633,7 @@ fts:
   fts_flatcurve_prefix_search: "yes"   # yes | no | N | N-M — see below
   languages: [en]                   # >1 enables per-part detection (#696)
   fts_language_filters_override: {} # per-language override, e.g. {uk: [lowercase, stopwords]} (#726)
-  fts_detection_sample_bytes: 0     # 0 = default 1024; bytes sampled per part
+  fts_detection_sample_bytes: "1k"  # bytes sampled per part; 0 is refused
   fts_detection_min_runes: 10       # reliability threshold; 0 detects on any sample
   language_tokenizer_generic_token_maxlen: 30   # must be positive (#726)
   language_tokenizer_address_token_maxlen: 250  # must be positive (#726)

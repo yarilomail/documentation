@@ -4,13 +4,11 @@ The `general` section defines infrastructure settings shared across all listener
 
 ## How numeric settings read
 
-From 2.4.2 the defaults in these pages are the Helm chart's: `helm/values.yaml` carries them and the chart writes every key into `yarilo.yaml`. The binaries substitute nothing.
+The defaults in these pages are the binary's, and the Helm chart's `values.yaml` carries the same numbers. From 2.4.2:
 
-- `0` turns a setting off (a cache, a delay, a limit, an interval that may stop), as each table says.
-- Where off makes no sense (a timeout that must bound, a pool size, a poll interval), `0` or a missing key stops the process at startup with the key's name.
-- A negative value is refused everywhere.
-
-A `yarilo.yaml` written by hand, outside the chart, has to carry the required keys itself; `config/yarilo.yaml` in the image and `deploy/compose/config/yarilo.yaml` show the full set.
+- A key left out keeps its default, in `yarilo.yaml` and in each entry of a list (`oauth2`, `quota_warnings`, `mail_servers`).
+- An explicit `0` turns a setting off (a cache, a delay, a limit, an interval that may stop), as each table says. Where off makes no sense (a timeout that must bound, a pool size, a poll interval), an explicit `0` stops the process at startup with the key's name.
+- A negative value is refused, except where a page says otherwise (`lmtp_user_concurrency_limit: -1` is unlimited).
 
 ---
 

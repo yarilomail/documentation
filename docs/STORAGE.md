@@ -236,7 +236,7 @@ under `storage:`, mdbox only):
 
 | Key | Default | Effect |
 |:---|:---|:---|
-| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Empty keeps the 10 MiB default; `0` is refused at startup. |
+| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Left out, it is 10 MiB; `0` or an empty value is refused at startup. |
 | `mdbox_rotate_interval` | `0` (disabled) | Roll the append file once it is older than this, regardless of size: a duration (`"30s"`, `"5m"`, `"1h"`) or a second count. |
 | `mdbox_preallocate_space` | `false` | `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a no-op elsewhere). |
 | `mdbox_map_format` | `v2` | On-disk format of the per-user map index; see [mdbox map index format](#mdbox-map-index-format). |
