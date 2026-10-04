@@ -547,14 +547,22 @@ keys on this page matter:
 - **Names.** In `components.auth.passdb[]` the chart reads the older names:
   `passwd_file`, `password_query`, `user_query`, `iterate_query` and
   `default_pass_scheme`. `driver`, `dsn`, `skip_schema`, `static_password`,
-  `nopassword` and `fields` are the same. A key under the name this page
-  uses is dropped without a warning, and the pool settings are not passed
-  on at all ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
+  `nopassword` and `fields` are the same, and so are the pool settings
+  `max_open_conns`, `max_idle_conns`, `conn_max_lifetime` and
+  `conn_max_idle_time`. From 2.4.2 a key under the name this page uses fails
+  the render and names the chart's; in 2.4.1 it is dropped without a warning,
+  and the pool settings are not passed on at all
+  ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)). The same
+  holds for `components.auth.oauth2[]` (the names without `oauth2_`, with
+  `scopes` and `extra_fields` for `oauth2_scope` and `oauth2_fields`) and for
+  `components.auth.policy` (`url`, `api_header`, `hash_truncate_bits`,
+  `check_before`, … for the `auth_policy_*` keys).
 - **Delays and cache.** `auth_max_attempts` and `internal_failure_delay_ms`
   keep their names, `auth_failure_delay` is `failure_delay`, and the cache is
   `cache.cache_size` (default `"100M"`, so the cache is on), `cache.ttl_seconds`
-  and `cache.negative_ttl_seconds`. A `failure_delay` or
-  `internal_failure_delay_ms` of `0` is rendered as the default.
+  and `cache.negative_ttl_seconds`. From 2.4.2 a `failure_delay` or
+  `internal_failure_delay_ms` of `0` reaches the config; in 2.4.1 it is
+  rendered as the default.
 
 ```yaml
 components:
