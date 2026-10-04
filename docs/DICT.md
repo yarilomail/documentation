@@ -188,10 +188,10 @@ Settings:
 | `table` | string | no | `dict_kv` | Table name; must match `[A-Za-z0-9_]+` (generic mode) |
 | `namespace` | string | no | `""` | Per-dict key prefix within the shared table (generic mode) |
 | `maps` | list | no | — | Column bindings; presence enables **mapped mode** (see below) |
-| `max_open_conns` | int | no | mysql `25`, postgres `8`, sqlite `1` | Connections the dict's pool may hold, in use and idle; negative = unlimited |
-| `max_idle_conns` | int | no | = `max_open_conns` | Idle connections kept for reuse; negative keeps none |
-| `conn_max_lifetime` | int | no | `300` | Seconds before a connection is recycled, so it does not stay pinned to a server that failed over; negative = never |
-| `conn_max_idle_time` | int | no | `60` | Seconds an idle connection is kept before it is closed; negative = never |
+| `max_open_conns` | int | no | mysql `25`, postgres `8`, sqlite `1` | Connections the dict's pool may hold, in use and idle; `0` = unlimited |
+| `max_idle_conns` | int | no | = `max_open_conns` | Idle connections kept for reuse; `0` keeps none |
+| `conn_max_lifetime` | int | no | `300` | Seconds before a connection is recycled, so it does not stay pinned to a server that failed over; `0` = never |
+| `conn_max_idle_time` | int | no | `60` | Seconds an idle connection is kept before it is closed; `0` = never. A negative value in any of these four fails the dict at open |
 
 Schema (auto-created):
 

@@ -47,7 +47,7 @@ These keys are the routing and lifecycle core. Ring, eviction and placement keys
 | `user_expire` | `900` | Seconds before an idle user→backend assignment expires. Each `LOOKUP` refreshes it. |
 | `ping_interval` | `30` | Seconds between keepalive pings to login pods and ring peers. |
 | `ping_timeout` | `10` | Seconds to wait for a `PONG` before closing the connection. |
-| `write_timeout` | `10` | Seconds a single push or reply write may take. `0` selects the default, a negative value disables the bound. |
+| `write_timeout` | `10` | Seconds a single push or reply write may take. `0` = no bound. |
 | `shutdown.session_grace_period` | `30` | Seconds to wait after `SIGTERM` before exiting. |
 | `peers` | `[]` | Seed list for a one-time ring join. Empty at `replicas > 1` derives the headless `-director-ring` Service. |
 | `backend_expire` | `30` | Seconds a self-registered backend may go without a heartbeat before it leaves the ring. |
@@ -145,8 +145,8 @@ These keys are described in [Deployment](./DEPLOYMENT):
 | `director_domain_rebalance_percent` | `0` (chart: `20`) | How far the busiest backend of a tag may rise above the quietest before one domain moves. `0` never moves one. |
 | `director_domain_rebalance_interval` | `60` | Seconds between rebalance checks. |
 | `director_domain_rebalance_cooldown` | `600` | Seconds a moved domain is left alone. |
-| `user_kick_delay` | `2` | Seconds an admin-initiated kick waits. See [kick pacing](./DEPLOYMENT#kick-pacing-—-user-kick-delay-and-max-parallel-kicks-740). |
-| `max_parallel_kicks` | `100` | Sessions kicked per batch when a backend goes down. |
+| `user_kick_delay` | `2` | Seconds an admin-initiated kick waits. `0` kicks immediately. See [kick pacing](./DEPLOYMENT#kick-pacing-—-user-kick-delay-and-max-parallel-kicks-740). |
+| `max_parallel_kicks` | `100` | Sessions kicked per batch when a backend goes down. `0` kicks all at once. |
 
 ## Session routing & sticky assignments
 

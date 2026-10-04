@@ -1410,12 +1410,12 @@ parallel-kick limit:
   the `USER-KICKED` push, so an in-flight command on the old backend can
   complete. Applies to the **admin path only**: a backend-down / lease-expiry
   kick fires immediately (there is nothing to grace on a dead backend), and the
-  split-writer conflict-kick is never delayed. Negative = disabled (immediate).
+  split-writer conflict-kick is never delayed. `0` kicks immediately.
 
 - **`director_service.max_parallel_kicks`** (default `100`) — when a backend
   goes down, its sessions are kicked in batches of this size with a short pause
   between batches, spreading the re-login stampede across the surviving backends
-  instead of firing every kick at once. Negative = no batching.
+  instead of firing every kick at once. `0` kicks all at once.
 
 A third knob, `director_service.max_parallel_moves` (default `5`), bounds a deliberate
 evacuation instead: `yarctl director backends flush` drains a backend in a window of at most
