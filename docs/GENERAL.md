@@ -2,6 +2,16 @@
 
 The `general` section defines infrastructure settings shared across all listeners. Individual services can override `ssl` per-listener with their own `ssl:` block.
 
+## How numeric settings read
+
+From 2.4.2 the defaults in these pages are the Helm chart's: `helm/values.yaml` carries them and the chart writes every key into `yarilo.yaml`. The binaries substitute nothing.
+
+- `0` turns a setting off (a cache, a delay, a limit, an interval that may stop), as each table says.
+- Where off makes no sense (a timeout that must bound, a pool size, a poll interval), `0` or a missing key stops the process at startup with the key's name.
+- A negative value is refused everywhere.
+
+A `yarilo.yaml` written by hand, outside the chart, has to carry the required keys itself; `config/yarilo.yaml` in the image and `deploy/compose/config/yarilo.yaml` show the full set.
+
 ---
 
 ## `hostname` (top level)
@@ -210,4 +220,4 @@ In the Helm chart: `components.auth.client.pool_size`, `components.auth.client.p
 
 In the Helm chart: `internalTLS.sessionCacheSize`, `internalTLS.sessionCacheTtl`.
 
-A negative value is refused at startup for every key above except `session_cache_ttl`.
+A negative value is refused at startup for every key above.
