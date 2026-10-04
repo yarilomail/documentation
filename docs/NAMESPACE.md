@@ -369,10 +369,12 @@ Constraints:
 
 ## Helm
 
-The chart renders `namespaces:` from the values of the same name. Quote
-`list` there, and set it on every entry: the chart renders an omitted `list`
-as `false` and an unquoted `yes` as `true`, and the pods then refuse to start
-([yarilo#2164](https://github.com/yarilomail/yarilo/issues/2164)).
+The chart renders `namespaces:` from the values of the same name. From 2.4.2
+it renders `list` only when it is set, so an omitted one keeps the default
+above, and it turns an unquoted `yes`/`no` (a YAML boolean to Helm) back into
+`yes`/`no`. **In 2.4.1** quote `list` and set it on every entry: that chart
+renders an omitted `list` as `false` and an unquoted `yes` as `true`, and the
+pods then refuse to start ([yarilo#2164](https://github.com/yarilomail/yarilo/issues/2164)).
 
 ```yaml
 namespaces:
