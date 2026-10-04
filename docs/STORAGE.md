@@ -9,7 +9,7 @@ a single pod. See also [MDBOX_ALT.md](MDBOX_ALT.md).
 ## Path templates
 
 Every path setting that can differ per user — `mail_home`, `mail_path`,
-`mail_inbox_path`, `mail_index_path`, `mail_control_path`, `mail_volatile_path`, `mail_alt_path`,
+`mail_inbox_path`, `mail_index_path`, `mail_control_path`, `mail_volatile_path` and
 `mail_alt_path` — is a template expanded against the user. Two spellings are
 accepted, and nothing else is.
 
@@ -44,13 +44,19 @@ on every path — a delivery and an interactive session resolve one user to one 
 directories. (Before 2.3.133 the delivery path resolved `~/` in `mail_path` /
 `mail_inbox_path` but left `%u` alone, so the two could disagree.)
 
-Hash buckets matter once a directory holds one entry per user. The shipped
-`mail_volatile_path` uses one:
+Hash buckets matter once a directory holds one entry per user, as a
+`mail_volatile_path` on a local disk does. The chart leaves the key unset; the
+example values use the short form:
 
 ```yaml
 storage:
-  mail_volatile_path: "/tmp/yarilo-volatile/%{user | sha1 % 256 | hex(2)}/%{user}"
+  mail_volatile_path: "/tmp/yarilo-volatile/%2.256Nu/%u"
 ```
+
+Switching that to an expression changes the buckets — even
+`%{user | md5 % 256 | hex(2)}`, since the short form reads the first four
+bytes of the digest and the expression the last eight — so on a running
+deployment it moves every user's directory.
 
 ## Maildir sync-on-open
 
@@ -71,6 +77,10 @@ flagged (a persisted FSCKD marker in the index header); the next SELECT, STATUS 
 poll then heals the index under the mailbox lock — every record whose file has vanished is
 expunged (with a QRESYNC tombstone), surviving messages keep their UID. Transient I/O
 errors (EIO, timeouts) do not trigger a heal.
+
+The switch is honoured by IMAP only. A POP3 login heals a flagged INBOX whatever it is set
+to ([yarilo#2159](https://github.com/yarilomail/yarilo/issues/2159)), so turning it off does
+not stop a heal while POP3 clients connect.
 
 **mdbox** now self-heals reactively too, the same way as sdbox: a read that trips over a
 missing/corrupt message flags the folder FSCKD, and the next SELECT/STATUS/IDLE poll (or
@@ -169,11 +179,11 @@ of those — the file-header line and the message header byte for byte, since th
 parts the other implementation reads before it appends, and the metadata trailer by its keys
 and values, since the two implementations write those lines in different orders.
 
-Parsing is the whole of the claim. **Serving** a record another implementation wrote back to a
-client in CRLF is not done today: such a record can be stored with bare LF, and the body is
-returned as it lies on disk. That is [#1527](https://github.com/yarilomail/yarilo/issues/1527),
-and it is not in 2.4.1 — reaching it requires placing another implementation's files under this
-server's index by hand, which is the store question below.
+**Serving** such a record is covered too. Another implementation can store a body with bare
+LF; since 2.4.1 the body is converted to CRLF on the way out, and mdbox reports the size it will
+actually serve, as sdbox already did, so `RFC822.SIZE` and the bytes a client receives agree
+([#1527](https://github.com/yarilomail/yarilo/issues/1527)). Mail this server wrote is CRLF on
+disk already and comes back byte for byte.
 
 The *store* is a different question, and it has one answer in each direction.
 
@@ -226,8 +236,8 @@ under `storage:`, mdbox only):
 
 | Key | Default | Effect |
 |:---|:---|:---|
-| `mdbox_rotate_size` | `10485760` (10 MiB) | Max bytes per `m.<N>` before the next save rolls to a fresh file. `0` selects the 10 MiB default. |
-| `mdbox_rotate_interval` | `0` (disabled) | Seconds; roll the append file once it is older than this, regardless of size. |
+| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Empty or `0` selects the 10 MiB default. |
+| `mdbox_rotate_interval` | `0` (disabled) | Roll the append file once it is older than this, regardless of size: a duration (`"30s"`, `"5m"`, `"1h"`) or a second count. |
 | `mdbox_preallocate_space` | `false` | `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a no-op elsewhere). |
 | `mdbox_map_format` | `v2` | On-disk format of the per-user map index; see [mdbox map index format](#mdbox-map-index-format). |
 
@@ -428,6 +438,34 @@ Do not use `rebuild` for this. A rebuild scans storage and reconciles state; a
 fold writes the base and drops the log. They are different operations, and the
 expensive one standing in for the cheap one is how a seeding script ends up
 doing eleven full storage scans to get the effect of eleven folds.
+
+## File locks, the index cache and write concurrency
+
+All under `storage:`.
+
+| Key | Default | Effect |
+|:---|:---|:---|
+| `storage_lock_method` | `flock` | How a write to a shared file — an index, a uidlist — excludes another writer: `flock`, `fcntl` or `dotlock`. Pick what the mail volume supports; a dict of the `file` driver should use the same. |
+| `storage_lock_stale_timeout` | `180` | Seconds a dotlock may sit unchanged before a waiter takes it over; `-1` never takes one over. Only `dotlock` has the question: `flock` and `fcntl` locks die with the process that held them. |
+| `mail_cache_purge_delete_percentage` | `20` | Purge a folder's cache file once this share of its records belongs to messages that are gone; `-1` never purges on that ground. |
+| `mail_cache_purge_continued_percentage` | `200` | Purge it once its continued records reach this percentage of the live ones. |
+| `mail_cache_purge_min_size` | `32k` | Below this size the cache file is never purged; `"0"` allows a purge at any size. |
+| `max_concurrent_writes` | `0` (unlimited) | Cap on message bodies being written to disk at once, per process, for every driver. A slow volume can be kept from being swamped by a burst; spinning disks suit a few dozen, SSDs a few hundred. |
+
+## Folder names on disk
+
+A client chooses folder names, and the storage layout turns them into paths.
+These settings decide which names are refused, and how the rest are written.
+All under `storage:`.
+
+| Key | Default | Effect |
+|:---|:---|:---|
+| `mailbox_list_validate_fs_names` | `true` | Refuse names that are unsafe as paths: `.` and `..` segments, adjacent separators, a leading `/` or `~`, and the on-disk separator when the namespace speaks another one. Turn it off only for a driver that never builds a path from the name. |
+| `mailbox_list_reserved_segments` | `cur`, `new`, `tmp`, `dbox-Mails` | Names a single hierarchy segment may not take, because the layout owns that directory. Only the names the layout in use actually owns are enforced (see the table below). Empty disables the check. It is retroactive: a user who already has such a folder loses access to it. |
+| `mailbox_list_refuse_layout_separator` | `false` | Refuse a name containing the on-disk separator when the namespace speaks a different one — with namespace `/` over Maildir++, `a.b` and `a/b` both land on `.a.b`. Retroactive against ordinary names such as `example.com`, so check that no mailbox holds one before turning it on. |
+| `mailbox_list_storage_escape_char` | empty | Store such names escaped instead of refusing them; see below. Not retroactive. |
+| `mailbox_list_normalize_names_to_nfc` | `true` | Normalise names to Unicode NFC before they are stored or compared, so differently composed spellings of one name are one folder. |
+| `mailbox_list_utf8` | `true` | Write names as UTF-8 on disk; `false` writes modified UTF-7, for a store that already uses it. |
 
 ## Moving a user between mailbox formats
 
