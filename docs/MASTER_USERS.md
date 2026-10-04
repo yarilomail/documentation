@@ -33,9 +33,32 @@ auth:
 | `masterdb` | — | A dedicated passdb chain for master credentials. Same drivers and fields as `auth.passdb` (`sql`, `passwd-file`, …). |
 | `auth_master_user_separator` | `*` | Separator for the legacy login form below. Empty disables that form; the SASL form keeps working. |
 
-Grants come from either of two places: a hit in `masterdb`, or a `master`
-flag on an ordinary passdb entry. A user found in neither is refused as a
-master regardless of its password.
+Grants come from either of two places: a hit in `masterdb`, or a true
+`master_user` field (`master_user=yes`) on an ordinary passdb answer — a
+column alias in `passdb_sql_query`, a bare key in a passwd-file line. A user
+found in neither is refused as a master regardless of its password.
+
+### Helm
+
+```yaml
+components:
+  auth:
+    master_users:
+      enabled: true
+      separator: "*"
+      masterdb:
+        - driver: mysql
+          dsn: "${YARILO_DB_DSN}"
+          skip_schema: true
+          password_query: |
+            SELECT password, active AS enabled FROM masters WHERE username = %u
+```
+
+`separator` is `auth_master_user_separator`, and a `masterdb` entry uses the
+chart's passdb names (`password_query`, `passwd_file`, …) as described in
+[Authentication → Helm](/AUTH#helm). An empty `separator` is rendered as `*`,
+so the separator form cannot be turned off through the chart
+([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
 
 ## Logging in as another user
 
