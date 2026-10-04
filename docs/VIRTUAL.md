@@ -75,9 +75,20 @@ everyone, while the messages, the uids and the indexes are each user's own.
 `mail_index_path` is required whenever that directory is not writable.
 `SELECT` creates the mailbox's index before it reads anything, so without
 somewhere else to put it the command fails.
-In the chart, `virtualDefinitions:` carries the files, one key per mailbox,
-and mounts them read-only at that path in every backend container. See
+In the chart, `virtual_definitions:` carries the files, one key per mailbox,
+and mounts them read-only at `/etc/yarilo/virtual` in every backend container,
+so `mail_path` names that directory. A key becomes a ConfigMap key, so a
+mailbox name there may hold only letters, digits, `-`, `_` and `.`: a nested
+mailbox such as `Work/Open` cannot come from the chart. See
 [Namespaces](/NAMESPACE).
+
+```yaml
+virtual_definitions:
+  Unread: |
+    INBOX
+    Archive/*
+      unseen
+```
 
 ## The configuration file
 
