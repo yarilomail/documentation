@@ -144,7 +144,7 @@ in it parse in either direction ([mdbox on-disk layout](/STORAGE#mdbox-on-disk-l
 A store is still not interchangeable between the servers, because
 the index that says which message lives where is each server's own. An mdbox
 store of the reference is taken over by
-[adoption](/MIGRATION#adoption-—-this-server-takes-over-the-store-in-place):
+[adoption](/MIGRATION#adoption-this-server-takes-over-the-store-in-place):
 on first open this server converts the index and the other server can no
 longer serve the store. The reverse is not possible — the reference cannot
 read a yarilo index.
