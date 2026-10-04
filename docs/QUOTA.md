@@ -33,7 +33,7 @@ value is computed from the mailbox index.
 |:---|:---|
 | IMAP GETQUOTA / APPEND enforcement | `session.countUsage` → sum `FolderVSize` (1 s display cache; enforcement fresh) |
 | LMTP delivery | opens the recipient index at delivery time → `CountUsage` |
-| `yarilo-quota-status` (Postfix policy) | a **full mail process**: opens the recipient's mailbox+index → `CountUsage`, exactly like the reference's quota-status (`mail_storage_service`). **Not** a dict reader. Needs the mail PV mounted. |
+| `yarilo-quota-status` (Postfix policy) | a **full mail process**: looks the recipient up in userdb through `yarilo-auth`, opens the mailbox+index → `CountUsage`, exactly like the reference's quota-status (`mail_storage_service`). **Not** a dict reader. Needs the mail PV mounted and `quota_status.auth_master_addr` set — see [quota-status actions](#quota-status-actions). |
 | `backend-api` /show, /recalc | `CountUsage`; /recalc force-rebuilds each folder's aggregate |
 | POP3 | **nothing** — POP3 never appends, so no enforcement; DELE→expunge decrements the index aggregate automatically |
 
@@ -50,7 +50,8 @@ value is computed from the mailbox index.
    commands). Toggle it independently of the engine — you can enforce without
    advertising the extension, or advertise it without enforcing.
 
-Both default off in Helm (`quota.enabled: false`, `protocol.imap.imap_quota: true`).
+In the chart the engine is off by default (`quota.enabled: false`) and the extension on
+(`protocol.imap.imap_quota: true`).
 
 ## quota_clone (external mirror)
 
@@ -86,7 +87,7 @@ work unchanged.
 
 ## Configuration
 
-Two independent toggles (both default off/on per Helm):
+Two independent toggles — in the chart the engine defaults off, the extension on:
 
 ```yaml
 quota:
@@ -211,6 +212,29 @@ Every answer of the `yarilo-quota-status` policy service is a setting under
 `components.quotaStatus` in the chart (`quota_status:` in `yarilo.yaml`). In the
 over-quota and too-large actions, `%{error}` is replaced by the reason.
 
+**The service needs `quota_status.auth_master_addr`** — the `yarilo-auth` master
+listener it looks recipients up through. Without it the service answers
+`quota_status_success` for every recipient: it checks no limit, applies no
+`default_quota_rules` and refuses no unknown user. The chart does not fill it in
+([yarilo#2160](https://github.com/yarilomail/yarilo/issues/2160)), so set it:
+
+```yaml
+components:
+  quotaStatus:
+    enabled: true
+    auth_master_addr: "yarilo-auth:9102"   # <release>-auth, components.auth.masterListen
+```
+
+The service's other settings:
+
+| Key | Default | Meaning |
+|:---|:---|:---|
+| `listen` | `:12340` | Policy listener |
+| `recipient_delimiter` | `+` | Separates the detail that names the target folder (`alice+Spam@` → `Spam`) |
+| `default_quota_rules` | `[]` | Rules, in `quota_rule` format, for a recipient whose userdb entry carries none |
+| `alias_dict` | empty | A dict from `dicts:` that maps an alias to its mailbox; the recipient is resolved through it before the lookup, retrying without the detail part. Empty = no alias resolution |
+| `alias_max_hops` | `5` | Longest alias chain followed |
+
 | Key | Default | Returned when |
 |:---|:---|:---|
 | `quota_status_success` | `OK` | The message fits: under the limit, or within the storage grace for the delivery that crosses it. Also for an ignored folder or a user without limits. |
@@ -317,7 +341,7 @@ These call `GET /api/backend/quota/clone/list` and
 `GET /api/backend/quota/clone/get?backend=<name>&user=<user>`, which reads
 `priv/quota/storage` + `priv/quota/messages` from that dict, scoped per user.
 `backend` is restricted to the configured clone list — for arbitrary dicts use
-`yarctl backend dict get`. The returned value is an **advisory mirror**;
+`yarctl backend dict lookup` ([yarctl](/YARILO-ADMIN#backend-dict)). The returned value is an **advisory mirror**;
 the authoritative usage is `quota show`, summed from the index.
 
 ## Helm
@@ -326,10 +350,16 @@ the authoritative usage is `quota show`, summed from the index.
 # values.yaml
 quota:
   enabled: true        # enforce
+  quota_grace: "10M"   # the chart's name for quota_storage_grace
 protocol:
   imap:
     imap_quota: true   # advertise the QUOTA extension
 ```
+
+The chart's `quota:` block uses the `yarilo.yaml` key names with one exception:
+the storage grace is `quota.quota_grace` in the values, rendered as
+`quota_storage_grace`. A `quota.quota_storage_grace` in the values is dropped
+without a warning ([yarilo#2161](https://github.com/yarilomail/yarilo/issues/2161)).
 
 The `yarilo-quota-status` pod mounts the mail PV read-only so it can open
 recipient mailboxes; set `quota_rule` in the passdb schema.
