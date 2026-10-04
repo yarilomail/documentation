@@ -16,12 +16,31 @@ nothing. Run it first, every time — the tool works on live mail.
 ## Conversion
 
 ```sh
-yarilo-migrate --src maildir|dbox-v1|mdbox-v1 --dst sdbox|mdbox \
-               --from <source-root> --to <destination-root> [--dry-run]
+yarilo-migrate --src maildir|dbox-v1|mdbox-v1|dbox-ref --dst sdbox|mdbox \
+               --from <source-root> --to <destination-root> \
+               [--config /etc/yarilo/yarilo.yaml] [--dry-run]
 ```
 
 Reads the source tree and writes a new store in the destination format. The
 source is left alone.
+
+**The source root holds one directory per domain, and one per user under
+it:** `<source-root>/<domain>/<local-part>/…`. The account name is taken from
+those two levels — `example.com/alice` is `alice@example.com` — so `--from`
+names the root above the domains, never a single user's directory.
+
+**The destination is laid out the way the services read it.** With
+`--config`, the layout — `mail_home`, `mail_index_path`, `mail_path` — comes
+from the service configuration, and `--to` overrides only its root, because
+writing somewhere else is the point of a conversion. A store written in any
+other layout opens with every folder empty. The same flags as for the
+backfill override the configuration where needed:
+
+| Flag | Meaning |
+|:---|:---|
+| `--config PATH` | service configuration: the destination layout |
+| `--home-template T` | override `storage.mail_home`, e.g. `%d/%u` |
+| `--index-template`, `--mail-template` | stand-ins for the userdb `INDEX=` and `mail_path` overrides, e.g. `%h/index` |
 
 **Effect:** writes the destination tree; reads the source.
 
@@ -39,7 +58,7 @@ The GUID line is the one that matters for a client: a message keeps its identity
 across the conversion even though its UID changes, which is what lets a JMAP
 client recognise mail it already knows.
 
-## `--guid-backfill` — stable message identifiers
+## `--guid-backfill` — stable message identifiers {#guid-backfill-stable-message-identifiers}
 
 ```sh
 yarilo-migrate --guid-backfill --config /etc/yarilo/yarilo.yaml \
@@ -58,9 +77,9 @@ so the tool addresses exactly the store the services do.
 | Flag | Meaning |
 |:---|:---|
 | `--config PATH` | service configuration: layout, driver, locks client |
-| `--driver maildir\|sdbox\|mdbox` | override `storage.mailbox` |
+| `--driver maildir\|sdbox\|mdbox` | override `storage.mail_driver` |
 | `--root PATH` | override `storage.maildir_root` |
-| `--home-template T` | override `storage.mail_home_template`, e.g. `%d/%u` |
+| `--home-template T` | override `storage.mail_home`, e.g. `%d/%u` |
 | `--user u@d` | one account; default is every account under the root |
 | `--offline` | resolve paths from flags instead of userdb — for a **stopped** store |
 | `--index-template`, `--mail-template` | offline stand-ins for the userdb overrides |
@@ -72,7 +91,7 @@ without one cannot be placed in a conversation.
 
 **Effect:** writes message metadata in place. Reads the mail.
 
-## `--thread-backfill` — conversations for existing accounts
+## `--thread-backfill` — conversations for existing accounts {#thread-backfill-conversations-for-existing-accounts}
 
 ```sh
 yarilo-migrate --thread-backfill --config /etc/yarilo/yarilo.yaml \
@@ -92,6 +111,10 @@ migrated" unanswerable.
 has one is skipped, so a rerun over a live deployment does not rewrite state
 the deliveries have been extending.
 
+The store is addressed exactly as for `--guid-backfill`: `--config`, or
+`--driver` and `--root` together when there is none, with `--home-template`,
+`--offline`, `--index-template` and `--mail-template` meaning the same.
+
 **Locking:** the rebuild holds the account's threading lock for its whole
 duration, the same lock a delivery takes, so it is safe to run against a live
 store — deliveries to that account wait rather than interleave.
@@ -103,8 +126,9 @@ returns one message per thread, `FETCH THREADID` answers `NIL`, and JMAP's
 *is* threaded, so an unmigrated account looks like one where only recent
 messages have conversations — which is the shape to expect, not a defect.
 
-**Effect:** writes `yarilo.threads` in the account's mail root. Reads message
-headers only.
+**Effect:** writes the sidecar `threads` in the account's control root —
+`mail_control_path` when it is set, the home otherwise. Reads message headers
+only.
 
 ## Two whole stories
 
@@ -112,6 +136,16 @@ headers only.
 
 Threading is on by default since **2.3.246**. New mail threads immediately;
 existing mail does not, until you say so.
+
+| Key | Default | Meaning |
+|:---|:---|:---|
+| `threading.threading_enabled` | `true` | Record conversations at delivery time. Chart: `components.backend.threading.enabled` |
+| `threading.threading_cache_idle` | `0` (300 s) | Seconds a process keeps an account's folded sidecar after its last delivery; negative = never cache. Chart: `components.backend.threading.cache_idle` |
+
+Turning threading off leaves the existing sidecars on disk, and turning it
+back on picks them up again — but mail delivered in between was never
+recorded and stays one conversation per message until
+`--thread-backfill --force` runs for the account.
 
 ```sh
 # 1. See what it would do, for one account first.
@@ -133,8 +167,10 @@ changes nothing.
 ### Converting a store to another format
 
 ```sh
-yarilo-migrate --src maildir --dst mdbox --from /old/mail --to /new/mail --dry-run
-yarilo-migrate --src maildir --dst mdbox --from /old/mail --to /new/mail
+yarilo-migrate --src maildir --dst mdbox --config /etc/yarilo/yarilo.yaml \
+               --from /old/mail --to /new/mail --dry-run
+yarilo-migrate --src maildir --dst mdbox --config /etc/yarilo/yarilo.yaml \
+               --from /old/mail --to /new/mail
 yarilo-migrate --thread-backfill --config /etc/yarilo/yarilo.yaml
 ```
 
@@ -163,7 +199,7 @@ files, so it is pointed at directly. A dbox tree is not — the records parse,
 but the index saying which message sits at which offset has to be read, which
 is what both routes below do and what pointing at the tree does not.
 
-#### Adoption — this server takes over the store in place
+#### Adoption — this server takes over the store in place {#adoption-this-server-takes-over-the-store-in-place}
 
 Point the deployment at the store and open a folder. The first open reads the
 other server's index for that folder, writes ours beside it, and removes theirs.
@@ -232,11 +268,12 @@ folder's write lock — so a delivery arriving mid-conversion waits for it. On a
 three-thousand-message folder that wait is tens of milliseconds, the same order
 as an ordinary large SELECT.
 
-#### Import — `--src dbox-ref` reads their store and writes ours
+#### Import — `--src dbox-ref` reads their store and writes ours {#import-src-dbox-ref-reads-their-store-and-writes-ours}
 
 ```sh
-yarilo-migrate --src dbox-ref --dst mdbox \
-  --from /var/mail/olduser --to /var/mail/newuser --dry-run
+# /srv/old-mail/example.com/alice/… is alice@example.com
+yarilo-migrate --src dbox-ref --dst mdbox --config /etc/yarilo/yarilo.yaml \
+  --from /srv/old-mail --to /var/mail --dry-run
 ```
 
 Reads the store where it is and writes a fresh one. **The source is never
