@@ -54,6 +54,8 @@ These keys are the routing and lifecycle core. Ring, eviction and placement keys
 | `backend_unreachable_reporters` | `2` | Distinct login pods that must report a backend unreachable before it is evicted early. |
 | `backend_unreachable_window` | `5` | Seconds within which those reports must arrive. |
 | `join_allowed_nets` | `[]` | CIDRs a ring join is accepted from. Empty allows all. |
+| `anti_entropy_interval` | `3` | Seconds between re-broadcasts of the member and tombstone list over every ring connection. `0` turns it off. |
+| `tombstone_ttl` | `600` | Seconds a dead member's tombstone is kept. `0` keeps it for good. |
 
 The chart also renders `shutdown.kill_timeout`, but the director does not read it.
 
