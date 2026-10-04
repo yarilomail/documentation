@@ -87,6 +87,26 @@ components:
 A key under its `oauth2_` name is dropped without a warning
 ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
 
+To keep the introspection client secret out of the config ConfigMap, name a
+Secret in `client_secret_ref` instead of setting `client_secret`:
+
+```yaml
+components:
+  auth:
+    oauth2:
+      - mode: introspection
+        introspection_url: https://keycloak.example/realms/yarilo/protocol/openid-connect/token/introspect
+        client_id: yarilo-auth
+        client_secret_ref:
+          name: yarilo-oauth2
+          key: client_secret   # the default
+```
+
+The chart then renders `oauth2_client_secret: "${YARILO_OAUTH2_<n>_CLIENT_SECRET}"`,
+where `<n>` is the entry's index in the list, and sets that variable in the
+`yarilo-auth` pod from the Secret. Setting both `client_secret` and
+`client_secret_ref` fails the render.
+
 ## Wire shapes
 
 ### OAUTHBEARER (RFC 7628, recommended)
@@ -205,7 +225,7 @@ auth:
       oauth2_introspection_url: https://keycloak.example/realms/yarilo/protocol/openid-connect/token/introspect
       oauth2_introspection_mode: post
       oauth2_client_id: yarilo-auth
-      oauth2_client_secret: "<client secret>"
+      oauth2_client_secret: "${KEYCLOAK_CLIENT_SECRET}"
       oauth2_issuers: [https://keycloak.example/realms/yarilo]
       oauth2_audience: yarilo-auth
       oauth2_username_attribute: email
@@ -216,9 +236,9 @@ auth:
 
 - Keycloak's introspection endpoint requires client credentials
   HTTP Basic auth.
-- `oauth2_client_secret` is taken literally: unlike a passdb `dsn`, it
-  does not expand `${ENV}`, so it cannot be read from a Secret, and the
-  chart writes it into the config ConfigMap
+- `oauth2_client_secret` expands `${ENV}`, like a passdb `dsn`, so it can
+  come from a Secret (through the chart: [`client_secret_ref`](#helm)).
+  2.4.1 and earlier take it literally
   ([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)).
 - `oauth2_active_attribute: active` + `oauth2_active_value: "true"` enforces the
   RFC 7662 `active` field explicitly even when client + server
