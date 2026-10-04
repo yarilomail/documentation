@@ -64,8 +64,10 @@ names:
 |:---|:---|
 | `url` | `auth_policy_server_url` |
 | `api_header` | `auth_policy_server_api_header` |
+| `api_header_secret_ref` | `auth_policy_server_api_header` from a Secret |
 | `hash_mech` | `auth_policy_hash_mech` |
 | `hash_nonce` | `auth_policy_hash_nonce` |
+| `hash_nonce_secret_ref` | `auth_policy_hash_nonce` from a Secret |
 | `hash_truncate_bits` | `auth_policy_hash_truncate` |
 | `timeout_ms` | `timeout_ms` |
 | `reject_on_fail` | `auth_policy_reject_on_fail` |
@@ -80,10 +82,29 @@ A key under its `auth.policy` name is dropped. Through the chart,
 `12` ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)); the chart
 offers no way around it until that is fixed.
 
-`auth_policy_server_api_header` and `auth_policy_hash_nonce` are taken
-literally: they do not expand `${ENV}`, so neither can be read from a Secret,
-and the chart writes both into the config ConfigMap
-([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)).
+`auth_policy_server_api_header` and `auth_policy_hash_nonce` expand `${ENV}`,
+so both can come from a Secret; 2.4.1 and earlier take them literally
+([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)). Through the
+chart, name the Secret in `*_secret_ref` to keep the value out of the config
+ConfigMap:
+
+```yaml
+components:
+  auth:
+    policy:
+      url: https://wforce.internal:8084/
+      api_header_secret_ref:
+        name: yarilo-policy
+        key: api_header   # the default
+      hash_nonce_secret_ref:
+        name: yarilo-policy
+        key: hash_nonce   # the default
+```
+
+The chart renders `"${YARILO_AUTH_POLICY_API_HEADER}"` and
+`"${YARILO_AUTH_POLICY_HASH_NONCE}"` and sets both variables in the
+`yarilo-auth` pod from the Secret. Setting a value and its `*_secret_ref`
+together fails the render.
 
 ## Wire shape
 
