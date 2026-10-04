@@ -6,7 +6,8 @@ durable per-user or per-mailbox state sits on top of. A single contract
 choice of driver (`file`, `redis`, `sql`, `memory`, `fail`) is made via
 YAML config, not code. The drivers run in the `yarilo-dict` service
 (mTLS, port 9107); a session binary names a dict and reaches it through
-`pkg/dict/proxy`, and needs `dict_service.dict_addr` set to start.
+`pkg/dict/proxy`, and needs `dict_service.dict_addr` set to start — see
+[The dict service](#the-dict-service).
 
 See [ARCHITECTURE.md §Dict abstraction](ARCHITECTURE.md#dict-abstraction)
 for the design rationale; this document is the operator reference for
@@ -40,6 +41,31 @@ dicts:
 `<name>` is the logical identifier yarilo features look up
 (e.g. `metadata`, `quota_count`, `acl`). Multiple named dicts may share
 one backing service through different prefixes/namespaces.
+
+## The dict service
+
+`yarilo-dict` opens the `redis` and `sql` dicts and serves them over internal
+mTLS; the session processes link no engine and reach it by name. The `file`
+driver is the exception: the process that uses it opens it itself (see
+[file](#file)).
+
+```yaml
+dict_service:
+  dict_listen: ":9107"     # yarilo-dict: where it serves
+  dict_addr: "yarilo-dict:9107"   # every other process: where to find it
+  dict_max_conns: 8
+```
+
+| Key | Read by | Default | Meaning |
+|:---|:---|:---|:---|
+| `dict_listen` | `yarilo-dict` | — | Listen address. Required: the service exits at startup without it |
+| `dict_addr` | session processes | — | `host:port` of `yarilo-dict`. Required as soon as a `redis` or `sql` dict is configured; empty with only `file` dicts is fine |
+| `dict_max_conns` | session processes | `8` | Connections one process keeps to one named dict. An iteration holds its connection until it ends, so `1` makes every other operation on that dict wait behind it |
+
+The chart renders all three from `components.dict` (`enabled`, `listen`,
+default `:9107`, `max_conns`, default `8`) and derives `dict_addr` from the
+release's own `yarilo-dict` Service, so the port cannot disagree between the
+listener and the clients.
 
 ---
 
@@ -147,7 +173,7 @@ dicts:
   metadata:
     driver: sql
     settings:
-      driver: postgres            # | sqlite
+      driver: postgres            # | mysql | sqlite
       dsn: "postgres://yarilo:secret@pg.yarilo.svc:5432/yarilo?sslmode=disable"
       table: "dict_kv"            # default
       namespace: "metadata"       # per-dict namespace within the table
@@ -162,6 +188,10 @@ Settings:
 | `table` | string | no | `dict_kv` | Table name; must match `[A-Za-z0-9_]+` (generic mode) |
 | `namespace` | string | no | `""` | Per-dict key prefix within the shared table (generic mode) |
 | `maps` | list | no | — | Column bindings; presence enables **mapped mode** (see below) |
+| `max_open_conns` | int | no | mysql `25`, postgres `8`, sqlite `1` | Connections the dict's pool may hold, in use and idle; negative = unlimited |
+| `max_idle_conns` | int | no | = `max_open_conns` | Idle connections kept for reuse; negative keeps none |
+| `conn_max_lifetime` | int | no | `300` | Seconds before a connection is recycled, so it does not stay pinned to a server that failed over; negative = never |
+| `conn_max_idle_time` | int | no | `60` | Seconds an idle connection is kept before it is closed; negative = never |
 
 Schema (auto-created):
 
@@ -237,24 +267,16 @@ Behaviour in mapped mode:
 
 ---
 
-## CLI — `yarctl dict`
+## CLI — `yarctl backend dict`
 
-### Select the dict
+`yarctl backend dict` is a client of `yarilo-backend-api`, which owns the
+configured dicts. The CLI never opens a dict itself: it names one, and the
+operation runs in the backend-api process against that dict's driver. A dict
+the backend-api configuration does not declare cannot be reached, and there
+is no ad-hoc driver mode. How `yarctl` finds and authenticates to the
+backend-api is in [yarctl](/YARILO-ADMIN#backend-plane).
 
-Either via running config:
-
-```sh
-yarctl dict <command> --config /etc/yarilo.yaml --dict metadata ...
-```
-
-Or ad-hoc (no config required):
-
-```sh
-yarctl dict <command> --driver file --setting path=/tmp/x.dict ...
-yarctl dict <command> --driver redis --setting addr=localhost:6379 --setting prefix=test: ...
-```
-
-Per-op identity:
+Per-op identity, accepted by every command that runs an operation:
 
 | Flag | Maps to |
 |:---|:---|
@@ -262,23 +284,32 @@ Per-op identity:
 | `--home DIR` | `OpSettings.HomeDir` |
 | `--expire-secs N` | `OpSettings.ExpireSecs` |
 
+The backend-api does not look a home up from the user: a `file` dict whose
+path names `%h` needs `--home` as well as `--user`, or the operation is refused.
+
 ### Commands
 
 ```sh
-yarctl dict drivers                                                # list registered driver names
+yarctl backend dict drivers                                       # drivers registered on backend-api
+yarctl backend dict exists NAME                                   # does NAME resolve to a configured dict?
 
-yarctl dict lookup [select] KEY                                    # print value
-yarctl dict iterate [select] [--recurse] [--no-value] [--exact] \
-                          [--sort-key|--sort-value] PATH                 # list rows
+yarctl backend dict lookup [op-flags] NAME KEY                    # print value
+yarctl backend dict iterate [op-flags] [--recurse] [--no-value] [--exact] \
+                            [--sort-key|--sort-value] NAME PATH   # list rows
 
-yarctl dict set    [select] [--value-stdin] KEY [VALUE]            # write
-yarctl dict unset  [select] KEY                                    # delete
-yarctl dict atomic-inc [select] KEY DELTA                          # integer add (delta may be negative)
+yarctl backend dict set [--value-stdin] [op-flags] NAME KEY [VALUE]   # write
+yarctl backend dict unset [op-flags] NAME KEY                     # delete
+yarctl backend dict atomic-inc [op-flags] NAME KEY DELTA          # integer add (delta may be negative)
 
-yarctl dict expire-scan [select]                                   # drop TTL-expired rows
+yarctl backend dict expire-scan NAME                              # drop TTL-expired rows
 
-yarctl dict commit-batch [select] < script.txt                     # multi-op atomic transaction
+yarctl backend dict commit-batch [op-flags] NAME < script.txt     # multi-op atomic transaction
 ```
+
+`iterate` is streamed from the server, so it is safe over a large prefix. It
+prints one `KEY<TAB>VALUE` line per row, or the key alone with `--no-value`.
+A value that is not printable text is shown as `base64:…`. Writes print `ok`;
+`atomic-inc` on a key that does not exist prints `not-found`.
 
 ### `commit-batch` script format
 
@@ -299,20 +330,21 @@ unset	priv/old/key
 Pipe the script:
 
 ```sh
-yarctl dict commit-batch --config /etc/yarilo.yaml --dict quota < initialise.dict
+yarctl backend dict commit-batch --user alice@example.com quota < initialise.dict
 ```
 
 ### Example session
 
 ```sh
-# Standalone development dict via file driver
-$ yarctl dict set --driver file --setting path=/tmp/m.dict priv/box/INBOX/comment "first message arrived"
+$ HOME_DIR=/var/mail/example.com/alice@example.com
+
+$ yarctl backend dict set --user alice@example.com --home $HOME_DIR metadata priv/box/INBOX/comment "first message arrived"
 ok
 
-$ yarctl dict lookup --driver file --setting path=/tmp/m.dict priv/box/INBOX/comment
+$ yarctl backend dict lookup --user alice@example.com --home $HOME_DIR metadata priv/box/INBOX/comment
 first message arrived
 
-$ yarctl dict iterate --driver file --setting path=/tmp/m.dict --recurse --sort-key priv/
+$ yarctl backend dict iterate --user alice@example.com --home $HOME_DIR --recurse --sort-key metadata priv/
 priv/box/INBOX/comment	first message arrived
 ```
 
