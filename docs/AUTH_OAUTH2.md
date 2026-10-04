@@ -84,7 +84,8 @@ components:
         extra_fields: [sub, hd]
 ```
 
-A key under its `oauth2_` name is dropped without a warning
+From 2.4.2 a key under its `oauth2_` name fails the render and names the
+chart's; in 2.4.1 it is dropped without a warning
 ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
 
 To keep the introspection client secret out of the config ConfigMap, name a
