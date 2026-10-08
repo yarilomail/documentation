@@ -618,7 +618,7 @@ fts:
   fts_auth_master_addr: ""          # yarilo-fts: userdb of the user being indexed (storage identity)
   fts_max_conns: 4                  # connections per session process — see below
   fts_storage_type: local           # local | nfs — what the index sits on; nfs skips directory fsyncs (#1176)
-  fts_handle_idle_timeout: 0        # 0 = 300 s; an idle per-user index handle is closed, releasing its write lock (#1396)
+  fts_handle_idle_timeout: 300      # an idle per-user index handle is closed, releasing its write lock (#1396); 0 never closes one
 
   ## Indexing behaviour.
   fts_autoindex: false
