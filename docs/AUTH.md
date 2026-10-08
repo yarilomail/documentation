@@ -18,10 +18,10 @@ A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters �
 | `userdb_sql_iterate_query` | SQL: optional list-users query for admin tooling. |
 | `passdb_default_password_scheme` | Assumed scheme when stored password has no `{SCHEME}` prefix and no crypt(3) marker. Default: `PLAIN` (SQL), `CRYPT` (passwd-file). |
 | `skip_schema` | SQL: `true` to skip `CREATE TABLE IF NOT EXISTS yarilo_users` on startup — use when connecting to an existing schema. |
-| `max_open_conns` | SQL: connections the entry's pool may hold. Default per driver: mysql `25`, postgres `8`, sqlite `1`; negative = unlimited. |
-| `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`. |
-| `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; negative = never. |
-| `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; negative = never. |
+| `max_open_conns` | SQL: connections the entry's pool may hold. Default per driver: mysql `25`, postgres `8`, sqlite `1`; `0` = unlimited. |
+| `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`; `0` keeps none. |
+| `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; `0` = never. |
+| `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; `0` = never. A negative value in any of these four is refused at startup. |
 | `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2 ([yarilo#2168](https://github.com/yarilomail/yarilo/pull/2168)). |
 
 ```yaml

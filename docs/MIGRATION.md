@@ -140,7 +140,7 @@ existing mail does not, until you say so.
 | Key | Default | Meaning |
 |:---|:---|:---|
 | `threading.threading_enabled` | `true` | Record conversations at delivery time. Chart: `components.backend.threading.enabled` |
-| `threading.threading_cache_idle` | `0` (300 s) | Seconds a process keeps an account's folded sidecar after its last delivery; negative = never cache. Chart: `components.backend.threading.cache_idle` |
+| `threading.threading_cache_idle` | `300` | Seconds a process keeps an account's folded sidecar after its last delivery; `0` = never cache. Chart: `components.backend.threading.cache_idle` |
 
 Turning threading off leaves the existing sidecars on disk, and turning it
 back on picks them up again — but mail delivered in between was never

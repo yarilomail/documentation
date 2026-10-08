@@ -633,10 +633,10 @@ fts:
   fts_flatcurve_prefix_search: "yes"   # yes | no | N | N-M — see below
   languages: [en]                   # >1 enables per-part detection (#696)
   fts_language_filters_override: {} # per-language override, e.g. {uk: [lowercase, stopwords]} (#726)
-  fts_detection_sample_bytes: 0     # 0 = default 1024; bytes sampled per part
-  fts_detection_min_runes: 0        # 0 = default 10; reliability threshold
-  language_tokenizer_generic_token_maxlen: 0   # 0 = default 30 (#726)
-  language_tokenizer_address_token_maxlen: 0   # 0 = default 250 (#726)
+  fts_detection_sample_bytes: "1k"  # bytes sampled per part; 0 is refused
+  fts_detection_min_runes: 10       # reliability threshold; 0 detects on any sample
+  language_tokenizer_generic_token_maxlen: 30   # must be positive (#726)
+  language_tokenizer_address_token_maxlen: 250  # must be positive (#726)
   language_tokenizer_generic_algorithm: simple # tr29 errors at startup; not implemented, blocked on the Bleve engine stream (#733)
   language_tokenizer_generic_wb5a: false        # TR29-only, errors if true (#726)
   language_tokenizer_generic_explicit_prefix: false # TR29-only, errors if true (#726)
@@ -645,7 +645,7 @@ fts:
   fts_decoder_driver: ""            # "" | script | tika
   fts_decoder_script_socket_path: ""
   fts_decoder_tika_url: ""
-  fts_decoder_max_attempts: 0       # tika retry against network/5xx; 0 = default 2
+  fts_decoder_max_attempts: 2       # tika attempts against network/5xx; must be positive
 
   ## Engine-specific: flatcurve (fts_engine: "flatcurve"; the yarilo-fts
   ## binary links libxapian — cgo confined to the fts Deployment image).

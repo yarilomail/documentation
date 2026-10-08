@@ -236,7 +236,7 @@ under `storage:`, mdbox only):
 
 | Key | Default | Effect |
 |:---|:---|:---|
-| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Empty or `0` selects the 10 MiB default. |
+| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Left out, it is 10 MiB; `0` or an empty value is refused at startup. |
 | `mdbox_rotate_interval` | `0` (disabled) | Roll the append file once it is older than this, regardless of size: a duration (`"30s"`, `"5m"`, `"1h"`) or a second count. |
 | `mdbox_preallocate_space` | `false` | `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a no-op elsewhere). |
 | `mdbox_map_format` | `v2` | On-disk format of the per-user map index; see [mdbox map index format](#mdbox-map-index-format). |
@@ -446,9 +446,9 @@ All under `storage:`.
 | Key | Default | Effect |
 |:---|:---|:---|
 | `storage_lock_method` | `flock` | How a write to a shared file — an index, a uidlist — excludes another writer: `flock`, `fcntl` or `dotlock`. Pick what the mail volume supports; a dict of the `file` driver should use the same. |
-| `storage_lock_stale_timeout` | `180` | Seconds a dotlock may sit unchanged before a waiter takes it over; `-1` never takes one over. Only `dotlock` has the question: `flock` and `fcntl` locks die with the process that held them. |
-| `mail_cache_purge_delete_percentage` | `20` | Purge a folder's cache file once this share of its records belongs to messages that are gone; `-1` never purges on that ground. |
-| `mail_cache_purge_continued_percentage` | `200` | Purge it once its continued records reach this percentage of the live ones. |
+| `storage_lock_stale_timeout` | `180` | Seconds a dotlock may sit unchanged before a waiter takes it over; `0` never takes one over. Only `dotlock` has the question: `flock` and `fcntl` locks die with the process that held them. |
+| `mail_cache_purge_delete_percentage` | `20` | Purge a folder's cache file once this share of its records belongs to messages that are gone; `0` never purges on that ground. |
+| `mail_cache_purge_continued_percentage` | `200` | Purge it once its continued records reach this percentage of the live ones; `0` never purges on that ground. |
 | `mail_cache_purge_min_size` | `32k` | Below this size the cache file is never purged; `"0"` allows a purge at any size. |
 | `max_concurrent_writes` | `0` (unlimited) | Cap on message bodies being written to disk at once, per process, for every driver. A slow volume can be kept from being swamped by a burst; spinning disks suit a few dozen, SSDs a few hundred. |
 

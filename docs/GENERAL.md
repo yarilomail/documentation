@@ -2,6 +2,14 @@
 
 The `general` section defines infrastructure settings shared across all listeners. Individual services can override `ssl` per-listener with their own `ssl:` block.
 
+## How numeric settings read
+
+The defaults in these pages are the binary's, and the Helm chart's `values.yaml` carries the same numbers. From 2.4.2:
+
+- A key left out keeps its default, in `yarilo.yaml` and in each entry of a list (`oauth2`, `quota_warnings`, `mail_servers`).
+- An explicit `0` turns a setting off (a cache, a delay, a limit, an interval that may stop), as each table says. Where off makes no sense (a timeout that must bound, a pool size, a poll interval), an explicit `0` stops the process at startup with the key's name.
+- A negative value is refused, except where a page says otherwise (`lmtp_user_concurrency_limit: -1` is unlimited).
+
 ---
 
 ## `hostname` (top level)
@@ -167,3 +175,47 @@ login:
 ```
 
 In the Helm chart the value is `login.login_proxy_timeout`.
+
+## `login` transient retries
+
+Read by the IMAP, POP3, Submission and ManageSieve login proxies.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `transient_retries` | `3` | Extra attempts a transient failure gets (auth temporary failure, auth dial, backend session setup) before the client is told the service is unavailable. `0` fails on the first error. |
+| `transient_relogin_cap` | `3` | Once the retries are spent the proxy answers `NO [UNAVAILABLE]` and keeps the connection open for another login. This many such answers close the connection. Independent of `auth_max_attempts`. `0` closes on the first. |
+
+In the Helm chart: `login.transientRetries`, `login.transientReloginCap`.
+
+## Startup waits
+
+A process that starts while a dependency rolls waits for it instead of exiting into a restart loop. The wait applies at startup only; requests do not use it.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `auth_service.auth_startup_wait` | `30` | Seconds to wait for yarilo-auth. `0` does not wait. |
+| `locks_client.locks_client_startup_wait` | `30` | Seconds to wait for yarilo-locks. `0` does not wait. |
+
+In the Helm chart: `components.auth.startup_wait`, `components.locks.client.startup_wait`.
+
+## `auth_client` pool
+
+Userdb lookups from session processes reuse pooled connections to yarilo-auth.
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `auth_client_pool_size` | `4` | Connections kept open. `0` dials per lookup. On shutdown each connection still serving a lookup is waited for up to a second. |
+| `auth_client_pool_idle_timeout` | `300` | Seconds an unused connection is kept. `0` never closes one for idleness. |
+
+In the Helm chart: `components.auth.client.pool_size`, `components.auth.client.pool_idle_timeout`.
+
+## `internal_tls` session resumption
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `session_cache_size` | `64` | TLS sessions an internal client keeps for resumption. `0` turns resumption off. |
+| `session_cache_ttl` | `0` | Seconds a cached session may be resumed. `0` keeps it until the cache evicts it. |
+
+In the Helm chart: `internalTLS.sessionCacheSize`, `internalTLS.sessionCacheTtl`.
+
+A negative value is refused at startup for every key above.
