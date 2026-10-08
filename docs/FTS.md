@@ -1,7 +1,9 @@
 # Full-text search (FTS) — design
 
-Status: **design / plan, revision 4** (issue #250, Phase FTS-1). Revisions 1–3
-were reviewed before implementation; slices land per §14.
+Status: **implemented** — the `flatcurve` engine in the `yarilo-fts` service,
+with SEARCH integration and the scan fallback. This page began as the design
+(issue #250, revision 4) and keeps its reasoning; §13 onward is the operator
+reference. The Bleve engine is a separate stream (§9.2).
 
 Full-text indexing of message bodies and headers so that IMAP `SEARCH BODY`,
 `SEARCH TEXT` and `SEARCH HEADER` are answered from an index instead of a
@@ -39,20 +41,14 @@ here so the implementation can be checked against them.
 
 ---
 
-## 2. Current state
+## 2. Before FTS
 
-`SEARCH BODY`/`TEXT` already **work**, but via a brute-force scan: the session
-loads every message in the folder and, for any criteria that needs the body,
-fetches the **entire raw message** and matches it with go-imap's
-`MatchMessage`:
-
-- Handler: `session.Search` — `internal/imap/server.go:2157`.
-- `needsBody` decision — `internal/imap/server.go:2176`.
-- Per-message `Fetch` + `MatchMessage` — `internal/imap/server.go:2190`.
-
-FTS replaces this scan with an index lookup returning candidate UIDs,
-intersected with the remaining (flag / date / seq) criteria. The scan remains
-as the fallback — nothing regresses.
+`SEARCH BODY`/`TEXT` used to be answered by a brute-force scan: the session
+loaded every message in the folder and, for criteria that need the body,
+fetched the raw message and matched it with go-imap's `MatchMessage`. FTS
+replaces the scan with an index lookup returning candidate UIDs, intersected
+with the remaining (flag / date / seq) criteria. The scan stays as the
+fallback (§11).
 
 ---
 
@@ -445,14 +441,21 @@ TAB-delimited, LF-terminated protocol with version handshake (internal-protocol
 style). Requests:
 
 ```
-INDEX   <user> <folder-guid> <max-uid> <max-recent>   # autoindex / catch-up
-PREPEND <user> <folder-guid> <max-uid>                # priority (on-demand search)
-EXPUNGE <user> <folder-guid> <uid>
-LOOKUP  <user> <query-wire>                           # returns UIDs (+scores) per folder
-RESCAN  <user> [<folder-guid>]
-OPTIMIZE <user>
-STATUS  <user> <folder-guid>                          # last_indexed_uid
+INDEX      <user> <mailbox> <max-uid> <max-recent>   # autoindex / catch-up
+PREPEND    <user> <mailbox> <max-uid>                # priority (on-demand search)
+EXPUNGE    <user> <mailbox> <uid> <message-guid>
+LOOKUP     <user> <mailbox> <query>                  # returns UIDs (+scores)
+LOOKUPIN   <user> <request>                          # one search over a set of folders (base64 JSON)
+STATUS     <user> <mailbox>                          # last_indexed_uid, checksum
+RESCAN     <user> <mailbox>
+RESCANUSER <user>                                    # every folder, under one hold
+DROPFOLDER <user> <mailbox>                          # a deleted mailbox: drop its folder terms
+OPTIMIZE   <user>
+COUNTS     <user>                                    # what `yarctl fts status` shows
 ```
+
+`<mailbox>` is three fields: the folder name, its GUID and its UIDVALIDITY. A
+connection opens with `VERSION` (protocol version `2`).
 
 - **Worker loop** (INDEX): read checkpoint → walk
   `lastIndexedUID+1 .. max-uid` → fetch message → `buildmail` → engine update
@@ -610,8 +613,12 @@ fts:
 
   ## Service topology (yarilo-locks precedent).
   fts_mode: remote                  # remote (k8s) | embedded (tests/CLI)
-  fts_addr: ""                      # e.g. "yarilo-fts:9106"
+  fts_addr: ""                      # e.g. "yarilo-fts:9106"; the chart's default is localhost (co-located)
+  fts_listen: ":9106"               # yarilo-fts: where it serves
+  fts_auth_master_addr: ""          # yarilo-fts: userdb of the user being indexed (storage identity)
   fts_max_conns: 4                  # connections per session process — see below
+  fts_storage_type: local           # local | nfs — what the index sits on; nfs skips directory fsyncs (#1176)
+  fts_handle_idle_timeout: 300      # an idle per-user index handle is closed, releasing its write lock (#1396); 0 never closes one
 
   ## Indexing behaviour.
   fts_autoindex: false
@@ -624,7 +631,8 @@ fts:
   ## Search behaviour.
   fts_search_add_missing: body-search-only
   fts_search_read_fallback: true    # see §11 — our scan exists, default safe
-  fts_search_timeout: 30s
+  fts_search_timeout: 30            # seconds — an integer; "30s" fails to load
+  fts_search_first_index_grace: 10  # seconds to wait for a mailbox with nothing indexed yet (#1379)
   fts_search_strict: false          # RFC substring verification of candidates
   fts_search: true                  # false = SEARCH-only degrade, indexing keeps running (#726)
 
@@ -642,10 +650,13 @@ fts:
   language_tokenizer_generic_explicit_prefix: false # TR29-only, errors if true (#726)
 
   ## Decoder (Phase 3).
-  fts_decoder_driver: ""            # "" | script | tika
-  fts_decoder_script_socket_path: ""
+  fts_decoder_driver: none          # none | script | tika
+  fts_decoder_script_addr: ""       # unix:///path/to.sock, or host:port for a decoder Service
   fts_decoder_tika_url: ""
+  fts_decoder_max_size: ""          # attachment bytes sent to the decoder per part; empty/0 = unlimited
+  fts_decoder_timeout_secs: 30      # one decode call; must be positive
   fts_decoder_max_attempts: 2       # tika attempts against network/5xx; must be positive
+  fts_dedup_body_parts: false       # skip a part whose text was already indexed for the same message (#669)
 
   ## Engine-specific: flatcurve (fts_engine: "flatcurve"; the yarilo-fts
   ## binary links libxapian — cgo confined to the fts Deployment image).
@@ -658,8 +669,10 @@ fts:
   fts_flatcurve_substring_search: false
 ```
 
-Helm: `components.fts` Deployment (replicas 1; ClusterIP `:9106`; the index
-volume). `appVersion` bump ships with each feature slice.
+Helm: by default (`components.backend.coLocated: true`) `yarilo-fts` runs in
+the backend pod beside the sessions, and `fts_addr` is `localhost:<port>`, so a
+user's sticky pod is the only writer of their index. Only without co-location
+does the chart render a separate `<release>-fts` Deployment and Service.
 
 ### The index queue
 
@@ -927,7 +940,7 @@ evaluated and accepted — not gaps to close silently:
 
 ## 14. Phases
 
-1. **FTS-1** (in progress): `pkg/fts` interface ✅ (PR #580) +
+1. **FTS-1** (done): `pkg/fts` interface ✅ (PR #580) +
    **flatcurve engine** ✅ (PR #581; Xapian cgo confined to the `yarilo-fts`
    binary) + `internal/fts/buildmail` ✅ + `internal/fts/language` ✅
    (stemming on by default) + the `yarilo-fts` service (queue, worker,
