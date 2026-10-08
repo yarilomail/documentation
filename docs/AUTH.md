@@ -22,6 +22,7 @@ A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters �
 | `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`. |
 | `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; negative = never. |
 | `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; negative = never. |
+| `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2 ([yarilo#2168](https://github.com/yarilomail/yarilo/pull/2168)). |
 
 ```yaml
 auth:
@@ -151,7 +152,9 @@ bob@example.com:{SHA512-CRYPT}$6$salt$hash
 One shared credential and a set of templated fields applied to **every** user.
 Serves both passdb and userdb roles. For tests, single-mailbox installs, and
 proxy front-ends. Because it matches every username it must be placed **last**
-in the chain.
+in the chain, and given a `username_filter` unless every name really is a user:
+without one, a userdb lookup — delivery, quota-status — finds any address, so
+mail to a name nobody has is accepted.
 
 ```yaml
 auth:
@@ -171,6 +174,19 @@ auth:
 | `static_password` | Shared password (`{SCHEME}` prefix or `passdb_default_password_scheme`). `${ENV_VAR}` expanded at startup. |
 | `nopassword` | `true` accepts **any** password — for proxy front-ends where the upstream authenticates. Mutually exclusive with `static_password`. |
 | `fields` | Templated user fields. Values expand `%u` / `%n` / `%d`. `userdb_`-prefixed keys populate the userdb; bare keys are forwarded on the passdb path (`allow_nets`, `proxy`, …). |
+| `userdb_static_allow_all_users` | `false` (default): a userdb lookup with no login before it answers only for a user some passdb in the chain knows. `true`: answers any name. Because a static entry is its own passdb too, the two agree for every name its `username_filter` accepts. From 2.4.2. |
+
+Only one account, the rest from SQL:
+
+```yaml
+auth:
+  passdb:
+    - driver: mysql
+      dsn: "${YARILO_DB_DSN}"
+    - driver: static
+      username_filter: "smoke@example.test"
+      static_password: "${YARILO_STATIC_PASSWORD}"
+```
 
 Proxy front-end (accept any credential, let the backend verify):
 
