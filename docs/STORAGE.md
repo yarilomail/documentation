@@ -74,13 +74,12 @@ honours it; dbox stays index-authoritative.
 index-authoritative and does not scan storage on every access, but it self-heals
 reactively. When an **sdbox** read hits a missing or corrupt message file the folder is
 flagged (a persisted FSCKD marker in the index header); the next SELECT, STATUS or IDLE
-poll then heals the index under the mailbox lock — every record whose file has vanished is
+poll (or POP3 login) then heals the index under the mailbox lock — every record whose file has vanished is
 expunged (with a QRESYNC tombstone), surviving messages keep their UID. Transient I/O
 errors (EIO, timeouts) do not trigger a heal.
 
-The switch is honoured by IMAP only. A POP3 login heals a flagged INBOX whatever it is set
-to ([yarilo#2159](https://github.com/yarilomail/yarilo/issues/2159)), so turning it off does
-not stop a heal while POP3 clients connect.
+Turning the switch off stops the heal on every path, IMAP and the POP3 login alike. Reads
+still flag folders while it is off, so turning it back on heals them on the next open.
 
 **mdbox** now self-heals reactively too, the same way as sdbox: a read that trips over a
 missing/corrupt message flags the folder FSCKD, and the next SELECT/STATUS/IDLE poll (or
