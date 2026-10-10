@@ -288,7 +288,7 @@ yarctl director users kick alice@example.com
 
 ### `director domains move`
 
-With `assignment_policy: domain`, move a domain to another backend of its tag and kick the domain's sessions on the old one. The backend is named by its IP.
+With `assignment_policy: domain`, move a domain to another backend of its tag and kick the domain's sessions on the old one. The backend is named by its IP. Users of the domain without a live session follow at their next login: their sticky entries are not trusted once they no longer name the domain's backend.
 
 ```sh
 yarctl director domains move <domain> <backend-ip>

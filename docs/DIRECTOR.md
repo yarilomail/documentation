@@ -161,7 +161,10 @@ Every login proxy (imap/pop3/submission/managesieve/lmtp) routes sessions one of
 > **Sharing mailboxes between users of a domain?** Set
 > `assignment_policy: domain` (#1943): a domain is placed on the backend with
 > the fewest connections and every user of it follows, with no hash template to
-> get right. The older pairing below still works and stays supported.
+> get right. A user's sticky entry holds only while it names the domain's
+> backend: after a move, users who logged in before it follow at their next
+> login instead of riding their entry to the old backend (#2193). The older
+> pairing below still works and stays supported.
 >
 > **The older pairing:** set `username_hash: "%Ld"`
 > **and** `assignment_policy: hash`. The default hashes the whole address, so
