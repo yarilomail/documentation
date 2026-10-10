@@ -296,7 +296,7 @@ CLI: `yarctl director users kick alice@example.com`
 
 #### `POST /api/director/domains/{domain}/move`
 
-With `assignment_policy: domain`, move a domain to another backend of the same tag. The domain is placed on the new backend around the ring, then its sessions on the old backend are kicked; its users log in again on the new one. The rebalancer moves domains the same way when the spread passes `domain_rebalance_percent`; this is the operator's move.
+With `assignment_policy: domain`, move a domain to another backend of the same tag. The domain is placed on the new backend around the ring, then its sessions on the old backend are kicked; its users log in again on the new one. The rebalancer moves domains the same way when the spread passes `director_domain_rebalance_percent`; this is the operator's move.
 
 The backend is named by its IP; its address comes from the ring.
 
