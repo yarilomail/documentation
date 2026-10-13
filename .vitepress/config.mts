@@ -84,7 +84,8 @@ export default defineConfig({
       { text: 'Install', link: '/INSTALL' },
       { text: 'Architecture', link: '/ARCHITECTURE' },
       { text: 'Features', link: '/PARITY' },
-      { text: 'Admin', link: '/YARILO-ADMIN' }
+      { text: 'Admin', link: '/YARILO-ADMIN' },
+      { text: 'Security', link: '/SECURITY' }
     ],
     sidebar: [
       {
@@ -155,7 +156,8 @@ export default defineConfig({
         items: [
           { text: 'yarilo-admin', link: '/YARILO-ADMIN' },
           { text: 'Testing', link: '/TESTING' },
-          { text: 'Smoke Tests', link: '/SMOKE' }
+          { text: 'Smoke Tests', link: '/SMOKE' },
+          { text: 'Security policy', link: '/SECURITY' }
         ]
       }
     ]
