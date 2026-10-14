@@ -12,7 +12,7 @@ function pageMeta(text: string): { title: string; desc: string } {
     const t = block.trim()
     if (!t || t.startsWith('#') || t.startsWith('```') || t.startsWith('|') ||
         t.startsWith(':::') || t.startsWith('---') || t.startsWith('<')) continue
-    desc = t.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/`/g, '')
+    desc = t.replace(/\s+/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/`|\*\*|__/g, '')
     break
   }
   return { title, desc }
@@ -56,12 +56,33 @@ export default defineConfig({
   },
   /* Per-page meta description: frontmatter `description` wins; otherwise
      the page's first prose paragraph, so no page falls back to the
-     site-wide one-liner. */
+     site-wide one-liner. Also emits the canonical link (GitHub Pages
+     serves /PAGE.html as a duplicate of /PAGE) and per-page Open Graph
+     tags built from the same title and description. */
   transformPageData(pageData, { siteConfig }) {
-    if (pageData.frontmatter.description) return
-    const file = join(siteConfig.srcDir, pageData.filePath)
-    const { desc } = pageMeta(readFileSync(file, 'utf8'))
-    if (desc) pageData.description = snippet(desc)
+    if (!pageData.frontmatter.description) {
+      const file = join(siteConfig.srcDir, pageData.filePath)
+      const { desc } = pageMeta(readFileSync(file, 'utf8'))
+      if (desc) pageData.description = snippet(desc)
+    }
+    const url = `${SITE}/${pageData.relativePath}`
+      .replace(/index\.md$/, '')
+      .replace(/\.md$/, '')
+    const title = pageData.frontmatter.title || pageData.title || 'Yarilo'
+    const description = pageData.frontmatter.description || pageData.description
+    pageData.frontmatter.head ??= []
+    pageData.frontmatter.head.push(
+      ['link', { rel: 'canonical', href: url }],
+      ['meta', { property: 'og:url', content: url }],
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { name: 'twitter:title', content: title }],
+    )
+    if (description) {
+      pageData.frontmatter.head.push(
+        ['meta', { property: 'og:description', content: description }],
+        ['meta', { name: 'twitter:description', content: description }],
+      )
+    }
   },
   title: 'Yarilo',
   description: 'Yarilo mail server documentation',
@@ -69,7 +90,18 @@ export default defineConfig({
   cleanUrls: true,
   sitemap: { hostname: 'https://doc.yarilomail.org' },
   lastUpdated: true,
-  head: [['link', { rel: 'icon', href: '/icon.svg' }]],
+  head: [
+    ['link', { rel: 'icon', href: '/icon.svg' }],
+    ['meta', { property: 'og:type', content: 'article' }],
+    ['meta', { property: 'og:site_name', content: 'Yarilo documentation' }],
+    // Social preview, shared with yarilomail.org. Absolute URL is required:
+    // crawlers do not resolve relative paths.
+    ['meta', { property: 'og:image', content: `${SITE}/og.png` }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: `${SITE}/og.png` }],
+  ],
   themeConfig: {
     logo: '/icon.svg',
     search: { provider: 'local' },
@@ -85,7 +117,8 @@ export default defineConfig({
       { text: 'Architecture', link: '/ARCHITECTURE' },
       { text: 'Features', link: '/PARITY' },
       { text: 'Admin', link: '/YARILO-ADMIN' },
-      { text: 'Security', link: '/SECURITY' }
+      { text: 'Security', link: '/SECURITY' },
+      { text: 'yarilomail.org', link: 'https://yarilomail.org' }
     ],
     sidebar: [
       {
