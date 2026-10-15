@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, type PageData } from 'vitepress'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -50,6 +50,61 @@ function snippet(text: string, max = 155): string {
   return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:]$/, '') + '…'
 }
 
+/* Schema.org JSON-LD for a docs page: a TechArticle and its breadcrumb, or
+   on the docs home the WebSite node instead of the breadcrumb. The publisher is the Organization that
+   yarilomail.org defines, referenced by its @id, so both sites resolve to one
+   project. */
+const ORG_ID = 'https://yarilomail.org/#organization'
+
+function jsonLd(pageData: PageData, url: string, title: string, description?: string) {
+  const isHome = pageData.relativePath === 'index.md'
+  const graph: object[] = [
+    {
+      '@type': 'TechArticle',
+      '@id': `${url}#article`,
+      mainEntityOfPage: url,
+      headline: title,
+      description,
+      dateModified: pageData.lastUpdated
+        ? new Date(pageData.lastUpdated).toISOString()
+        : undefined,
+      inLanguage: 'en',
+      isPartOf: { '@id': `${SITE}/#website` },
+      publisher: { '@id': ORG_ID },
+    },
+  ]
+  if (!isHome) {
+    // A one-item trail is not shown in results, so the docs home has none.
+    const crumbs = [
+      { name: 'Yarilo documentation', item: `${SITE}/` },
+      { name: title, item: url },
+    ]
+    graph.push({
+      '@type': 'BreadcrumbList',
+      itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, ...c })),
+    })
+  } else {
+    graph.push(
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE}/#website`,
+        url: `${SITE}/`,
+        name: 'Yarilo documentation',
+        inLanguage: 'en',
+        publisher: { '@id': ORG_ID },
+      },
+      {
+        '@type': 'Organization',
+        '@id': ORG_ID,
+        name: 'YariloMail',
+        alternateName: 'Yarilo',
+        url: 'https://yarilomail.org/',
+      },
+    )
+  }
+  return { '@context': 'https://schema.org', '@graph': graph }
+}
+
 export default defineConfig({
   buildEnd(siteConfig) {
     buildLlmsTxt(siteConfig.srcDir, siteConfig.outDir)
@@ -83,6 +138,9 @@ export default defineConfig({
         ['meta', { name: 'twitter:description', content: description }],
       )
     }
+    pageData.frontmatter.head.push(
+      ['script', { type: 'application/ld+json' }, JSON.stringify(jsonLd(pageData, url, title, description))],
+    )
   },
   title: 'Yarilo',
   description: 'Yarilo mail server documentation',

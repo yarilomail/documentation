@@ -19,6 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: lastUpdated (the "Last updated" line and the
+          # JSON-LD dateModified) reads each page's last commit, and a
+          # shallow clone gives every page the date of the newest one.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
