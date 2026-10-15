@@ -1,10 +1,8 @@
 # JMAP configuration
 
 The session resource, the request envelope and the Mail and Quota methods listed
-under [Capabilities](#capabilities) are served. `Mailbox/set`, blob upload and push
-are not implemented
-([#712](https://github.com/yarilomail/yarilo/issues/712),
-[#714](https://github.com/yarilomail/yarilo/issues/714)).
+under [Capabilities](#capabilities) are served, reading and writing. Push is not
+implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)).
 
 JMAP runs as two binaries, not one. `yarilo-jmap-login` faces clients and
 `yarilo-jmap` owns the user's state; see
@@ -75,6 +73,7 @@ clients batch against what is published.
 | `jmap_query_max_limit` | `256` | Server ceiling on ids returned by one query. A smaller client `limit` wins; the response reports the limit applied. |
 | `jmap_max_query_folders` | `64` | Mailboxes one full-text `Email/query` may search. A query over more is refused, never answered from part of them. |
 | `jmap_snippet_max_chars` | `256` | Visible characters in a `SearchSnippet` preview. Markup and HTML escapes are not counted; the subject is never cut. |
+| `jmap_upload_ttl` | `3600` | Seconds an uploaded blob is kept for `Email/import` or `Email/set`. Uploading the same bytes again starts the clock again. `0` is refused at load. |
 | `jmap_push_timeout` | `90` | Idle timeout for a push connection, seconds. Unused: push is not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)). |
 | `jmap_cors_allow_origins` | `[]` | Browser origins allowed to call the endpoint. Empty denies every cross-origin request. Exact match, scheme included. |
 
@@ -148,6 +147,8 @@ level.
 | Bound | Enforced by | Refusal |
 |:---|:---|:---|
 | `jmap_max_size_request` | `yarilo-jmap-login`, at the edge | `413` with a `limit` problem naming `maxSizeRequest` |
+| `jmap_max_size_upload` | `yarilo-jmap-login` on the upload path, and `yarilo-jmap` | `413` with a `limit` problem naming `maxSizeUpload` |
+| `jmap_max_objects_in_set` | `yarilo-jmap` | `requestTooLarge` for a `Foo/set` or `Email/import` over the limit, before anything is written |
 | `jmap_max_calls_in_request` | `yarilo-jmap` | `400` with a `limit` problem naming `maxCallsInRequest` |
 
 The body cap runs in the login pod so an oversized request is refused before it
@@ -168,8 +169,9 @@ parseable answer.
 
 ## Mailboxes
 
-`Mailbox/get` and `Mailbox/query` are read-only and expose the **personal
-namespace** only; shared and public namespaces are not served over JMAP.
+JMAP exposes the **personal namespace** only; shared and public namespaces are
+not served over JMAP. See [Changing mailboxes](#changing-mailboxes) for
+`Mailbox/set`.
 
 | JMAP member | Source |
 |:---|:---|
@@ -209,7 +211,7 @@ to know.
 
 ## Emails
 
-`Email/get` is read-only. It answers by id — a null `ids` is refused, since it
+`Email/get` answers by id — a null `ids` is refused, since it
 would select every message the account has and no limit would bound the cost.
 
 | JMAP member | Source |
@@ -427,7 +429,11 @@ journal exists, so a client refetches rather than diffing.
 
 ### Download
 
-`GET /jmap/download/{accountId}/{blobId}/{name}` streams the message.
+`GET /jmap/download/{accountId}/{blobId}/{name}` streams a blob: a whole
+message, one part of it, or an upload.
+
+Every body part of `Email/get` carries its own `blobId`. A part downloads as its
+decoded content, so an attachment comes back as the bytes that were attached.
 
 The blob is resolved against the authenticated user's own mail **before**
 anything is opened, so a blobId belonging to somebody else is a `404` that never
@@ -442,23 +448,84 @@ crafted message can never render in the origin that serves the API.
 
 ---
 
+## Uploading and importing
+
+To upload a blob, `POST` its bytes to the session's `uploadUrl`:
+
+```sh
+curl -u u1@example.com:secret --data-binary @message.eml \
+  -H 'Content-Type: message/rfc822' https://mail.example.com/jmap/upload/u1@example.com/
+```
+
+The answer is `201` with `accountId`, `blobId`, `type` and `size`. This upload:
+
+- names the blob after its content, so the same bytes get the same `blobId` and
+  start its lifetime again;
+- is kept for `jmap_upload_ttl` seconds, then removed;
+- is refused with `507` when the account's storage limit has no room for it
+  together with the uploads it already holds;
+- is visible to its own account only: another account's `blobId` is not found.
+
+Uploads are not mail. They do not count in `Quota/get` or IMAP `GETQUOTA`.
+
+To store a blob as a message, use `Email/import` (RFC 8621 §4.8) with its
+`blobId`, the `mailboxIds` to put it in, and optionally `keywords` and
+`receivedAt`. The blob may be an upload, an existing message or one of its
+parts. An import is stored as a delivery is: quota, full-text indexing,
+threading and IDLE notifications follow it.
+
+## Changing emails
+
+`Email/set` (RFC 8621 §4.6) creates, updates and destroys.
+
+- **create** builds a message from its properties: the address, subject, date
+  and id headers, and a body given as `bodyStructure` or as `textBody`,
+  `htmlBody` and `attachments`. A part's content is a `bodyValues` entry or a
+  `blobId`. `Date` and `Message-ID` are added when not given.
+- **update** sets `keywords`, whole or one at a time (`keywords/$seen`), and
+  `mailboxIds`, whole or one at a time (`mailboxIds/<id>`). Moving keeps the
+  Email's id. A message is never left in no mailbox.
+- **destroy** removes the Email from every mailbox it is in.
+
+A move does not count against the quota; a copy into another mailbox does. Each
+object fails on its own: one refused id does not fail the rest of the call.
+
+## Changing mailboxes
+
+`Mailbox/set` (RFC 8621 §2.5) creates, renames, moves and destroys mailboxes.
+Names are checked as IMAP `CREATE` checks them, and `isSubscribed` writes the
+subscription list IMAP reads.
+
+| Refusal | When |
+|:---|:---|
+| `alreadyExists` | the name is taken |
+| `forbidden` | renaming or destroying INBOX |
+| `mailboxHasChild` | destroying a mailbox with children |
+| `mailboxHasEmail` | destroying a mailbox with mail, without `onDestroyRemoveEmails` |
+| `overQuota` | `quota_mailbox_count` is reached |
+
+A renamed mailbox keeps its id and its access rights.
+
+---
+
 ## Capabilities
 
 | Capability | RFC | State |
 |:---|:---|:---|
 | Core — session | RFC 8620 §2 | served |
 | Core — request envelope, back-references, `Core/echo` | RFC 8620 §3–§4 | served |
-| Mail — `Mailbox/get`, `Mailbox/query` | RFC 8621 §2 | served, read-only |
-| Mail — `Email/get` (envelope, bodies, preview) | RFC 8621 §4 | served, read-only |
-| Mail — `Email/query` (index and full-text conditions), blob download | RFC 8621 §4.4, RFC 8620 §6.2 | served, read-only |
+| Mail — `Mailbox/get`, `Mailbox/query`, `Mailbox/set` | RFC 8621 §2 | served |
+| Mail — `Email/get` (envelope, bodies, preview) | RFC 8621 §4 | served |
+| Mail — `Email/query` (index and full-text conditions) | RFC 8621 §4.4 | served |
+| Core — blob upload and download | RFC 8620 §6 | served |
+| Mail — `Email/import` | RFC 8621 §4.8 | served |
 | Mail — `SearchSnippet/get` | RFC 8621 §5 | served |
 | Mail — `Thread/get`, `Thread/changes` | RFC 8621 §3 | served from the account's threading state; a merge is reported in `Email/changes` as well, since a client groups by the `threadId` it holds |
 | Mail — `Mailbox/changes` | RFC 8621 §2 | served |
 | Mail — `Email/changes` | RFC 8621 §4 | served |
 | Mail — `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
-| Mail — `Email/set` | RFC 8621 §4.6 | keyword updates; `create` and `destroy` are refused with a pointer to IMAP `APPEND`, LMTP delivery or IMAP `EXPUNGE` |
+| Mail — `Email/set` | RFC 8621 §4.6 | served: create, keywords, `mailboxIds`, destroy |
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
-| Mail — `Mailbox/set`, blob upload | RFC 8621 §2.5, RFC 8620 §6.1 | not implemented ([#712](https://github.com/yarilomail/yarilo/issues/712)) |
 | Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
@@ -515,7 +582,7 @@ result to remember.
 smoketest -host mail.example.com -jmap -jmap-user u1@example.com -jmap-pass secret
 ```
 
-Four checks:
+The checks:
 
 1. an anonymous request is refused with `401`;
 2. an authenticated one returns a session resource carrying `capabilities`;
@@ -533,7 +600,10 @@ Four checks:
 8. a download for another account's blob is refused with `404`;
 9. a delivered message is found by a `text` condition and read back, and a
    marker that was never delivered finds nothing — the second half is what
-   makes the first mean the condition was applied.
+   makes the first mean the condition was applied;
+10. a round trip through a JMAP client library: a message is uploaded and
+    imported, marked read, moved to a new mailbox and destroyed, and a second
+    client sees each step in `Email/changes`.
 
 Check 7 needs at least one message in the account. Check 9 needs `-fts-user`,
 which states that full-text search is configured, and delivery flags —
