@@ -34,7 +34,7 @@ Four validation modes:
 
 | Mode | Required fields | Notes |
 |:---|:---|:---|
-| `local` | `oauth2_jwks_url` | JWT signature verify against a cached JWKS. No HTTP call per login. RECOMMENDED when the IdP issues signed JWTs (Google, Microsoft, most OIDC providers). |
+| `local` | `oauth2_jwks_url` and/or `oauth2_local_keys` | JWT signature verify against operator-provided keys and/or a cached JWKS. No HTTP call per login. RECOMMENDED when the IdP issues signed JWTs (Google, Microsoft, most OIDC providers). |
 | `introspection` | `oauth2_introspection_url`, usually `oauth2_client_id` + `oauth2_client_secret` | RFC 7662 introspection. Supports opaque (non-JWT) tokens. Slower (one HTTP call per login). |
 | `tokeninfo` | `oauth2_tokeninfo_url` | Google-style endpoint (`?access_token=…`). Pre-OIDC providers. |
 | `discovery` | `oauth2_issuer_url` | Auto-resolves `jwks_uri` + `introspection_endpoint` from `<issuer>/.well-known/openid-configuration`. PREFERRED for new deployments — least operator config. |
@@ -54,6 +54,61 @@ Four validation modes:
 | `oauth2_token_expire_grace_seconds` | `60` | Clock-skew tolerance after the token's `exp`. |
 | `oauth2_http_timeout_ms` | `5000` | Round-trip cap for introspection / tokeninfo / discovery / JWKS refresh. |
 | `oauth2_prefer_introspection` | `false` | `discovery` mode only: when the document advertises both, validate through the introspection endpoint instead of the JWKS. |
+| `oauth2_tls_ca` | `""` | PEM file of the CAs this entry's HTTPS calls (JWKS, introspection, tokeninfo, discovery, grant) trust, **instead of** the system roots. Empty uses the system roots. A missing or certificate-less file stops `yarilo-auth` at startup. |
+| `oauth2_grant_url` | `""` | Token endpoint for the [password grant](#password-grant). Must be `https`; needs `oauth2_client_id`. |
+| `oauth2_force_introspection` | `false` | See [forced introspection](#forced-introspection). |
+| `oauth2_local_keys` | `[]` | `local` mode only: see [local keys](#local-keys). |
+
+### Password grant
+
+With `oauth2_grant_url` set, a **plaintext** login (PLAIN, LOGIN) that
+reaches the entry has its username and password exchanged at the token
+endpoint (`grant_type=password`, plus `client_id`, `client_secret` and
+`scope` when set). A token from OAUTHBEARER or XOAUTH2 is never sent there.
+
+- The token endpoint's reply stands when it already carries
+  `oauth2_username_attribute` (and `oauth2_active_attribute`, when set);
+  otherwise the access token it returned is validated by the entry's mode,
+  exactly like a presented token.
+- `invalid_grant` is a wrong password: the chain goes on to the next passdb.
+  Any other failure (endpoint down, `invalid_client`, a reply without
+  `access_token`) is a temporary failure.
+- The URL must be `https` — the request carries the user's password — and
+  `oauth2_client_id` is required.
+
+### Local keys
+
+In `local` mode, `oauth2_local_keys` lists verification keys the operator
+provides, so the IdP's keys can be pinned or a JWKS endpoint is not needed
+at all. Each key is picked by the token's `azp` claim, its `alg` header and
+its `kid` header; a token without `azp` or `kid` matches the key whose
+`oauth2_local_key_azp` / `oauth2_local_key_kid` is empty (or `default`).
+
+| Field | Notes |
+|:---|:---|
+| `oauth2_local_key_alg` | `HS256`/`HS384`/`HS512` (shared secret), `RS256`/`RS384`/`RS512`, `PS256`/`PS384`/`PS512`, `ES256`/`ES384`/`ES512`, `EdDSA` |
+| `oauth2_local_key_azp` | Client the key belongs to; empty = `default` |
+| `oauth2_local_key_kid` | Key id; empty = `default` |
+| `oauth2_local_key_file` | For HS*: the shared secret, base64 (standard or URL-safe). Otherwise a PEM `PUBLIC KEY`. |
+
+- `HS*` means a **shared secret**: whoever holds the file can mint tokens.
+  An HS token is checked only against these files, never against the JWKS.
+- A token the local keys do not name falls back to `oauth2_jwks_url`, when
+  one is configured.
+- A key file that does not parse, or a key that cannot sign its `alg`
+  (an ES384 entry holding a P-256 key), stops `yarilo-auth` at startup.
+
+### Forced introspection
+
+`oauth2_force_introspection: true` sends a token to
+`oauth2_introspection_url` even when the tokeninfo reply or the password
+grant reply already names the user. It has no effect on a token validated
+locally, so the config is refused where nothing would reach it: in
+`tokeninfo` mode without `oauth2_introspection_url`, and in other modes
+without `oauth2_grant_url`.
+
+In `tokeninfo` mode, `oauth2_introspection_url` also decides any token whose
+tokeninfo reply does not name the user.
 
 ### Introspection sub-modes
 
@@ -71,6 +126,9 @@ selected), `oauth2_introspection_mode` picks the transport:
 The chart builds `auth.oauth2` from `components.auth.oauth2`, where every
 key is the `auth.oauth2` name without the `oauth2_` prefix — with two more
 changes: `oauth2_scope` is `scopes` and `oauth2_fields` is `extra_fields`.
+A `local_keys` entry takes `alg`, `azp`, `kid` and either `file` (a path in
+the pod) or `secret_ref` (`name`, `key`): the chart mounts that Secret key
+into `yarilo-auth` and renders its path.
 
 ```yaml
 components:
@@ -282,8 +340,10 @@ auth:
 
 A login that supplies an opaque token falls through `local` (no
 matching signature → `ResultNext`) and lands in `introspection`.
-A login with a username + plaintext password falls through both
-OAuth entries (no bearer token → `ResultNext`) and reaches SQL.
+A login with a username + plaintext password is tried as a token by both
+OAuth entries, fails, and reaches SQL. With `oauth2_grant_url` on an entry,
+that password is first exchanged at the IdP; `invalid_grant` passes it on to
+SQL, while an unreachable IdP stops the chain with a temporary failure.
 
 ## Error mapping
 
@@ -291,8 +351,8 @@ Validator-level errors translate to chain results:
 
 | Validator error | Chain result | Effect |
 |:---|:---|:---|
-| `ErrUpstream` (network / 5xx) | `ResultTempFail` | Caller maps to `temp_fail`; failure-delay / penalty apply |
-| `ErrTokenExpired` / `ErrTokenInvalid` / `ErrTokenInactive` | `ResultNext` | Chain continues to the next passdb |
+| `ErrUpstream` (network / 5xx, grant failure other than `invalid_grant`) | `ResultTempFail` | Caller maps to `temp_fail`; the internal failure delay applies, the penalty counter is not raised |
+| `ErrTokenExpired` / `ErrTokenInvalid` / `ErrTokenInactive` / grant `invalid_grant` | `ResultNext` | Chain continues to the next passdb |
 | `ErrUsernameMismatch` / `ErrIssuerMismatch` / `ErrAudienceMismatch` / `ErrScopeMissing` / `ErrInactiveAccount` | `ResultNext` | Same — let SQL try the credential as a password |
 
 This means an OAUTHBEARER login that fails validation
