@@ -28,6 +28,25 @@ component pod.
 
 ---
 
+## Authentication
+
+`yarilo-jmap-login` authenticates every request in `yarilo-auth` with the
+service name `jmap`, so the passdb chain, penalties, the policy server, userdb
+fields and `nologin` apply as they do for IMAP:
+
+| `Authorization` | Run as | Configure |
+|:---|:---|:---|
+| `Basic` | a password login | any passdb ([AUTH](./AUTH.md)) |
+| `Bearer` | an OAUTHBEARER login, the token naming the user | an OAuth2 passdb ([OAuth2](./AUTH_OAUTH2.md)) |
+
+A `401` lists the schemes that can succeed: `Basic realm="jmap"`, and
+`Bearer realm="jmap"` only while `yarilo-auth` runs OAUTHBEARER. A refused
+token adds `error="invalid_token"`. With `auth_allow_cleartext: false` both
+schemes are refused over plain HTTP. A `503` means `yarilo-auth` could not
+answer; the client retries the same credentials.
+
+---
+
 ## Trust between the two
 
 The backend runs no authentication of its own: the login layer already ran the

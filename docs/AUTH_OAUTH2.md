@@ -121,6 +121,10 @@ n,a=alice@example.com,\x01host=mail.example.com\x01port=993\x01auth=Bearer <toke
 Fields are separated by `\x01` (ASCII SOH). The `host=` and
 `port=` fields are optional; field order is flexible.
 
+The `a=` authzid is optional too (RFC 7628 §3.1): `n,,\x01auth=Bearer <token>\x01\x01`
+logs in as the user the token names. When `a=` is sent it must match the
+token's user after `oauth2_username_validation_format`.
+
 ### XOAUTH2 (Google/Microsoft legacy)
 
 Client sends a simpler format — no GS2 header, no host/port:
@@ -153,16 +157,27 @@ the service announced:
 - **IMAP** — `AUTH=OAUTHBEARER` and `AUTH=XOAUTH2` in `CAPABILITY`
 - **POP3** — `CAPA` lists them on the `SASL` line
 - **Submission (SMTP)** — the EHLO `AUTH` line lists them
+- **JMAP** — a `401` lists `Bearer realm="jmap"` next to `Basic`; a request's
+  `Authorization: Bearer <token>` is run in `yarilo-auth` as OAUTHBEARER for the
+  `jmap` service, with no authzid, so the token names the user
 
 A bearer token is a password to whoever reads it, so with
 `auth_allow_cleartext: false` both are held back with `PLAIN` and `LOGIN` on a
-connection that is not TLS, not proxied and not local, and refused there.
+connection that is not TLS, not proxied and not local, and refused there. JMAP
+applies the same rule to `Bearer` as to `Basic`: refused over plain HTTP.
 
 ### Failure
 
 A refused login follows RFC 7628 §3.2.2: the server answers with a challenge
 carrying a JSON status, the client acknowledges it with a single `0x01` byte,
 and only then is the login refused (`NO`, `-ERR`, `535`).
+
+JMAP answers a refused token with `401` and
+`WWW-Authenticate: Bearer realm="jmap", error="invalid_token"` (RFC 6750 §3),
+the same for every refusal (a bad or expired token, `nologin`, the policy
+server), so the answer never tells a valid token apart. While `yarilo-auth`
+cannot answer, the request gets `503` instead, for Basic as well: the client
+retries rather than asks for new credentials.
 
 | Mechanism | JSON |
 |:---|:---|
