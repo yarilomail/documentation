@@ -296,6 +296,49 @@ auth:
 > `TINYINT(1)`, so `= 1` is valid. The Go-side check is dialect-agnostic and
 > accepts `1` / `true` / `t` / `yes` / `on` either way.
 
+### Disabling versus blocking login
+
+Two passdb columns stop a login, and they mean different things.
+
+**`enabled` disables the account.** The SQL passdb reads it before it checks the
+password: a false value is refused there, and for login the user does not
+exist. Delivery is decided by `userdb_sql_query` alone, so unless that query
+also filters on the column, mail keeps arriving for a disabled account:
+
+| `enabled` filtered in | Login | Delivery |
+|:---|:---|:---|
+| `passdb_sql_query` and `userdb_sql_query` | refused | refused: the user is unknown to LMTP |
+| `passdb_sql_query` only | refused | accepted: mail keeps arriving |
+
+```sql
+-- passdb_sql_query, both shapes
+SELECT password, active AS enabled FROM mailbox WHERE username = %u
+-- userdb_sql_query, first shape only
+SELECT home, maildir AS mail FROM mailbox WHERE username = %u AND active = 1
+```
+
+**`nologin` blocks the login and keeps the account.** The password is verified
+first; then the login is refused with exactly the answer a wrong password gets,
+and the log carries `reason=nologin`. Delivery and the userdb record are
+untouched. Typical uses: freezing an account during an incident, and archive or
+technical mailboxes that receive mail but are never opened.
+
+`nologin` comes from any passdb column or expression of that name. True is
+`1` / `yes` / `y` / `true` / `t` / `on` (case-insensitive); anything else,
+an empty value or `NULL` included, lets the login through. A schema with an
+`active` column usually has no `nologin`, so the operator adds one of these:
+
+```sql
+-- a column
+ALTER TABLE mailbox ADD nologin TINYINT(1) NOT NULL DEFAULT 0;
+SELECT password, active AS enabled, nologin FROM mailbox WHERE username = %u
+
+-- or an expression, with no schema change
+SELECT password, active AS enabled,
+       CASE WHEN username IN ('archive@example.com') THEN 'yes' END AS nologin
+FROM mailbox WHERE username = %u
+```
+
 ### Userdb / passdb extra fields
 
 Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column alias, `userdb_sql_query` output, or an auth-socket `key=value` / `userdb_*` pair — that tune per-user mailbox, access, and proxying behaviour. Unset fields fall back to the global config. Comma-separated fields (`groups`, `acl_groups`, `quota_rule`, `allow_nets`) accept multiple values and merge across repeated assignments. Boolean fields accept `1` / `yes` / `y` / `true` / `t` / `on` (case-insensitive). Unknown keys are preserved in `Extra`; `forward_*` keys populate the proxy forward map.
@@ -380,12 +423,12 @@ the stamped one left in place. Both are logged.
 | Field | Meaning |
 |:---|:---|
 | `allow_nets` | Allowed source IP/CIDR list (comma-separated); empty = no restriction. |
-| `nologin` | Bool: reject login outright. |
+| `nologin` | Bool: refuse the login after the password is verified, with a wrong password's answer; the account and its delivery stay. See [Disabling versus blocking login](#disabling-versus-blocking-login). |
 | `noauthenticate` | Bool: auth disabled for this user. |
 | `nodelay` | Bool: bypass auth-penalty backoff. |
 | `pass_expired` | Bool: password expired, client must reset. |
 | `nopassword` | Bool: accept any password (passdb). |
-| `enabled` | SQL filter column (`WHERE enabled = 1`, or `= true` on a Postgres `BOOLEAN`); not stored as a field. Optional: an absent column counts as active. |
+| `enabled` | SQL filter column (`WHERE enabled = 1`, or `= true` on a Postgres `BOOLEAN`); not stored as a field. Optional: an absent column counts as active. Disables the account for login only; see [Disabling versus blocking login](#disabling-versus-blocking-login) for delivery. |
 
 **Proxy / director** (see [DIRECTOR.md](DIRECTOR.md))
 
