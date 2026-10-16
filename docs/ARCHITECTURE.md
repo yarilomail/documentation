@@ -345,7 +345,7 @@ client ──TLS:993──► yarilo-imap-login
                         │ collect username + password from client
                         │ AUTH request ──mTLS──► yarilo-auth :9100
                         │   passdb chain, brute-force penalty via yarilo-warden
-                        │   → returns session token (64-char hex, one-time, TTL 60s)
+                        │   → returns session token (64-char hex, one session, TTL 60s)
                         │ check nologin / allow_nets from auth response
                         │ routing ──mTLS──► yarilo-director :9102
                         │   → returns yarilo-imap pod address
@@ -362,10 +362,13 @@ client ──TLS:993──► yarilo-imap-login
                         │ reads the YARILO preamble
                         │ VERIFY(token, user=<username>) ──mTLS──► yarilo-auth :9100
                         │   → validates token AND checks token was issued to <username>
-                        │   → token consumed (one-time); returns confirmed username
+                        │   → returns confirmed username; the token is kept
+                        │     until the session opens (a retry may present it)
                         │ USER(username) ──mTLS──► yarilo-auth :9102 (master socket)
                         │   → userdb lookup: home, mail, quota, groups, …
                         │ enters pre-authenticated IMAP state
+                        │ first bytes sent to the login → CONSUME(token): the
+                        │   token opens no second session
                         │ maildir access via RWX PVC
                         │ on disconnect → goroutine exits
                         │
@@ -1059,7 +1062,7 @@ nothing: it fails instead, and the gate installs the tool.
 | A compromised pod calling internal services | each listener accepts only the roles meant to call it, checked in the handshake; NetworkPolicies admit only those pods on the network layer |
 | Cross-pod unauthorized access | mTLS on every internal listener: a certificate from the internal CA with an accepted role |
 | MITM between pods | mTLS; clients verify the server against the internal CA and the pinned name |
-| Session without authentication | a backend accepts a session only with a one-time token that auth issued to that user (VERIFY binds token and user) |
+| Session without authentication | a backend accepts a session only with a token that auth issued to that user and session (VERIFY binds them); the backend whose session opens retires it, so it opens one session |
 | Cross-user mailbox access | only the backend mounts the mail volume; a session opens only the user its token names; director affinity keeps a user on one pod |
 | Auth bypass | no process but auth verifies a credential; its ports admit only the roles in the matrix |
 | Admin API abuse | backend-api and the director admin API need a token and an `admin` (or, on the director, `director-admin`) certificate |
