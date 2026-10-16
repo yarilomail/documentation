@@ -124,6 +124,19 @@ Backend auth logic:
 - Backend's `PreambleListener` reads the preamble, calls yarilo-auth VERIFY (`service=` field enforced), enters pre-authenticated state.
 - Every backend protocol container accepts only the YARILO preamble from login pods (director is control-plane only — it never touches client bytes; #741). Client-IP forwarding into the *login* layer, when needed, is haproxy protocol / native inbound (ID/XCLIENT, #742) / none, chosen per protocol — it never reaches the backend directly. LMTP preamble originates from `yarilo-lmtp-login`.
 
+### Upgrading the backend StatefulSet
+
+A backend pod is replaced in place: the StatefulSet stops the old pod first and
+only then creates the new one, one pod at a time. The tag runs one backend short
+until the new pod is Ready, and that time includes the image pull and the
+scheduling. On the sandbox (`assignment_policy: domain`) a slow pull kept one
+backend down for about 4.5 minutes, its users without service, and with CPU
+requests at 92 % of the node the new pod stayed `Pending` until other old pods
+left. Before `helm upgrade` in production, pull the new image on every node that
+runs backend pods (for example `crictl pull ghcr.io/yarilomail/yarilo:<tag>`),
+and keep free CPU and memory on those nodes for the requests of one more backend
+pod.
+
 ### backend liveness — self-registration + heartbeat (#776)
 
 Backends are registered in the director ring by **self-registration + heartbeat**,
