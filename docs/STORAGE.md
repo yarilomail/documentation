@@ -113,6 +113,13 @@ parity) and should run with the user's mailboxes **quiesced** — no concurrent 
 folder-append nor the restore is serialised on the storage lock, so a concurrent message
 or folder change can race the rebuild.
 
+Each map record is paired with the bytes it names: by its place in the file when the
+GUID there agrees, otherwise by its GUID wherever that message lies. A record found at
+another place is moved there and keeps its map_uid (reported as `repointed`); a record
+whose GUID is found nowhere is dropped as vanished. A folder record whose map_uid is gone,
+or names a message with a different GUID, takes the map_uid that holds its GUID (reported
+as `remapped`) instead of being dropped.
+
 A message present on disk but referenced by no folder becomes **zero-ref** (reported as
 `unreferenced_zeroref` and logged) so the next purge reclaims it — by default it is **not**
 re-filed into a mailbox.
