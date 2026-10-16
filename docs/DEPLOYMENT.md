@@ -209,6 +209,14 @@ Model:
   `BACKEND-DOWN` (analog of the director's #770 graceful leave) so it is removed
   immediately without waiting out the TTL — a planned rollout / scale-down never
   blackholes a hash-slice for the expiry window.
+- **A removed backend stays removed.** Removal drops the users and domains placed
+  on it, as well as its ring entry. A peer's ring handshake, an anti-entropy
+  snapshot, a late heartbeat or a gossiped placement naming it is ignored; only
+  a registration newer than the removal brings the address back, as a pod
+  restarted on it does. The block lasts 5 minutes plus `backend_expire`, the
+  longest another director can keep the backend after its last heartbeat. A
+  backend learned from a handshake carries its lease, so it expires like any
+  other when its heartbeats stop.
 - **Overload → FLUSH (drain, NO rehash), never DOWN.** Removal and overload are
   DIFFERENT wire events with different consequences and must not be conflated. A
   backend shedding load sends `BACKEND-FLUSH`: it STAYS in the ring, new LOOKUPs
@@ -1303,9 +1311,13 @@ Synced between directors over the peer protocol.
    on SIGTERM (immediate); a hard kill or any unready protocol container → the
    sidecar goes silent → TTL expiry (#776). Either way the **whole pod** leaves the
    ring for all protocols.
-2. Director removes it from the ring.
+2. Every director removes it from the ring, together with the users and domains
+   placed on it, and kicks its own login sessions that were proxied there.
 3. Locks the dead pod held expire after their TTL on `yarilo-locks`.
-4. Ring rehash → users move to neighbouring replicas in the same tag.
+4. Users move on their next login, to a live replica in the same tag: one pinned
+   to the pod, or of a domain placed on it under `assignment_policy: domain`, is
+   placed afresh. Nothing is moved in a wave; a kicked session reconnects and is
+   placed the same way.
 5. The k8s scheduler brings up a new pod (~30 s).
 6. The new pod mounts the same NFS and starts accepting connections.
 
