@@ -398,7 +398,10 @@ protocols and delivery are not affected.
 | `userdb_sql_query` | covered | covered | covered (`lmtp`) |
 
 When `userdb_sql_query` uses `%s`, every login, whatever proved it, runs that
-query with the login's protocol before it is accepted. To cover every way in,
+query with the login's protocol before it is accepted. That is one more database
+query per login: on our test stand it added about 1.6 ms to the mean
+authentication time and nothing measurable to throughput. Without `%s` in
+`userdb_sql_query`, no extra query runs. To cover every way in,
 put the rule there, or in both queries. Lookups that are neither a login nor a
 delivery (shared folders, the backend API) carry no protocol: `%s` is empty for
 them, so keep an `ELSE 1` branch, which lets them through.
