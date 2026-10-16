@@ -375,7 +375,18 @@ SELECT password, home, mail FROM mailbox
 |:---|:---|
 | IMAP | `imap` |
 | POP3 | `pop3` |
-| Submission, and Postfix over the SASL login | `submission` |
+| Submission | `submission` |
+| Postfix over the SASL login | `smtp` |
+
+The Submission service names itself `submission` everywhere it reports a
+service: auth logs (`proto=submission`), the policy server's `service`, the
+auth cache. Releases before 2.4.3 used `smtp` there.
+
+**Upgrading from a release before 2.4.3:** update the backend StatefulSet
+before the login proxies. A backend before 2.4.3 refuses a Submission login
+that a new proxy verified as `submission`; a new backend also accepts the old
+`smtp`. Rolled the other way round, Submission logins fail until every backend
+is updated. Accepting `smtp` is removed in 2.5.0.
 | ManageSieve | `sieve` |
 | LMTP delivery | `lmtp` |
 | JMAP | `jmap` |
