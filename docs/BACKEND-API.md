@@ -692,7 +692,7 @@ CLI: `yarctl backend index rebuild <user> <folder> [--namespace NS]`
 
 The mdbox storage-wide rebuild: reconcile the shared map against the physical `m.<N>` files, reset every folder index to the surviving messages, recompute reference counts, and drop map records whose message is gone. It refuses on an incomplete scan or an unmounted alt tier. Run it with delivery to that account quiesced.
 
-Body: `{ "user", "namespace", "restore_orphans" }`. `restore_orphans` re-files unreferenced messages carrying an `ORIG_MAILBOX` tag back into their folder. Reply: `{ "scanned", "folders_rebuilt", "expunged", "unreferenced_zeroref", "orphans_restored", "files_normalised", "rebuild_count", "duration_ms", "note" }`.
+Body: `{ "user", "namespace", "restore_orphans" }`. `restore_orphans` re-files unreferenced messages carrying an `ORIG_MAILBOX` tag back into their folder. Reply: `{ "scanned", "folders_rebuilt", "expunged", "unreferenced_zeroref", "orphans_restored", "files_normalised", "repointed", "remapped", "rebuild_count", "duration_ms", "note" }`.
 
 Other drivers answer `400`; use `index/rebuild` per folder.
 
