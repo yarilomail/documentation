@@ -273,13 +273,28 @@ auth:
 
 `passdb_sql_query`, `userdb_sql_query`, and `userdb_sql_iterate_query` accept any SELECT and can connect yarilo to an existing schema. The query may reference these variables, which are substituted **as parameterised values** (no string interpolation, no injection risk):
 
-| Variable | Meaning | Example |
-|:---|:---|:---|
-| `%u` | Full username | `alice@example.com` |
-| `%n` | Local part (before `@`) | `alice` |
-| `%d` | Domain (after `@`) | `example.com` |
+| Variable | Long form | Meaning | Example |
+|:---|:---|:---|:---|
+| `%u` | `%{user}` | Full username | `alice@example.com` |
+| `%n` | `%{username}` | Local part (before `@`) | `alice` |
+| `%d` | `%{domain}` | Domain (after `@`) | `example.com` |
+| `%s` | `%{protocol}`, `%{service}` | The protocol of the login or delivery | `imap` |
+| `%r` | `%{remote_ip}`, `%{rip}` | The client's address | `192.0.2.10` |
+| `%l` | `%{local_ip}`, `%{lip}` | The address the client connected to | `198.51.100.1` |
 
-> **Do not quote `%u`/`%n`/`%d` in your YAML.** They are rewritten to `?` (sqlite/mysql) or `$1`/`$2`/`$3` (postgres) at runtime. Writing `'%u'` produces literal `'?'` which the DB will treat as a string, not a placeholder.
+Not every query sees every variable:
+
+| Query | Variables |
+|:---|:---|
+| `passdb_sql_query` (and a master-user `masterdb` entry) | all |
+| `userdb_sql_query` | `%u` `%n` `%d` `%s` |
+| `userdb_sql_iterate_query` | none |
+
+A query naming a variable it cannot have, or an unknown `%{...}`, stops the
+configuration from loading: bound as empty, it would silently change what the
+query matches.
+
+> **Do not quote the variables in your YAML.** They are rewritten to `?` (sqlite/mysql) or `$1`, `$2`, … (postgres) at runtime. Writing `'%u'` produces literal `'?'` which the DB will treat as a string, not a placeholder.
 
 ### Contract
 
@@ -338,6 +353,54 @@ SELECT password, active AS enabled,
        CASE WHEN username IN ('archive@example.com') THEN 'yes' END AS nologin
 FROM mailbox WHERE username = %u
 ```
+
+### Per-protocol access
+
+`%s` lets one account be refused one protocol and keep the others: one column
+per protocol, read through `CASE`. A variable is a value, never part of the SQL
+text, so `allow_%s` cannot name a column; `CASE %s` is the form that works.
+
+```sql
+SELECT password, home, mail FROM mailbox
+ WHERE username = %u AND active = 1
+   AND CASE %s WHEN 'imap'       THEN imap_enabled
+               WHEN 'pop3'       THEN pop3_enabled
+               WHEN 'submission' THEN submission_enabled
+               ELSE 1 END = 1
+```
+
+`%s` takes these values:
+
+| Protocol | `%s` |
+|:---|:---|
+| IMAP | `imap` |
+| POP3 | `pop3` |
+| Submission, and Postfix over the SASL login | `submission` |
+| ManageSieve | `sieve` |
+| LMTP delivery | `lmtp` |
+| JMAP | `jmap` |
+
+**Where the rule goes decides what it covers.**
+
+| Rule in | Password and SCRAM logins | Token logins (OAUTHBEARER, XOAUTH2, JMAP Bearer) | Delivery |
+|:---|:---|:---|:---|
+| `passdb_sql_query` | covered | not covered: no password query runs | not covered |
+| `userdb_sql_query` | covered | covered | covered (`lmtp`) |
+
+When `userdb_sql_query` uses `%s`, every login, whatever proved it, runs that
+query with the login's protocol before it is accepted. To cover every way in,
+put the rule there, or in both queries. Lookups that are neither a login nor a
+delivery (shared folders, the backend API) carry no protocol: `%s` is empty for
+them, so keep an `ELSE 1` branch, which lets them through.
+
+A login refused by a rule gets exactly the answer and delay of a wrong
+password; the server log carries `reason=protocol`. A delivery refused by a rule
+in `userdb_sql_query` is refused as an unknown recipient.
+
+`%r` and `%l` restrict by address the same way, for example
+`AND (allowed_ip = '' OR allowed_ip = %r)`; for networks rather than single
+addresses, the `allow_nets` field below takes CIDR lists. A passdb that reads
+`%r` or `%l` caches its answer per address.
 
 ### Userdb / passdb extra fields
 
