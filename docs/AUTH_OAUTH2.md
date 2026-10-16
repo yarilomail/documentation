@@ -118,7 +118,7 @@ selected), `oauth2_introspection_mode` picks the transport:
 | Value | Transport |
 |:---|:---|
 | `post` (default) | RFC 7662: POST `application/x-www-form-urlencoded` with `token=<token>` in the body |
-| `auth` | POST with `Authorization: Bearer <token>` header, empty body |
+| `auth` | GET with `Authorization: Bearer <token>` header; the token is not in the URL. 2.4.3-dev.20 and earlier sent a POST with an empty body ([yarilo#2246](https://github.com/yarilomail/yarilo/pull/2246)) |
 | `get` | GET `<url>?token=<token>` |
 
 ### Helm
