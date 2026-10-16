@@ -467,7 +467,7 @@ All under `storage:`.
 | Key | Default | Effect |
 |:---|:---|:---|
 | `mailbox_list_validate_fs_names` | `true` | Refuse names that are unsafe as paths: `.` and `..` segments, adjacent separators, a leading `/` or `~`, and the on-disk separator when the namespace speaks another one. Turn it off only for a driver that never builds a path from the name. |
-| `mailbox_list_reserved_segments` | `cur`, `new`, `tmp`, `dbox-Mails` | Names a single hierarchy segment may not take, because the layout owns that directory. Only the names the layout in use actually owns are enforced (see the table below). Empty disables the check. It is retroactive: a user who already has such a folder loses access to it. |
+| `mailbox_list_reserved_segments` | `cur`, `new`, `tmp`, `dbox-Mails`, `fts-flatcurve` | Names a single hierarchy segment may not take, because the layout owns that directory. Only the names the layout in use actually owns are enforced (see the table below). Empty disables the check. It is retroactive: a user who already has such a folder loses access to it. |
 | `mailbox_list_refuse_layout_separator` | `false` | Refuse a name containing the on-disk separator when the namespace speaks a different one — with namespace `/` over Maildir++, `a.b` and `a/b` both land on `.a.b`. Retroactive against ordinary names such as `example.com`, so check that no mailbox holds one before turning it on. |
 | `mailbox_list_storage_escape_char` | empty | Store such names escaped instead of refusing them; see below. Not retroactive. |
 | `mailbox_list_normalize_names_to_nfc` | `true` | Normalise names to Unicode NFC before they are stored or compared, so differently composed spellings of one name are one folder. |
@@ -487,9 +487,14 @@ on mdbox and sdbox and accepted on maildir:
 |:--|:--|:--|:--|
 | `New`, `cur`, `new`, `tmp` | OK | OK | OK |
 | `dbox-Mails` | `NO [CANNOT]` | **OK** | `NO [CANNOT]` |
+| `fts-flatcurve` | `NO [CANNOT]` | **OK** | `NO [CANNOT]` |
 
 The first row is the reserved-segment rule working as intended: only the names
 the layout in use actually owns are enforced, and no layout owns those.
+
+`fts-flatcurve` is the full-text index directory a store converted from the
+reference keeps inside a dbox mailbox directory. It is never listed as a folder,
+and on mdbox and sdbox no folder of that name can be created.
 
 **It is a precondition, not a wall.** Set `mailbox_list_storage_escape_char` on
 the target and the name is stored escaped, out from under the marker:
