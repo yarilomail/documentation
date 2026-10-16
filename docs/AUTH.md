@@ -382,11 +382,10 @@ The Submission service names itself `submission` everywhere it reports a
 service: auth logs (`proto=submission`), the policy server's `service`, the
 auth cache. Releases before 2.4.3 used `smtp` there.
 
-**Upgrading from a release before 2.4.3:** update the backend StatefulSet
-before the login proxies. A backend before 2.4.3 refuses a Submission login
-that a new proxy verified as `submission`; a new backend also accepts the old
-`smtp`. Rolled the other way round, Submission logins fail until every backend
-is updated. Accepting `smtp` is removed in 2.5.0.
+**Upgrading from a release before 2.4.3:** while the rollout runs, Submission
+logins fail wherever a new and an old component meet, a new proxy with an old
+backend or the reverse; this is the StatefulSet rollout window, minutes. Other
+protocols and delivery are not affected.
 | ManageSieve | `sieve` |
 | LMTP delivery | `lmtp` |
 | JMAP | `jmap` |
