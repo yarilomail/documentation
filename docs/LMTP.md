@@ -13,7 +13,7 @@ yarilo's LMTP stack is split into two components:
 
 **Why fan-out?** Each recipient may hash to a different backend pod (in director mode). A single multi-recipient DATA payload is split per recipient so each backend receives exactly the messages it is responsible for. Per-recipient status codes are merged and returned to the MTA.
 
-**Token scoping.** SESSION tokens are issued with `service=lmtp`. The `yarilo-lmtp` `PreambleListener` rejects tokens issued for any other service (imap, pop3, smtp), preventing cross-service replay.
+**Token scoping.** SESSION tokens are issued with `service=lmtp`. The `yarilo-lmtp` `PreambleListener` rejects tokens issued for any other service (imap, pop3, submission), preventing cross-service replay.
 
 See [SERVICES.md](SERVICES.md) for listener-level settings (`port`, `ssl_mode`).
 

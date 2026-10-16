@@ -375,7 +375,12 @@ SELECT password, home, mail FROM mailbox
 |:---|:---|
 | IMAP | `imap` |
 | POP3 | `pop3` |
-| Submission, and Postfix over the SASL login | `submission` |
+| Submission | `submission` |
+| Postfix over the SASL login | `smtp` |
+
+The Submission service names itself `submission` everywhere it reports a
+service: auth logs (`proto=submission`), the policy server's `service`, the
+auth cache. Releases before 2.4.3 used `smtp` there.
 | ManageSieve | `sieve` |
 | LMTP delivery | `lmtp` |
 | JMAP | `jmap` |
