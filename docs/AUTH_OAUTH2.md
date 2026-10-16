@@ -54,6 +54,7 @@ Four validation modes:
 | `oauth2_token_expire_grace_seconds` | `60` | Clock-skew tolerance after the token's `exp`. |
 | `oauth2_http_timeout_ms` | `5000` | Round-trip cap for introspection / tokeninfo / discovery / JWKS refresh. |
 | `oauth2_prefer_introspection` | `false` | `discovery` mode only: when the document advertises both, validate through the introspection endpoint instead of the JWKS. |
+| `oauth2_jwks_unknown_kid_interval_seconds` | `300` | A token whose `kid` the cached JWKS lacks refreshes the JWKS at most this often; `0` never refreshes for one (the hourly refresh still runs). Chart: `jwks_unknown_kid_interval_seconds`. |
 | `oauth2_tls_ca` | `""` | PEM file of the CAs this entry's HTTPS calls (JWKS, introspection, tokeninfo, discovery, grant) trust, **instead of** the system roots. Empty uses the system roots. A missing or certificate-less file stops `yarilo-auth` at startup. |
 | `oauth2_grant_url` | `""` | Token endpoint for the [password grant](#password-grant). Must be `https`; needs `oauth2_client_id`. |
 | `oauth2_force_introspection` | `false` | See [forced introspection](#forced-introspection). |
@@ -215,6 +216,7 @@ the service announced:
 - **IMAP** — `AUTH=OAUTHBEARER` and `AUTH=XOAUTH2` in `CAPABILITY`
 - **POP3** — `CAPA` lists them on the `SASL` line
 - **Submission (SMTP)** — the EHLO `AUTH` line lists them
+- **ManageSieve** — the `SASL` capability lists them; `AUTHENTICATE "OAUTHBEARER" "<base64>"`, challenges as quoted base64. 2.4.3-dev.21 and earlier offered only `PLAIN LOGIN` here ([yarilo#2248](https://github.com/yarilomail/yarilo/issues/2248))
 - **JMAP** — a `401` lists `Bearer realm="jmap"` next to `Basic`; a request's
   `Authorization: Bearer <token>` is run in `yarilo-auth` as OAUTHBEARER for the
   `jmap` service, with no authzid, so the token names the user
@@ -339,7 +341,9 @@ auth:
 ```
 
 A login that supplies an opaque token falls through `local` (no
-matching signature → `ResultNext`) and lands in `introspection`.
+matching signature → `ResultNext`) and lands in `introspection`. A token
+from OAUTHBEARER or XOAUTH2 only ever meets the OAuth entries: when none
+accepts it, the login is refused, and SQL never sees it as a password.
 A login with a username + plaintext password is tried as a token by both
 OAuth entries, fails, and reaches SQL. With `oauth2_grant_url` on an entry,
 that password is first exchanged at the IdP; `invalid_grant` passes it on to
@@ -352,12 +356,20 @@ Validator-level errors translate to chain results:
 | Validator error | Chain result | Effect |
 |:---|:---|:---|
 | `ErrUpstream` (network / 5xx, grant failure other than `invalid_grant`) | `ResultTempFail` | Caller maps to `temp_fail`; the internal failure delay applies, the penalty counter is not raised |
-| `ErrTokenExpired` / `ErrTokenInvalid` / `ErrTokenInactive` / grant `invalid_grant` | `ResultNext` | Chain continues to the next passdb |
-| `ErrUsernameMismatch` / `ErrIssuerMismatch` / `ErrAudienceMismatch` / `ErrScopeMissing` / `ErrInactiveAccount` | `ResultNext` | Same — let SQL try the credential as a password |
+| `ErrTokenExpired` / `ErrTokenInvalid` / `ErrTokenInactive` / grant `invalid_grant` | `ResultNext` | The next OAuth entry tries; a PLAIN/LOGIN password goes on to SQL |
+| `ErrUsernameMismatch` / `ErrIssuerMismatch` / `ErrAudienceMismatch` / `ErrScopeMissing` / `ErrInactiveAccount` | `ResultNext` | Same |
 
-This means an OAUTHBEARER login that fails validation
-**transparently falls through to SQL** — a deployment that
-mixes OAuth and legacy SQL accounts handles both with one chain.
+A deployment that mixes OAuth and SQL accounts handles both with one
+chain: tokens are decided by the OAuth entries, passwords by SQL (after an
+OAuth entry has tried them as a token, or through its password grant). 2.4.3-dev.21
+and earlier handed a refused bearer token on to SQL as a password
+([yarilo#2247](https://github.com/yarilomail/yarilo/issues/2247)).
+
+A temporary failure reaches the client as one: IMAP `NO [UNAVAILABLE]`,
+POP3 `-ERR [SYS/TEMP]`, submission `454 4.7.0`, ManageSieve `NO (TRYLATER)`;
+a refused token or password is `[AUTHENTICATIONFAILED]`, `[AUTH]`, `535`,
+`(AUTHENTICATIONFAILED)`. 2.4.3-dev.21 and earlier answered both the same way
+([yarilo#2250](https://github.com/yarilomail/yarilo/issues/2250)).
 
 ## Privacy notes
 
@@ -373,9 +385,12 @@ mixes OAuth and legacy SQL accounts handles both with one chain.
 
 ## Tuning notes
 
-- For `local` mode, the JWKS auto-refreshes every hour and on
-  signature-verify miss (unknown `kid`). Key rotation is handled
-  transparently.
+- For `local` mode, the JWKS auto-refreshes every hour and on an unknown
+  `kid`, at most once per `oauth2_jwks_unknown_kid_interval_seconds`. A
+  token whose `iss` is not in `oauth2_issuers` is refused before the JWKS is
+  asked, so it cannot use that refresh up and delay a key rotation
+  ([yarilo#2249](https://github.com/yarilomail/yarilo/issues/2249)); set
+  `oauth2_issuers` for that protection.
 - For `introspection` / `tokeninfo` / `discovery`, pair with
   `auth.cache` to avoid one HTTP call per IMAP IDLE reconnect.
 - `oauth2_token_expire_grace_seconds: 60` covers normal clock skew. Set
