@@ -172,6 +172,11 @@ names nothing is treated as an id that does not exist (`notFound`,
 `invalidProperties`). A client that sends `createdIds` gets the map back with
 what the request created added to it, and can use those creation ids too.
 
+Within one `Mailbox/set`, a create whose `parentId` names another create of the
+same call is created after its parent, whatever order the creation ids come
+in. Creates whose parents form a cycle, and any create below them, are refused
+with `invalidProperties` on `parentId`.
+
 ### Request limits
 
 | Bound | Enforced by | Refusal |
