@@ -41,6 +41,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_max_script_size` | int | `65536` | Maximum compiled script size in bytes. One limit for delivery and ManageSieve alike — the pre-beta duplicate `protocol.managesieve.max_script_size` is accepted as an alias of this key, and the two set to different values refuse startup. |
 | `sieve_max_redirects` | int | `32` | Maximum `redirect` actions per message (RFC 5228 §6.2) |
 | `sieve_max_num_scripts` | int | `0` | Maximum scripts one user may store. `0` = unlimited. See [ManageSieve](#managesieve) |
+| `sieve_max_storage` | int | `0` | Maximum bytes of one user's stored scripts. `0` = unlimited |
 | `sieve_max_actions` | int | `32` | Maximum total actions per script (`fileinto`/`redirect`/`keep`/...). `0` = unlimited. Guards runaway scripts |
 | `sieve_vacation_enabled` | bool | `true` | Permit the `vacation` extension (RFC 5230) |
 | `sieve_spamtest_status_header` | string | `""` | Header carrying the spam score for `spamtest` (RFC 5235), e.g. `X-Spam-Score`. Empty = test reports "not scanned" |
@@ -68,6 +69,7 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_max_script_size` | `65536` | Max script size (bytes) |
 | `sieve.sieve_max_redirects` | `32` | Max redirect actions per message |
 | `sieve.sieve_max_num_scripts` | `0` | Max scripts per user (`0` = unlimited) |
+| `sieve.sieve_max_storage` | `0` | Max script bytes per user (`0` = unlimited) |
 | `sieve.sieve_max_actions` | `32` | Max total actions per script (`0` = unlimited) |
 | `sieve.sieve_vacation_enabled` | `true` | Enable vacation extension |
 | `sieve.sieve_spamtest_status_header` | `""` | Spam-score header for `spamtest` (empty = unbacked) |
@@ -92,12 +94,15 @@ A script body over `sieve_max_script_size` gets `NO (QUOTA/MAXSIZE)` before it i
 
 ### Script limits
 
-Two limits apply to a stored script:
+Three limits apply to a stored script, judged in this order:
 
 - `sieve_max_script_size` bounds its size: `NO (QUOTA/MAXSIZE) "Script is too large (max N bytes)."`
 - `sieve_max_num_scripts` bounds how many scripts a user keeps: `NO (QUOTA/MAXSCRIPTS) "Script count quota exceeded (max N scripts)."`
+- `sieve_max_storage` bounds the bytes of all the user's scripts together: `NO (QUOTA/MAXSTORAGE) "Script storage quota exceeded (max N bytes)."`
 
-`PUTSCRIPT` of a name the user already has replaces that script and adds nothing to the count, so it succeeds at the limit. A new name past the limit is refused. `0` lifts either limit.
+`PUTSCRIPT` of a name the user already has replaces that script: it adds nothing to the count, and only its new size is charged to the storage. A new name past a limit is refused. `0` lifts any of the three.
+
+The same limits hold for [JMAP](./JMAP#sieve-scripts).
 
 `HAVESPACE` (RFC 5804 §2.5) asks the same question without uploading. Check whether a 2 KiB script fits as `vacation`:
 

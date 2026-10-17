@@ -545,6 +545,7 @@ A renamed mailbox keeps its id and its access rights.
 | Mail — `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
 | Mail — `Email/set` | RFC 8621 §4.6 | served: create, keywords, `mailboxIds`, destroy |
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
+| Sieve — `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
 | Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
@@ -592,6 +593,51 @@ answered with `cannotCalculateChanges`, which sends the client back to
 are registered and answer `cannotCalculateChanges`: this result set is the
 account's own roots, which the state already names, so there is no previous
 result to remember.
+
+## Sieve scripts
+
+`urn:ietf:params:jmap:sieve` (RFC 9661) manages the same scripts as
+[ManageSieve](./SIEVE#managesieve). Both protocols read and write one store, so
+a script uploaded over JMAP is listed by `LISTSCRIPTS` at once, and the reverse.
+
+To store a script, upload its text as a blob, then create it from that blob:
+
+```json
+["SieveScript/set", {
+  "accountId": "alice@example.com",
+  "create": {"c1": {"name": "filters", "blobId": "U…"}},
+  "onSuccessActivateScript": "#c1"
+}, "0"]
+```
+
+- The script is checked with the parser and the `sieve_extensions` list that `PUTSCRIPT` uses. A script that does not parse, uses an extension not allowed, or is not UTF-8 gets `invalidSieve`.
+- The created script's `blobId` names its stored text. Download it from `downloadUrl`, as `GETSCRIPT` would.
+- A create without a name gets one from the server, returned in `created`.
+
+### Limits
+
+The account capability carries the [`sieve:` section](./SIEVE) limits that ManageSieve enforces:
+
+| Capability field | Key |
+|:---|:---|
+| `maxSizeScript` | `sieve_max_script_size` |
+| `maxNumberScripts` | `sieve_max_num_scripts` |
+| `maxNumberRedirects` | `sieve_max_redirects` |
+| `sieveExtensions` | `sieve_extensions` |
+
+A limit set to `0` is sent as `null`, no limit. `notificationMethods` is `["mailto"]` while `enotify` is allowed; `externalLists` is `null`.
+
+A script over `sieve_max_script_size` gets `tooLarge`. A new script past `sieve_max_num_scripts`, or one that would take the user's scripts past `sieve_max_storage`, gets `overQuota`. A replaced script is charged for its new size only.
+
+`maxSizeScriptName` is 512 octets, the RFC's floor. A name also stays within the ManageSieve limit of 256 characters, so a name of 257 to 512 one-byte characters is refused although it fits the advertised octets.
+
+### Activation and state
+
+`onSuccessDeactivateScript` runs before `onSuccessActivateScript`, and both only when every create, update and destroy in the call succeeded. The active script cannot be destroyed (`sieveIsActive`); deactivate it in an earlier call.
+
+A script's `id` is kept across a rename. The state string is a counter that every change moves, through either protocol, so `ifInState` and `oldState`/`newState` see a ManageSieve change. RFC 9661 defines no `SieveScript/changes`, so none is served.
+
+A script written to the store behind both protocols, such as a file placed in the home directory, gets an id and moves the state the next time the list is read.
 
 ---
 
