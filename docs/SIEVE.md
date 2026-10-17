@@ -138,6 +138,22 @@ The reply is `OK "Putscript would succeed."` or the same `NO (QUOTA/...)` that `
 
 A script name is 1 to 256 characters of valid UTF-8 without control characters, `/`, `\`, U+00FF, U+2028 or U+2029, and is neither `.` nor `..`. Any command naming a script otherwise gets `NO "Invalid script name."`.
 
+## Including scripts
+
+`include` (RFC 6609) runs another of the user's own scripts at delivery and in imapsieve:
+
+```sieve
+require "include";
+include :personal "vacation";
+```
+
+- The script is read from the same store as the active one (`sieve_scripts_driver`). A script given with no location is `:personal`.
+- An included script is held to `sieve_extensions` like the active one. One that uses a forbidden extension, or does not compile, fails the run.
+- A missing script fails the run, unless the include is `:optional`. `:once` includes a script at most once per run. A script that includes itself, directly or through others, fails the run.
+- `:global` finds no script yet: there is no global script location, so `include :global :optional` is skipped and a plain one fails the run.
+
+A failed run delivers the message to INBOX (implicit keep) and logs why.
+
 ## Outbound mail — redirect and vacation
 
 When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
