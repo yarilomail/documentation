@@ -161,6 +161,22 @@ reference forward, or into a call answered with `error`, is
 extended with `*`, which maps the remainder over an array and flattens one
 level.
 
+An object created earlier in the same request can be named by its creation id
+with a `#` in front (RFC 8620 §5.3): `"emailId": "#d"` after an `Email/set` or
+`Email/import` that created `d`, `"mailboxIds": {"#b": true}` after a
+`Mailbox/set` that created `b`. This works in every argument that takes an id:
+`ids` of a `/get`, the keys of `update` and the entries of `destroy`, filters
+such as `inMailbox`, and properties such as `parentId`, `emailId` and
+`identityId`. A creation id used twice names the item created last. One that
+names nothing is treated as an id that does not exist (`notFound`,
+`invalidProperties`). A client that sends `createdIds` gets the map back with
+what the request created added to it, and can use those creation ids too.
+
+Within one `Mailbox/set`, a create whose `parentId` names another create of the
+same call is created after its parent, whatever order the creation ids come
+in. Creates whose parents form a cycle, and any create below them, are refused
+with `invalidProperties` on `parentId`.
+
 ### Request limits
 
 | Bound | Enforced by | Refusal |
@@ -660,6 +676,8 @@ Create an `EmailSubmission` naming an identity and an Email:
   "onSuccessUpdateEmail": {"#s1": {"keywords/$draft": null}}
 }, "0"]
 ```
+
+The draft can be created in the same request, by an `Email/set` call before this one, and named as `"emailId": "#<its creation id>"`.
 
 - Without an `envelope`, the sender is the address in the last `Sender` header, else in `From`, and the recipients are `To`, `Cc` and `Bcc` without repeats. A sender the identity does not allow is replaced by the identity's address.
 - The `From` header must be the identity's address (`forbiddenFrom`); a given `envelope.mailFrom` must be too (`forbiddenMailFrom`). Envelope parameters other than `SIZE` are refused.
