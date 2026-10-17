@@ -103,6 +103,10 @@ A relay login that fails, or cannot be made for want of a user, answers the clie
 
 In the Helm chart, `relay.password_secret_ref` (`name`, `key`) gives the password from a Secret to every container that relays, as `YARILO_SUBMISSION_RELAY_PASSWORD`.
 
+### JMAP
+
+JMAP `EmailSubmission` sends through this same relay, with the same login as the user and the same limits; see [JMAP](./JMAP#sending-mail).
+
 ### Verifying the relay
 
 A relay inside the cluster usually holds a certificate from an internal CA. To verify it against that CA, set `submission_relay_ssl_ca` to the CA's PEM and keep `submission_relay_ssl_verify: true`. With `internal_tls` on, the chart already mounts the internal CA at `/etc/yarilo/internal-tls/ca.crt`.
