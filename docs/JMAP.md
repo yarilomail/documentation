@@ -667,7 +667,7 @@ Create an `EmailSubmission` naming an identity and an Email:
 - The message is sent at once: `undoStatus` is `final`, `maxDelayedSend` is `0`, and cancelling answers `cannotUnsend`.
 - `onSuccessUpdateEmail` and `onSuccessDestroyEmail` run one `Email/set`, whose response comes right after the `EmailSubmission/set` one.
 
-A refusal by the relay that is final (5xx) answers `forbiddenToSend` with the relay's reply. A temporary one (4xx, a relay that does not answer) fails the whole call with `serverFail`, so the client sends again later.
+A refusal by the relay that is final (5xx) answers `forbiddenToSend` with the relay's reply. A temporary one (4xx, a relay that does not answer) fails the whole call with `serverFail` while nothing in the call has been sent yet, so the client sends again later. Once a message of the call has gone out, the sent ones are reported in `created` as usual, and the one the relay refused, with every one after it, comes back in `notCreated` with type `serverFail`: retry those, not the whole call.
 
 ### Records
 
