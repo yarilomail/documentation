@@ -546,6 +546,7 @@ A renamed mailbox keeps its id and its access rights.
 | Mail — `Email/set` | RFC 8621 §4.6 | served: create, keywords, `mailboxIds`, destroy |
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
 | Sieve — `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
+| Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured; identities read-only |
 | Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
@@ -639,6 +640,42 @@ A script over `sieve_max_script_size` gets `tooLarge`. A new script past `sieve_
 A script's `id` is kept across a rename. The state string is a counter that every change moves, through either protocol, so `ifInState` and `oldState`/`newState` see a ManageSieve change. RFC 9661 defines no `SieveScript/changes`, so none is served.
 
 A script written to the store behind both protocols, such as a file placed in the home directory, gets an id and moves the state the next time the list is read.
+
+## Sending mail
+
+`urn:ietf:params:jmap:submission` is advertised only when `submission_relay_host` is set. Mail goes the way [Submission](./SUBMISSION) sends it: the same relay, the same login as the user, the same `submission_max_mail_size` and `submission_max_recipients`.
+
+### Identities
+
+The account's identities are its login, when it is an address, then the userdb field `identity_aliases`, each once whatever its case. They are read-only: `Identity/set` refuses every object with `forbidden`. An identity's `id` is fixed by its address, so a client may keep it.
+
+### Sending a draft
+
+Create an `EmailSubmission` naming an identity and an Email:
+
+```json
+["EmailSubmission/set", {
+  "accountId": "alice@example.com",
+  "create": {"s1": {"identityId": "I…", "emailId": "M…"}},
+  "onSuccessUpdateEmail": {"#s1": {"keywords/$draft": null}}
+}, "0"]
+```
+
+- Without an `envelope`, the sender is the address in the last `Sender` header, else in `From`, and the recipients are `To`, `Cc` and `Bcc` without repeats. A sender the identity does not allow is replaced by the identity's address.
+- The `From` header must be the identity's address (`forbiddenFrom`); a given `envelope.mailFrom` must be too (`forbiddenMailFrom`). Envelope parameters other than `SIZE` are refused.
+- The `Bcc` header is removed before sending, and a `Received` header with `with HTTP` is added when `submission_add_received_header` is on.
+- The message is sent at once: `undoStatus` is `final`, `maxDelayedSend` is `0`, and cancelling answers `cannotUnsend`.
+- `onSuccessUpdateEmail` and `onSuccessDestroyEmail` run one `Email/set`, whose response comes right after the `EmailSubmission/set` one.
+
+A refusal by the relay that is final (5xx) answers `forbiddenToSend` with the relay's reply. A temporary one (4xx, a relay that does not answer) fails the whole call with `serverFail` while nothing in the call has been sent yet, so the client sends again later. Once a message of the call has gone out, the sent ones are reported in `created` as usual, and the one the relay refused, with every one after it, comes back in `notCreated` with type `serverFail`: retry those, not the whole call.
+
+### Records
+
+`EmailSubmission/get` and `/query` read the records of what was sent, kept `jmap_submission_ttl_seconds` (default 86400) in the user's control directory and dropped when older. `0` keeps none: mail is still sent, and `get` finds nothing. Destroying a record does not touch the mail.
+
+### Limits
+
+Sending over JMAP is held to the same per-user-and-address connection limit as every protocol: `yarilo-jmap-login` counts each connection against `mail_max_userip_connections`, as `yarilo-submission-login` does for SMTP.
 
 ---
 

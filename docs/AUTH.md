@@ -499,6 +499,7 @@ the stamped one left in place. Both are logged.
 | Field | Meaning |
 |:---|:---|
 | `allow_nets` | Allowed source IP/CIDR list (comma-separated); empty = no restriction. |
+| `identity_aliases` | Addresses besides the login the user sends as, separated by spaces or commas; JMAP offers each as an Identity (see [JMAP](./JMAP#sending-mail)). An entry that is not an address is dropped with a warning naming the user. |
 | `nologin` | Bool: refuse the login after the password is verified, with a wrong password's answer; the account and its delivery stay. See [Disabling versus blocking login](#disabling-versus-blocking-login). |
 | `noauthenticate` | Bool: auth disabled for this user. |
 | `nodelay` | Bool: bypass auth-penalty backoff. |
