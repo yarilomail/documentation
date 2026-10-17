@@ -54,10 +54,12 @@ Configures the upstream MTA for submission. One TCP connection per message; any 
 |:---|:---|:---|
 | `submission_relay_host` | — | Upstream MTA hostname or IP. Empty = relay disabled, submission returns 451. |
 | `submission_relay_port` | `25` | Upstream MTA port. |
-| `submission_relay_user` | — | SASL PLAIN username sent to upstream. Empty = no AUTH. |
-| `submission_relay_password` | — | SASL PLAIN password. Supports `${ENV_VAR}`. |
+| `submission_relay_user` | — | SASL PLAIN username sent to upstream; `%u` (or `%{user}`) is the session's user. Empty and no master = no AUTH. |
+| `submission_relay_master_user` | — | Log in as this master acting for `submission_relay_user` (the SASL authzid), or for the session's user when that is empty. |
+| `submission_relay_password` | — | SASL PLAIN password, the master's when one is set. Supports `${ENV_VAR}`. |
 | `submission_relay_ssl` | `no` | Transport security to upstream: `no` \| `starttls` \| `smtps`. |
 | `submission_relay_ssl_verify` | `true` | Verify upstream TLS certificate. |
+| `submission_relay_ssl_ca` | — | PEM file the upstream certificate is verified against. Empty = the system roots. |
 | `submission_relay_trusted` | `false` | Send XCLIENT to upstream with the MUA's real IP (requires upstream to advertise XCLIENT). |
 | `submission_relay_connect_timeout` | `30` | TCP connect timeout in seconds. |
 | `submission_relay_command_timeout` | `300` | Per-command timeout in seconds. |
@@ -76,5 +78,37 @@ protocol:
       submission_relay_connect_timeout: 30
       submission_relay_command_timeout: 300
 ```
+
+### Telling the relay who sends
+
+A relay that authenticates through yarilo, such as Postfix with `smtpd_sasl_type = dovecot` pointed at `yarilo-sasl-login`, can check the sender against the login (`reject_authenticated_sender_login_mismatch`). For that it must see the user, not a service account. Log in as a master acting for each user:
+
+```yaml
+protocol:
+  submission:
+    relay:
+      submission_relay_host: relay.example.internal
+      submission_relay_port: 587
+      submission_relay_ssl: starttls
+      submission_relay_user: "%u"
+      submission_relay_master_user: relay-master
+      submission_relay_password: "${YARILO_SUBMISSION_RELAY_PASSWORD}"
+```
+
+- `relay-master` must be a master user in yarilo-auth (see [Master users](./MASTER_USERS)).
+- The session's user is the one it logged in as, by every mechanism: PLAIN, LOGIN, SCRAM, OAUTHBEARER and XOAUTH2.
+- When the relay needs a user (`%u`, or a master with no relay user) and the session has none, the message is refused before the relay is dialled.
+
+A relay login that fails, or cannot be made for want of a user, answers the client `451 4.7.0 Temporary authentication failure, try again later`. The reason is logged with the session id.
+
+In the Helm chart, `relay.password_secret_ref` (`name`, `key`) gives the password from a Secret to every container that relays, as `YARILO_SUBMISSION_RELAY_PASSWORD`.
+
+### Verifying the relay
+
+A relay inside the cluster usually holds a certificate from an internal CA. To verify it against that CA, set `submission_relay_ssl_ca` to the CA's PEM and keep `submission_relay_ssl_verify: true`. With `internal_tls` on, the chart already mounts the internal CA at `/etc/yarilo/internal-tls/ca.crt`.
+
+::: warning
+2.4.3 and earlier delivered a reply a step behind after AUTH through the login, so a client could not send through Submission ([yarilo#2271](https://github.com/yarilomail/yarilo/issues/2271)).
+:::
 
 The pre-beta short names — `host`, `port`, `user`, `password`, `ssl`, `ssl_verify`, `trusted`, `connect_timeout`, `command_timeout` — are still accepted.
