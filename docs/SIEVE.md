@@ -116,6 +116,8 @@ The reply is `OK "Putscript would succeed."` or the same `NO (QUOTA/...)` that `
 2.4.3 and earlier had no `HAVESPACE`, answering it with `NO "Unknown command: HAVESPACE"`, and refused an oversized script with `QUOTA/MAXSCRIPTSIZE`, a code RFC 5804 does not define.
 :::
 
+`RENAMESCRIPT` onto a name the user already has gets `NO (ALREADYEXISTS)` and changes neither script; the check runs under the same lock as the rename, so a concurrent session cannot slip a script in between.
+
 A script name is 1 to 256 characters of valid UTF-8 without control characters, `/`, `\`, U+00FF, U+2028 or U+2029, and is neither `.` nor `..`. Any command naming a script otherwise gets `NO "Invalid script name."`.
 
 ## Outbound mail — redirect and vacation

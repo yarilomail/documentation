@@ -613,6 +613,7 @@ To store a script, upload its text as a blob, then create it from that blob:
 - The script is checked with the parser and the `sieve_extensions` list that `PUTSCRIPT` uses. A script that does not parse, uses an extension not allowed, or is not UTF-8 gets `invalidSieve`.
 - The created script's `blobId` names its stored text. Download it from `downloadUrl`, as `GETSCRIPT` would.
 - A create without a name gets one from the server, returned in `created`.
+- A create or rename onto a name the account already has gets `alreadyExists` with `existingId`, decided under the store's lock, so a concurrent ManageSieve session cannot be overwritten. An update that renames and replaces the content renames first: a refused name changes nothing.
 
 ### Limits
 
