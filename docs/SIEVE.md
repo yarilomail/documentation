@@ -46,10 +46,10 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_vacation_enabled` | bool | `true` | Permit the `vacation` extension (RFC 5230) |
 | `sieve_vacation_min_period` | int | `86400` | Shortest reply interval in seconds; a shorter `:days`/`:seconds` is raised to it. `0` = no minimum |
 | `sieve_vacation_max_period` | int | `5184000` | Longest reply interval in seconds (60 days); a longer one is lowered to it. `0` = no maximum |
-| `sieve_vacation_default_period` | int | `604800` | Interval when the script gives none (7 days). `0` = reply to every message |
+| `sieve_vacation_default_period` | int | `604800` | Interval when the script gives none (7 days). It is kept within the minimum too, so `0` replies to every message only with `sieve_vacation_min_period: 0` |
 | `sieve_vacation_default_subject` | string | `""` | Subject of a reply to a message without one, when the script gives none. Empty = `Automated reply` |
 | `sieve_vacation_default_subject_template` | string | `""` | Subject of a reply when the script gives none, with `%{subject}` for the message's subject. Empty = `Auto: %{subject}` |
-| `sieve_vacation_use_original_recipient` | bool | `false` | Count the LMTP original recipient (ORCPT) as the user's address |
+| `sieve_vacation_use_original_recipient` | bool | `false` | Count the LMTP original recipient (ORCPT) as the user's address. Not in effect yet: LMTP does not carry ORCPT to the backend |
 | `sieve_vacation_check_recipient` | bool | `true` | Reply only to a message that names the user in `To`, `Cc`, `Bcc` or `Resent-*` |
 | `sieve_vacation_send_from_recipient` | bool | `false` | Send the reply with the recipient as envelope sender instead of `<>` |
 | `sieve_vacation_to_header_ignore_envelope` | bool | `false` | Address the reply to the first address in `Sender`, `Resent-From` or `From`, even when it is not the envelope sender |
@@ -86,7 +86,7 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_vacation_default_period` | `604800` | Interval when the script gives none |
 | `sieve.sieve_vacation_default_subject` | `""` | Subject for a message without one |
 | `sieve.sieve_vacation_default_subject_template` | `""` | Subject template with `%{subject}` |
-| `sieve.sieve_vacation_use_original_recipient` | `false` | The ORCPT counts as the user's address |
+| `sieve.sieve_vacation_use_original_recipient` | `false` | The ORCPT counts as the user's address (not in effect yet) |
 | `sieve.sieve_vacation_check_recipient` | `true` | Reply only when the user is a header recipient |
 | `sieve.sieve_vacation_send_from_recipient` | `false` | Envelope sender of the reply is the recipient |
 | `sieve.sieve_vacation_to_header_ignore_envelope` | `false` | Reply `To` from the sender headers alone |
@@ -147,7 +147,7 @@ When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
 
 ### Vacation replies
 
-A reply goes only to mail addressed to the user. The user's address must be in `To`, `Cc`, `Bcc`, `Resent-To`, `Resent-Cc` or `Resent-Bcc`, as the envelope recipient, as the original recipient (with `sieve_vacation_use_original_recipient`), or as one of the script's `:addresses` (RFC 5230 §4.5). Turn `sieve_vacation_check_recipient` off to reply to any message. A reply is never sent to the user's own address or to one of `:addresses` (§4.6).
+A reply goes only to mail addressed to the user. The user's address must be in `To`, `Cc`, `Bcc`, `Resent-To`, `Resent-Cc` or `Resent-Bcc`, as the envelope recipient, as the original recipient (with `sieve_vacation_use_original_recipient`, once LMTP carries ORCPT), or as one of the script's `:addresses` (RFC 5230 §4.5). Turn `sieve_vacation_check_recipient` off to reply to any message. A reply is never sent to the user's own address or to one of `:addresses` (§4.6).
 
 The reply:
 
@@ -162,15 +162,17 @@ A line break in a script's `:subject` or `:from` becomes a space, so a script ca
 
 ### Vacation dedup (RFC 5230 §4.5)
 
-Yarilo enforces a per-sender reply interval. It is the action's `:days` or `:seconds`, or `sieve_vacation_default_period` (7 days) when it gives none, kept between `sieve_vacation_min_period` (1 day) and `sieve_vacation_max_period` (60 days). An interval of `0` records nothing, so every message is answered. The last-sent timestamp lives where the scripts live, and there is no separate vacation dict:
+Yarilo enforces a per-sender reply interval. It is the action's `:days` or `:seconds`, or `sieve_vacation_default_period` (7 days) when it gives none, kept between `sieve_vacation_min_period` (1 day) and `sieve_vacation_max_period` (60 days). Only an interval that is still `0` after that, which takes `sieve_vacation_min_period: 0`, records nothing, so every message is answered. The last-sent timestamp lives where the scripts live, and there is no separate vacation dict:
 
 - `sieve_scripts_driver: fs` (the default): in `.yarilo.sieve-vacation` in the user's home;
 - a dict scripts driver: in that dict under `priv/sieve/vacation/<handle>/<sender>`. Dict drivers with TTL support (Redis) expire the entry automatically; other drivers use the stored timestamp for manual comparison.
 
 Vacation replies are skipped when:
 - The sender address is empty or `<>`.
-- The message has a `List-Id` header or `Precedence: bulk/list/junk`.
-- The message has `Auto-Submitted:` set to any value other than `no`.
+- The message has any of `List-Id`, `List-Owner`, `List-Subscribe`, `List-Post`, `List-Unsubscribe`, `List-Help`, `List-Archive`, or `Precedence: bulk/list/junk`.
+- The message has an `Auto-Submitted:` set to any value other than `no`.
+- The message has `X-Auto-Response-Suppress:` with `All` or `OOF`.
+- The sender is a system address: `MAILER-DAEMON`, `LISTSERV`, `majordomo`, a local part containing `-request`, or one starting with `owner-`.
 
 ### Duplicate dedup (RFC 7352)
 
