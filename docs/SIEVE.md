@@ -40,6 +40,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_enabled` | bool | `false` | Activate Sieve execution on LMTP delivery |
 | `sieve_max_script_size` | int | `65536` | Maximum compiled script size in bytes. One limit for delivery and ManageSieve alike — the pre-beta duplicate `protocol.managesieve.max_script_size` is accepted as an alias of this key, and the two set to different values refuse startup. |
 | `sieve_max_redirects` | int | `32` | Maximum `redirect` actions per message (RFC 5228 §6.2) |
+| `sieve_max_num_scripts` | int | `0` | Maximum scripts one user may store. `0` = unlimited. See [ManageSieve](#managesieve) |
 | `sieve_max_actions` | int | `32` | Maximum total actions per script (`fileinto`/`redirect`/`keep`/...). `0` = unlimited. Guards runaway scripts |
 | `sieve_vacation_enabled` | bool | `true` | Permit the `vacation` extension (RFC 5230) |
 | `sieve_spamtest_status_header` | string | `""` | Header carrying the spam score for `spamtest` (RFC 5235), e.g. `X-Spam-Score`. Empty = test reports "not scanned" |
@@ -66,6 +67,7 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_enabled` | `false` | Enable Sieve |
 | `sieve.sieve_max_script_size` | `65536` | Max script size (bytes) |
 | `sieve.sieve_max_redirects` | `32` | Max redirect actions per message |
+| `sieve.sieve_max_num_scripts` | `0` | Max scripts per user (`0` = unlimited) |
 | `sieve.sieve_max_actions` | `32` | Max total actions per script (`0` = unlimited) |
 | `sieve.sieve_vacation_enabled` | `true` | Enable vacation extension |
 | `sieve.sieve_spamtest_status_header` | `""` | Spam-score header for `spamtest` (empty = unbacked) |
@@ -86,7 +88,28 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `max_invalid_commands` | `3` | Unknown commands before authentication after which the server says `BYE` and closes. |
 | `managesieve_max_line_length` | `65536` | Bytes in a command line or a literal, a script's body aside. A larger literal is refused before it is read: `NO "Literal size too large."`, and when the client is already sending it (`{N+}`), `BYE` and close. Before authentication the bound is 8192 bytes. |
 
-A script body over `sieve_max_script_size` gets `NO (QUOTA/MAXSCRIPTSIZE)` before it is read, closing the connection the same way.
+A script body over `sieve_max_script_size` gets `NO (QUOTA/MAXSIZE)` before it is read, closing the connection the same way.
+
+### Script limits
+
+Two limits apply to a stored script:
+
+- `sieve_max_script_size` bounds its size: `NO (QUOTA/MAXSIZE) "Script is too large (max N bytes)."`
+- `sieve_max_num_scripts` bounds how many scripts a user keeps: `NO (QUOTA/MAXSCRIPTS) "Script count quota exceeded (max N scripts)."`
+
+`PUTSCRIPT` of a name the user already has replaces that script and adds nothing to the count, so it succeeds at the limit. A new name past the limit is refused. `0` lifts either limit.
+
+`HAVESPACE` (RFC 5804 §2.5) asks the same question without uploading. Check whether a 2 KiB script fits as `vacation`:
+
+```
+HAVESPACE "vacation" 2048
+```
+
+The reply is `OK "Putscript would succeed."` or the same `NO (QUOTA/...)` that `PUTSCRIPT` would give. A size of `0` gets `NO "Cannot upload empty script."`.
+
+::: note
+2.4.3 and earlier had no `HAVESPACE`, answering it with `NO "Unknown command: HAVESPACE"`, and refused an oversized script with `QUOTA/MAXSCRIPTSIZE`, a code RFC 5804 does not define.
+:::
 
 A script name is 1 to 256 characters of valid UTF-8 without control characters, `/`, `\`, U+00FF, U+2028 or U+2029, and is neither `.` nor `..`. Any command naming a script otherwise gets `NO "Invalid script name."`.
 
