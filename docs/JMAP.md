@@ -562,6 +562,7 @@ A renamed mailbox keeps its id and its access rights.
 | Mail — `Email/set` | RFC 8621 §4.6 | served: create, keywords, `mailboxIds`, destroy |
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
 | Sieve — `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
+| Vacation — `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
 | Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured; identities read-only |
 | Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
 
@@ -656,6 +657,43 @@ A script over `sieve_max_script_size` gets `tooLarge`. A new script past `sieve_
 A script's `id` is kept across a rename. The state string is a counter that every change moves, through either protocol, so `ifInState` and `oldState`/`newState` see a ManageSieve change. RFC 9661 defines no `SieveScript/changes`, so none is served.
 
 A script written to the store behind both protocols, such as a file placed in the home directory, gets an id and moves the state the next time the list is read.
+
+## Vacation response
+
+`VacationResponse` (RFC 8621 §8) is a Sieve script under the hood, managed for the account: `urn:ietf:params:jmap:vacationresponse`, in the same store as the scripts of ManageSieve and `SieveScript`. ManageSieve lists it like any other script.
+
+The script carries the object in a header comment, and below it the rule the object stands for:
+
+- `isEnabled` is a test the rule starts with;
+- `fromDate` and `toDate` bound it with `currentdate` (they need `date` and `relational` among `sieve_extensions`, when that list is set);
+- `subject` is the reply's subject; one with a control character, a line break included, is refused;
+- `textBody` and `htmlBody` are its body. With `htmlBody`, the reply is `multipart/alternative`, and its text part is `textBody` or, when that is null, the text of `htmlBody`. With neither, a default message is sent.
+
+The reply itself is sent as for any Sieve `vacation`; see [Sieve](./SIEVE#vacation-replies).
+
+### When it is enabled
+
+A response is enabled when its `isEnabled` is true and the script runs. The script runs either when it is the account's active script, or when the active script includes it at its top level:
+
+```sieve
+require "include";
+include :personal "urn:ietf:params:jmap:vacationresponse";
+# the rest of the user's own rules
+```
+
+`VacationResponse/set` with `isEnabled: true` behaves by what is active:
+
+- **No script is active:** the managed script becomes the active one.
+- **The active script already includes the managed one:** nothing else changes.
+- **The user's own script is active and does not include it:** the update is refused with `forbidden`. The user's script is never deactivated to make room; add the `include` line above to it, through ManageSieve or `SieveScript/set`, and enable again.
+
+`get` answers `isEnabled: false` whenever the script does not run, whatever was set: for instance after another script was activated through ManageSieve.
+
+### Edited by hand
+
+The managed script can be read and changed through ManageSieve, as any script. If its header comment is missing or no longer parses, `get` answers a response that was never set (disabled, every property null), and the next `set` writes the script anew from what it is given.
+
+The one object's id is `singleton`. `create` and `destroy` answer `singleton` (§8).
 
 ## Sending mail
 
