@@ -49,7 +49,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_vacation_default_period` | int | `604800` | Interval when the script gives none (7 days). It is kept within the minimum too, so `0` replies to every message only with `sieve_vacation_min_period: 0` |
 | `sieve_vacation_default_subject` | string | `""` | Subject of a reply to a message without one, when the script gives none. Empty = `Automated reply` |
 | `sieve_vacation_default_subject_template` | string | `""` | Subject of a reply when the script gives none, with `%{subject}` for the message's subject. Empty = `Auto: %{subject}` |
-| `sieve_vacation_use_original_recipient` | bool | `false` | Count the LMTP original recipient (ORCPT) as the user's address. Not in effect yet: LMTP does not carry ORCPT to the backend |
+| `sieve_vacation_use_original_recipient` | bool | `false` | Count the LMTP original recipient (ORCPT) as the user's address. Only a relay that sends ORCPT gives one; see [LMTP](./LMTP#original-recipient-orcpt) |
 | `sieve_vacation_check_recipient` | bool | `true` | Reply only to a message that names the user in `To`, `Cc`, `Bcc` or `Resent-*` |
 | `sieve_vacation_send_from_recipient` | bool | `false` | Send the reply with the recipient as envelope sender instead of `<>` |
 | `sieve_vacation_to_header_ignore_envelope` | bool | `false` | Address the reply to the first address in `Sender`, `Resent-From` or `From`, even when it is not the envelope sender |
@@ -86,7 +86,7 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_vacation_default_period` | `604800` | Interval when the script gives none |
 | `sieve.sieve_vacation_default_subject` | `""` | Subject for a message without one |
 | `sieve.sieve_vacation_default_subject_template` | `""` | Subject template with `%{subject}` |
-| `sieve.sieve_vacation_use_original_recipient` | `false` | The ORCPT counts as the user's address (not in effect yet) |
+| `sieve.sieve_vacation_use_original_recipient` | `false` | The ORCPT counts as the user's address (see [LMTP](./LMTP#original-recipient-orcpt)) |
 | `sieve.sieve_vacation_check_recipient` | `true` | Reply only when the user is a header recipient |
 | `sieve.sieve_vacation_send_from_recipient` | `false` | Envelope sender of the reply is the recipient |
 | `sieve.sieve_vacation_to_header_ignore_envelope` | `false` | Reply `To` from the sender headers alone |
@@ -163,7 +163,7 @@ When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
 
 ### Vacation replies
 
-A reply goes only to mail addressed to the user. The user's address must be in `To`, `Cc`, `Bcc`, `Resent-To`, `Resent-Cc` or `Resent-Bcc`, as the envelope recipient, as the original recipient (with `sieve_vacation_use_original_recipient`, once LMTP carries ORCPT), or as one of the script's `:addresses` (RFC 5230 §4.5). Turn `sieve_vacation_check_recipient` off to reply to any message. A reply is never sent to the user's own address or to one of `:addresses` (§4.6).
+A reply goes only to mail addressed to the user. The user's address must be in `To`, `Cc`, `Bcc`, `Resent-To`, `Resent-Cc` or `Resent-Bcc`, as the envelope recipient, as the original recipient (with `sieve_vacation_use_original_recipient`, when the relay gives an ORCPT; see [LMTP](./LMTP#original-recipient-orcpt)), or as one of the script's `:addresses` (RFC 5230 §4.5). Turn `sieve_vacation_check_recipient` off to reply to any message. A reply is never sent to the user's own address or to one of `:addresses` (§4.6).
 
 The reply:
 

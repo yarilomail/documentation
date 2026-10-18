@@ -180,6 +180,14 @@ the rate limiter is never allowed to block legitimate mail.
 
 ---
 
+## Original recipient (ORCPT)
+
+A relay may name a recipient's original address with the `ORCPT` parameter of `RCPT TO` (RFC 3461). yarilo-lmtp-login takes it and passes it on to the backend, which takes it too, without either of them offering DSN. Sieve's vacation uses it as one of the user's addresses when `sieve_vacation_use_original_recipient` is on; see [Sieve](./SIEVE#vacation-replies).
+
+::: warning Postfix sends no ORCPT here
+Postfix adds `ORCPT` only for a server that announces DSN, and yarilo does not announce DSN: that would make it responsible for delivery notifications (RFC 3461), which it does not send. So with Postfix in front, no ORCPT arrives and `sieve_vacation_use_original_recipient` has no effect. It takes effect with a relay that sends ORCPT without DSN, such as another IMAP server's LMTP proxy placed in front of yarilo during a migration.
+:::
+
 ## `lmtp_hdr_delivery_address`
 
 Controls the `Delivered-To:` header prepended before storing the message.
