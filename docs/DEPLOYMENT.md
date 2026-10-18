@@ -437,8 +437,8 @@ instead of the pod entering CrashLoop.
 The compose standalone has no certificate infrastructure by design — one host,
 a private docker network — so it adds its docker subnet to
 `general.xclient.trusted_nets` in the shipped config. The stock default is
-`127.0.0.1/32, 10.0.0.0/8`, which does not cover the usual docker bridge, so
-this stays an explicit entry rather than an assumption.
+empty, trusting no peer, so this stays an explicit entry rather than an
+assumption.
 
 **Connection limits are warden's.** Per-user and per-IP connection limits are
 held in warden and shared across replicas. Listeners have no `connection_limit`
