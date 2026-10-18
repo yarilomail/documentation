@@ -43,6 +43,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_max_num_scripts` | int | `0` | Maximum scripts one user may store. `0` = unlimited. See [ManageSieve](#managesieve) |
 | `sieve_max_storage` | int | `0` | Maximum bytes of one user's stored scripts. `0` = unlimited |
 | `sieve_max_actions` | int | `32` | Maximum total actions per script (`fileinto`/`redirect`/`keep`/...). `0` = unlimited. Guards runaway scripts |
+| `sieve_global` | string | `""` | Directory of the scripts `include :global` names, `<name>.sieve` each. Users cannot write it. Empty: none |
 | `sieve_vacation_enabled` | bool | `true` | Permit the `vacation` extension (RFC 5230) |
 | `sieve_vacation_min_period` | int | `86400` | Shortest reply interval in seconds; a shorter `:days`/`:seconds` is raised to it. `0` = no minimum |
 | `sieve_vacation_max_period` | int | `5184000` | Longest reply interval in seconds (60 days); a longer one is lowered to it. `0` = no maximum |
@@ -80,6 +81,8 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_max_num_scripts` | `0` | Max scripts per user (`0` = unlimited) |
 | `sieve.sieve_max_storage` | `0` | Max script bytes per user (`0` = unlimited) |
 | `sieve.sieve_max_actions` | `32` | Max total actions per script (`0` = unlimited) |
+| `sieve.sieve_global` | `""` | Directory of the `include :global` scripts |
+| `sieve.sieve_global_scripts` | `{}` | Global scripts by name; a ConfigMap mounted at `sieve_global` in lmtp and imap |
 | `sieve.sieve_vacation_enabled` | `true` | Enable vacation extension |
 | `sieve.sieve_vacation_min_period` | `86400` | Shortest reply interval, seconds (`0` = none) |
 | `sieve.sieve_vacation_max_period` | `5184000` | Longest reply interval, seconds (`0` = none) |
@@ -150,7 +153,20 @@ include :personal "vacation";
 - The script is read from the same store as the active one (`sieve_scripts_driver`). A script given with no location is `:personal`.
 - An included script is held to `sieve_extensions` like the active one. One that uses a forbidden extension, or does not compile, fails the run.
 - A missing script fails the run, unless the include is `:optional`. `:once` includes a script at most once per run. A script that includes itself, directly or through others, fails the run.
-- `:global` finds no script yet: there is no global script location, so `include :global :optional` is skipped and a plain one fails the run.
+- `:global` reads `<sieve_global>/<name>.sieve`. The name is a script name, never a path. A global script is held to `sieve_extensions` like any other; extensions only global scripts may use are [#2290](https://github.com/yarilomail/yarilo/issues/2290). With `sieve_global` empty, a `:global` include finds nothing: `:optional` skips it, a plain one fails the run.
+
+To ship global scripts with the chart, list them under `sieve.sieve_global_scripts`. They become a ConfigMap mounted read-only at `sieve_global` in the lmtp and imap containers:
+
+```yaml
+sieve:
+  sieve_global: "/etc/yarilo/sieve-global"
+  sieve_global_scripts:
+    spam: |
+      require "fileinto";
+      if header :contains "X-Spam-Flag" "YES" { fileinto "Junk"; }
+```
+
+A user's script includes one with `include :global "spam";`.
 
 A failed run delivers the message to INBOX (implicit keep) and logs why.
 
