@@ -116,23 +116,30 @@ Enable per-listener with `haproxy_protocol: true` in the service config. See [SE
 
 ## `general.xclient`
 
-SMTP XCLIENT command for trusted relay infrastructure. A relay behind which yarilo sits can pass the real client IP, hostname, and helo string via XCLIENT before the mail transaction begins. Only connections from `trusted_nets` are allowed to send XCLIENT.
+SMTP XCLIENT command for trusted relay infrastructure. A relay behind which yarilo sits can pass the real client IP, hostname, and helo string via XCLIENT before the mail transaction begins.
+
+Only a peer inside `trusted_nets` is believed. The same list decides who is told about XCLIENT at all: submission-login and lmtp-login list `XCLIENT` in their EHLO/LHLO reply only to such a peer. A peer outside it that sends XCLIENT anyway gets the same reply as a trusted one, and its address is not applied, so the reply does not reveal who is trusted.
 
 **Supported XCLIENT attributes:** `ADDR`, `PORT`, `HELO`, `LOGIN`, `PROTO`, `SESSION`, `TTL`, `FORWARD`, plus the reference extensions `DESTADDR` (alias: `DESTIP`) and `DESTPORT` for the destination the client originally connected to (load-balancer awareness).
 
 | Key | Default | Description |
 |:---|:---|:---|
-| `trusted_nets` | `["127.0.0.1/32", "10.0.0.0/8"]` | CIDRs allowed to issue XCLIENT. |
+| `trusted_nets` | `[]` | CIDRs of the proxies and relays allowed to issue XCLIENT. Empty trusts none. |
+
+Name your proxies' networks:
 
 ```yaml
 general:
   xclient:
     trusted_nets:
-      - 127.0.0.1/32
       - 10.0.0.0/8
 ```
 
-Enable per-listener with `xclient_protocol: true` in the service config. See [SERVICES.md](SERVICES.md).
+Enable per-listener with `xclient_protocol: true` in the service config. See [SERVICES.md](SERVICES.md). A listener with `xclient_protocol: true` while `trusted_nets` is empty logs a warning at start: no forwarded address will be believed. The same applies to the JMAP backend's trust mode 2, which reads this list.
+
+::: warning Upgrading
+An installation that relied on the earlier default `127.0.0.1/32, 10.0.0.0/8` without writing it out now trusts nobody. A chart-rendered config writes the list explicitly, so it keeps what its values say.
+:::
 
 ---
 

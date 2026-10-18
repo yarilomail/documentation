@@ -14,7 +14,7 @@ All services share the following fields:
 | `port` | — | TCP port to bind. Required: there is no default, and an unset port binds port `0`, a random one. The table below gives the conventional ports. |
 | `ssl_mode` | — | TLS mode: `ssl` = implicit TLS; `starttls` = plain with STARTTLS upgrade; `no` = plain only. |
 | `haproxy_protocol` | `false` | Extract real client IP from HAProxy PROXY header. Uses `general.haproxy` for timeout and trusted nets. |
-| `xclient_protocol` | `false` | Accept XCLIENT command from trusted relays. Uses `general.xclient` for trusted nets. |
+| `xclient_protocol` | `false` | Accept XCLIENT command from trusted relays. Uses `general.xclient.trusted_nets`, empty by default; only peers in it see XCLIENT advertised. |
 | `auth_allow_cleartext` | `true` | When `false`, PLAIN and LOGIN are hidden and refused on a connection that is not TLS, not behind HAProxy and not local: IMAP `LOGIN`/`AUTHENTICATE` get `NO [PRIVACYREQUIRED]`, POP3 `USER`/`PASS`/`AUTH` `-ERR [AUTH]`, SMTP `AUTH` `523 5.7.10`, ManageSieve `AUTHENTICATE` `NO "Cleartext authentication disallowed on non-secure (SSL/TLS) connections."`. After STARTTLS they work as usual. |
 | `ssl` | — | Per-service SSL override. Same fields as `general.ssl`. If set, overrides only the specified fields. |
 

@@ -44,6 +44,10 @@ Accepts mail from MUAs. AUTH is required. `yarilo-submission-login` offers `PLAI
 
 `auth_allow_cleartext: false` in the service config blocks AUTH on unencrypted connections; pair it with `ssl_mode: starttls` (port 587) or `ssl_mode: ssl` (port 465).
 
+### A proxy in front
+
+A proxy or relay that passes the client's address with XCLIENT needs `xclient_protocol: true` on the listener and its own network in `general.xclient.trusted_nets`, which is empty by default. Only a peer in that list sees `250-XCLIENT` in the EHLO reply and has its forwarded address applied; any other client is not told about XCLIENT. See [General settings](./GENERAL#general-xclient).
+
 ---
 
 ## Relay (`protocol.submission.relay`)
