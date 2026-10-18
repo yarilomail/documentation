@@ -141,6 +141,25 @@ The reply is `OK "Putscript would succeed."` or the same `NO (QUOTA/...)` that `
 
 A script name is 1 to 256 characters of valid UTF-8 without control characters, `/`, `\`, U+00FF, U+2028 or U+2029, and is neither `.` nor `..`. Any command naming a script otherwise gets `NO "Invalid script name."`.
 
+## Testing for an extension (`ihave`)
+
+`ihave` (RFC 5463) answers from `sieve_extensions`: it is true only for extensions the build supports and the list allows (an empty list allows every supported one). `variables` and `encoded-character` are never reported.
+
+```sieve
+require ["ihave", "fileinto"];
+if ihave "editheader" {
+  addheader "X-Seen" "yes";
+}
+fileinto "Archive";
+```
+
+- Under a false `ihave` the block never runs, and the script is still accepted. It may hold commands of extensions this server does not have or allow.
+- Under a true `ihave` the block may use what the test names, held to `sieve_extensions` like a `require`d extension. Only that block may use it.
+- Only a bare `ihave` as the whole test of an `if` / `elsif` opens its block. Inside `allof`, `anyof` or `not`, and in the `else` after `not ihave`, the test still answers, but the block opens nothing: a command there needs its extension in `require`, or the script is refused.
+- `require "ihave"` opens nothing else: any other command still needs its extension in `require`. This holds at delivery, in imapsieve, in included scripts, and at ManageSieve `PUTSCRIPT` / `CHECKSCRIPT` and JMAP `SieveScript/set` / `SieveScript/validate`.
+
+Before 2.4.4, with `ihave` in `sieve_extensions`, `require "ihave"` let a script use every extension of the build, whatever the list said ([#2297](https://github.com/yarilomail/yarilo/issues/2297)). Installations whose `sieve_extensions` did not list `ihave`, the default included, were not affected.
+
 ## Including scripts
 
 `include` (RFC 6609) runs another of the user's own scripts at delivery and in imapsieve:
