@@ -666,7 +666,7 @@ The script carries the object in a header comment, and below it the rule the obj
 
 - `isEnabled` is a test the rule starts with;
 - `fromDate` and `toDate` bound it with `currentdate` (they need `date` and `relational` among `sieve_extensions`, when that list is set);
-- `subject` is the reply's subject;
+- `subject` is the reply's subject; one with a control character, a line break included, is refused;
 - `textBody` and `htmlBody` are its body. With `htmlBody`, the reply is `multipart/alternative`, and its text part is `textBody` or, when that is null, the text of `htmlBody`. With neither, a default message is sent.
 
 The reply itself is sent as for any Sieve `vacation`; see [Sieve](./SIEVE#vacation-replies).
