@@ -64,6 +64,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 | `sieve_submission_auth_secret` | string | `""` | Name of a Kubernetes Secret containing `user` and `password` keys for SMTP AUTH. Leave empty for unauthenticated relay |
 | `sieve_default_name` | string | `"yarilo"` | Name of the per-user default script, seeded as `<name>.sieve` on first delivery |
 | `sieve_extensions` | list | `[]` | Extensions users may `require`. Empty allows all; a non-empty list is enforced at `PUTSCRIPT` and at delivery |
+| `sieve_global_extensions` | list | `[]` | Extensions only the administrator's scripts may use, on top of `sieve_extensions`. A user's script never gets them, even when `sieve_extensions` lists them. See [Whose script gets which extensions](#whose-script-gets-which-extensions) |
 | `sieve_scripts_driver` | string | `""` (= `fs`) | Where scripts are stored: `fs` = files in the user's home; `redis` = the dict named by `sieve_scripts_dict` |
 | `sieve_scripts_dict` | string | `""` | Name of the dict in `dicts:` used when `sieve_scripts_driver: redis`. Ignored for `fs` |
 
@@ -83,6 +84,7 @@ The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `siev
 | `sieve.sieve_max_actions` | `32` | Max total actions per script (`0` = unlimited) |
 | `sieve.sieve_global` | `""` | Directory of the `include :global` scripts |
 | `sieve.sieve_global_scripts` | `{}` | Global scripts by name; a ConfigMap mounted at `sieve_global` in lmtp and imap |
+| `sieve.sieve_global_extensions` | `[]` | Extensions only the administrator's scripts may use |
 | `sieve.sieve_vacation_enabled` | `true` | Enable vacation extension |
 | `sieve.sieve_vacation_min_period` | `86400` | Shortest reply interval, seconds (`0` = none) |
 | `sieve.sieve_vacation_max_period` | `5184000` | Longest reply interval, seconds (`0` = none) |
@@ -143,7 +145,7 @@ A script name is 1 to 256 characters of valid UTF-8 without control characters, 
 
 ## Testing for an extension (`ihave`)
 
-`ihave` (RFC 5463) answers from `sieve_extensions`: it is true only for extensions the build supports and the list allows (an empty list allows every supported one). `variables` and `encoded-character` are never reported.
+`ihave` (RFC 5463) answers from the script's set (see below): it is true only for extensions the build supports and the set allows. `variables` and `encoded-character` are never reported.
 
 ```sieve
 require ["ihave", "fileinto"];
@@ -154,11 +156,31 @@ fileinto "Archive";
 ```
 
 - Under a false `ihave` the block never runs, and the script is still accepted. It may hold commands of extensions this server does not have or allow.
-- Under a true `ihave` the block may use what the test names, held to `sieve_extensions` like a `require`d extension. Only that block may use it.
+- Under a true `ihave` the block may use what the test names, held to the script's set like a `require`d extension. Only that block may use it.
 - Only a bare `ihave` as the whole test of an `if` / `elsif` opens its block. Inside `allof`, `anyof` or `not`, and in the `else` after `not ihave`, the test still answers, but the block opens nothing: a command there needs its extension in `require`, or the script is refused.
 - `require "ihave"` opens nothing else: any other command still needs its extension in `require`. This holds at delivery, in imapsieve, in included scripts, and at ManageSieve `PUTSCRIPT` / `CHECKSCRIPT` and JMAP `SieveScript/set` / `SieveScript/validate`.
 
 Before 2.4.4, with `ihave` in `sieve_extensions`, `require "ihave"` let a script use every extension of the build, whatever the list said ([#2297](https://github.com/yarilomail/yarilo/issues/2297)). Installations whose `sieve_extensions` did not list `ihave`, the default included, were not affected.
+
+## Whose script gets which extensions
+
+Two sets, built from `sieve_extensions` (empty: every supported extension) and `sieve_global_extensions`:
+
+| Set | Scripts | Extensions |
+|:---|:---|:---|
+| A user's | the active script, `include :personal`, scripts uploaded through ManageSieve (`PUTSCRIPT`, `CHECKSCRIPT`) and JMAP (`SieveScript/set`, `SieveScript/validate`) | `sieve_extensions` less `sieve_global_extensions` |
+| The administrator's | `sieve_global_before` / `sieve_global_after`, the `imapsieve_scripts` a mailbox binds and `imapsieve_global_before` / `imapsieve_global_after`, `include :global` | `sieve_extensions` and `sieve_global_extensions` |
+
+- **A user's script with a global-only extension** is refused at upload. At delivery it is skipped, as for any extension it may not have. Under `ihave` such an extension is false.
+- **The SIEVE capability** of ManageSieve, before login and after, and `sieveExtensions` in JMAP list a user's set. Global-only extensions are not advertised.
+- **An include takes its location's set,** whoever includes it. A `:personal` script included by a before script still has only the user's set, `ihave` included, and a `:global` script included by a user's script has the administrator's.
+- **Before/after scripts are checked at load.** `sieve_global_before` / `_after` and `imapsieve_global_before` / `_after` are held to the administrator's set when they load. One that uses an extension in neither list is logged (`global script uses a forbidden extension, skipping`) and left out. Before 2.4.4 they were not checked.
+
+```yaml
+sieve:
+  sieve_extensions: [fileinto, envelope, variables]
+  sieve_global_extensions: [vnd.yarilo.pipe, editheader]
+```
 
 ## Including scripts
 
@@ -170,9 +192,9 @@ include :personal "vacation";
 ```
 
 - The script is read from the same store as the active one (`sieve_scripts_driver`). A script given with no location is `:personal`.
-- An included script is held to `sieve_extensions` like the active one. One that uses a forbidden extension, or does not compile, fails the run.
+- An included script is held to its location's set, whoever includes it: a `:personal` one to the user's, a `:global` one to the administrator's (see below). One that uses a forbidden extension, or does not compile, fails the run.
 - A missing script fails the run, unless the include is `:optional`. `:once` includes a script at most once per run. A script that includes itself, directly or through others, fails the run.
-- `:global` reads `<sieve_global>/<name>.sieve`. The name is a script name, never a path. A global script is held to `sieve_extensions` like any other; extensions only global scripts may use are [#2290](https://github.com/yarilomail/yarilo/issues/2290). With `sieve_global` empty, a `:global` include finds nothing: `:optional` skips it, a plain one fails the run.
+- `:global` reads `<sieve_global>/<name>.sieve`. The name is a script name, never a path. A global script gets the administrator's set, `sieve_global_extensions` included. With `sieve_global` empty, a `:global` include finds nothing: `:optional` skips it, a plain one fails the run.
 
 To ship global scripts with the chart, list them under `sieve.sieve_global_scripts`. They become a ConfigMap mounted read-only at `sieve_global` in the lmtp and imap containers:
 
