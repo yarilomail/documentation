@@ -155,6 +155,7 @@ fileinto "Archive";
 
 - Under a false `ihave` the block never runs, and the script is still accepted. It may hold commands of extensions this server does not have or allow.
 - Under a true `ihave` the block may use what the test names, held to `sieve_extensions` like a `require`d extension. Only that block may use it.
+- Only a bare `ihave` as the whole test of an `if` / `elsif` opens its block. Inside `allof`, `anyof` or `not`, and in the `else` after `not ihave`, the test still answers, but the block opens nothing: a command there needs its extension in `require`, or the script is refused.
 - `require "ihave"` opens nothing else: any other command still needs its extension in `require`. This holds at delivery, in imapsieve, in included scripts, and at ManageSieve `PUTSCRIPT` / `CHECKSCRIPT` and JMAP `SieveScript/set` / `SieveScript/validate`.
 
 Before 2.4.4, with `ihave` in `sieve_extensions`, `require "ihave"` let a script use every extension of the build, whatever the list said ([#2297](https://github.com/yarilomail/yarilo/issues/2297)). Installations whose `sieve_extensions` did not list `ihave`, the default included, were not affected.
