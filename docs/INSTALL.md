@@ -11,7 +11,7 @@ Yarilo installs two ways. Pick the one that matches your target:
 | [Docker Compose](#installing-with-docker-compose) | one host: local dev, evaluation, small self-hosted installs | standalone, all roles as containers, SQLite userdb |
 | [Kubernetes](#installing-on-kubernetes) | production, HA, multi-node | director ring + co-located backends, MySQL or Postgres userdb |
 
-Both run the same image, `ghcr.io/yarilomail/yarilo`. A container selects its
+Both run the same image, `docker.io/0kaba0/yarilo`. A container selects its
 role via `YARILO_COMPONENT` (Compose) or the Helm chart (Kubernetes).
 
 Clients always connect to login proxies. The proxies terminate TLS and forward
