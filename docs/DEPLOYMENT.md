@@ -133,7 +133,7 @@ scheduling. On the sandbox (`assignment_policy: domain`) a slow pull kept one
 backend down for about 4.5 minutes, its users without service, and with CPU
 requests at 92 % of the node the new pod stayed `Pending` until other old pods
 left. Before `helm upgrade` in production, pull the new image on every node that
-runs backend pods (for example `crictl pull ghcr.io/yarilomail/yarilo:<tag>`),
+runs backend pods (for example `crictl pull docker.io/0kaba0/yarilo:<tag>`),
 and keep free CPU and memory on those nodes for the requests of one more backend
 pod.
 
