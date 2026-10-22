@@ -8,21 +8,7 @@ Yarilo authenticates IMAP/POP3/Submission credentials against an ordered chain o
 
 A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters — entries are tried left-to-right.
 
-| Key | Description |
-|:---|:---|
-| `driver` | Backend type: `sqlite` \| `mysql` \| `postgres` \| `passwd-file` \| `static`. |
-| `dsn` | SQL drivers: driver-specific connection string. `${ENV_VAR}` is expanded at startup. |
-| `passwd_file_path` | `passwd-file` driver: path to the user file. `${ENV_VAR}` is expanded at startup. |
-| `passdb_sql_query` | SQL: optional custom SELECT for authentication. Defaults to the built-in `yarilo_users` schema. See [Custom queries](#custom-queries). |
-| `userdb_sql_query` | SQL: the userdb lookup (`home`, `mail`, extra fields) used by delivery, quota-status and the backend API. When unset, the built-in `SELECT username, home, mail FROM yarilo_users WHERE username = %u AND enabled = 1` runs — so with your own schema, set it. See [Contract](#contract). |
-| `userdb_sql_iterate_query` | SQL: optional list-users query for admin tooling. |
-| `passdb_default_password_scheme` | Assumed scheme when stored password has no `{SCHEME}` prefix and no crypt(3) marker. Default: `PLAIN` (SQL), `CRYPT` (passwd-file). |
-| `skip_schema` | SQL: `true` to skip `CREATE TABLE IF NOT EXISTS yarilo_users` on startup — use when connecting to an existing schema. |
-| `max_open_conns` | SQL: connections the entry's pool may hold. Default per driver: mysql `25`, postgres `8`, sqlite `1`; `0` = unlimited. |
-| `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`; `0` keeps none. |
-| `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; `0` = never. |
-| `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; `0` = never. A negative value in any of these four is refused at startup. |
-| `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2. |
+<!-- @settings auth.passdb[].driver auth.passdb[].dsn auth.passdb[].passwd_file_path auth.passdb[].passdb_sql_query auth.passdb[].userdb_sql_query auth.passdb[].userdb_sql_iterate_query auth.passdb[].passdb_default_password_scheme auth.passdb[].skip_schema auth.passdb[].max_open_conns auth.passdb[].max_idle_conns auth.passdb[].conn_max_lifetime auth.passdb[].conn_max_idle_time auth.passdb[].username_filter -->
 
 ```yaml
 auth:
@@ -169,12 +155,7 @@ auth:
         userdb_mail: "maildir:/var/vmail/%d/%n/Maildir"
 ```
 
-| Key | Description |
-|:---|:---|
-| `static_password` | Shared password (`{SCHEME}` prefix or `passdb_default_password_scheme`). `${ENV_VAR}` expanded at startup. |
-| `nopassword` | `true` accepts **any** password — for proxy front-ends where the upstream authenticates. Mutually exclusive with `static_password`. |
-| `fields` | Templated user fields. Values expand `%u` / `%n` / `%d`. `userdb_`-prefixed keys populate the userdb; bare keys are forwarded on the passdb path (`allow_nets`, `proxy`, …). |
-| `userdb_static_allow_all_users` | `false` (default): a userdb lookup with no login before it answers only for a user some passdb in the chain knows. `true`: answers any name. Because a static entry is its own passdb too, the two agree for every name its `username_filter` accepts. From 2.4.2. |
+<!-- @settings auth.passdb[].static_password auth.passdb[].nopassword auth.passdb[].fields auth.passdb[].userdb_static_allow_all_users -->
 
 Only one account, the rest from SQL:
 
@@ -658,14 +639,7 @@ of that source would look them up in `yarilo_users`.
 
 Settings of `yarilo-auth` itself, under `auth:`.
 
-| Key | Default | Meaning |
-|:---|:---|:---|
-| `auth_max_attempts` | `3` | Failed authentications one IMAP or POP3 connection may make before it is closed. Submission closes after the first. |
-| `auth_failure_delay` | `2` | Seconds every failed reply — wrong password, unknown user, malformed exchange — is held back, so the timing does not tell an unknown user from a wrong password. `0` disables it, for tests. |
-| `internal_failure_delay_ms` | `2000` | The same for internal failures, such as a passdb that does not answer. |
-| `cache.auth_cache_size` | off | Size of the in-process cache of passdb answers (`"100M"`, `"512k"`); empty or `0` disables it. |
-| `cache.auth_cache_ttl` | `1800` | Seconds a successful answer is kept. |
-| `cache.auth_cache_negative_ttl` | `1800` | Seconds a failed answer is kept. Every entry carries a digest of the password that produced it, so a cached failure answers only the same password again and cannot lock out the right one. |
+<!-- @settings auth.auth_max_attempts auth.auth_failure_delay auth.internal_failure_delay_ms auth.cache -->
 
 A cached answer outlives a password change or a deleted user until its TTL
 runs out; `yarctl auth cache flush [<user-mask> …]` evicts entries at once
