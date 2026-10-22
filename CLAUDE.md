@@ -35,9 +35,11 @@ GitHub). Apply these conventions to every page:
   a first mention, hard warnings). Not for decoration or whole phrases.
 - **Tables** stay simple, few columns, left-aligned (`|:---|`). Explanations
   live in surrounding prose, not in cells.
-- **Cross-link inline**: "See [Deployment](./DEPLOYMENT) for the full
-  rationale." Page links are extensionless (`./STORAGE`, cleanUrls is on);
-  images are root-absolute (`/yarilo_backend.svg`).
+- **Cross-link inline**: "See [Deployment](/installation/deployment) for the
+  full rationale." Page links are root-absolute and extensionless
+  (`/storage/quota`, `/auth/` for a section index); VitePress adds the
+  version prefix and `.html`. Images are root-absolute too
+  (`/yarilo_backend.svg`).
 - **No development phase status in user-facing pages** (no "implemented ✅ /
   roadmap" tables in install/config guides). Status belongs in the relevant
   design page, if anywhere.
@@ -65,14 +67,40 @@ blocked by branch protection:
 3. Push the branch and open a PR (title and description in English).
 4. The user reviews and merges. Never merge yourself.
 5. Merge to `main` triggers the `Deploy docs` GitHub Actions workflow, which
-   builds the site and publishes it to GitHub Pages at
-   https://doc.yarilomail.org — no manual deploy step exists.
+   rebuilds https://doc.yarilomail.org/main/ — no manual deploy step exists.
+
+## Versions
+
+Every version of the docs lives under its own prefix:
+
+- `/main/` — built from `main`: the next, unreleased version. Kept out of
+  search results (`noindex`).
+- `/2.4.5/` — built from the docs tag `v2.4.5`, pushed when Yarilo 2.4.5 is
+  released. Prerelease tags (`v2.4.5-dev.4`) publish nothing.
+- `/latest/` — the newest release, rebuilt when its tag is pushed. Until the
+  first release tag exists it follows `main`. Releases link their canonical
+  here, and only `latest` is in `sitemap.xml`.
+
+The `gh-pages` branch is the published site: one directory per version, plus
+the root files `scripts/site-root.mjs` writes — `versions.json` (read by the
+version switcher), the redirect from `/` to `/latest/`, and the redirects
+from the pre-versioning URLs (`/AUTH_OAUTH2` → `/latest/auth/oauth2.html`).
+The deploy workflow rebuilds only its own version, then publishes the whole
+branch. Never edit `gh-pages` by hand.
+
+`npm run docs:dev` serves the site at `http://localhost:5173/main/`;
+`DOCS_VERSION=<version>` builds under another prefix.
 
 ## Structure
 
-- `docs/*.md` — the pages; sidebar groups and nav live in
+- `docs/<section>/*.md` — the pages, one directory per sidebar group
+  (`installation`, `architecture`, `protocols`, `auth`, `storage`,
+  `features`, `operations`); file names are lowercase with underscores, and
+  a section's overview is its `index.md`. Sidebar groups and nav live in
   `.vitepress/config.mts` (update it when adding/renaming a page).
+- Renaming or moving a published page breaks its URL in every release
+  already out. Avoid it; when unavoidable, keep the old path working.
+- `site-root/` — files served from the site root, outside any version
+  (`CNAME`, `robots.txt`, the IndexNow key, `legacy-pages.json`).
 - `docs/index.md` — landing page; keep it `layout: doc` style (sidebar
   visible), not a hero page.
-- Deploy is automatic: merge to `main` → GitHub Actions → Pages at
-  doc.yarilomail.org.

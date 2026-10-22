@@ -1,0 +1,521 @@
+# Storage — self-healing, rebuild & mdbox tuning
+
+Mailbox backends (Maildir, sdbox, mdbox) and the FileIndex (binary mail-index v7.3 wire
+format: `.index` / `.index.log` / `.index.names`). All index mutations go through the
+cross-process mailbox lock (`yarilo-locks`); sessions sharing a pod serialise on an
+in-process `sync.RWMutex` — the Redis lock is only ever contested across pods, not within
+a single pod. See also [mdbox Alt Storage (Cold Tiering)](/storage/mdbox_alt).
+
+## Path templates
+
+Every path setting that can differ per user — `mail_home`, `mail_path`,
+`mail_inbox_path`, `mail_index_path`, `mail_control_path`, `mail_volatile_path` and
+`mail_alt_path` — is a template expanded against the user. Two spellings are
+accepted, and nothing else is.
+
+| short form | expression form | expands to |
+|:---|:---|:---|
+| `%u` | `%{user}` | the full username, `alice@example.com` |
+| `%n` | `%{user \| username}` | the local part, `alice` |
+| `%d` | `%{user \| domain}` | the domain, `example.com` |
+| `%h`, or a leading `~/` | `%{home}` | the user's home directory |
+| `%2.256Nu` | `%{user \| sha1 % 256 \| hex(2)}` | a hash bucket, `d5` |
+| `%%` | — | a literal `%` |
+
+The expression form is a variable followed by filters: `username`, `domain`, `lower`,
+`upper`, `md5`, `sha1`, and `hex(n)`. A hash becomes a number through a modulo
+(`sha1 % 256`) and a number becomes text through `hex(n)`, which zero-pads to `n` digits
+and keeps the low ones; a negative width pads on the right and keeps the high ones.
+
+**The two forms do not hash the same way, deliberately.** An expression names its
+algorithm, so `%{user | sha1 % 256}` is SHA-1 while the older `%2.256Nu` stays MD5. Each
+does what it says, and neither changes where an existing deployment's users already live.
+The expression form matches the reference implementation byte for byte, including reading
+the digest as a big-endian integer from its **last** eight bytes — so a config migrated
+from it keeps every user in the bucket they already had.
+
+**A template that cannot be expanded stops startup**, naming the key and the sequence that
+was not understood. There is no pass-through: a template copied from a newer reference
+config used to produce a directory literally named `%{user | sha1 % 256 | hex(2)}` —
+created, written to, and never mentioned.
+
+The same templates are accepted in the matching userdb fields, and expanded the same way
+on every path — a delivery and an interactive session resolve one user to one set of
+directories. (Before 2.3.133 the delivery path resolved `~/` in `mail_path` /
+`mail_inbox_path` but left `%u` alone, so the two could disagree.)
+
+Hash buckets matter once a directory holds one entry per user, as a
+`mail_volatile_path` on a local disk does. The chart leaves the key unset; the
+example values use the short form:
+
+```yaml
+storage:
+  mail_volatile_path: "/tmp/yarilo-volatile/%2.256Nu/%u"
+```
+
+Switching that to an expression changes the buckets — even
+`%{user | md5 % 256 | hex(2)}`, since the short form reads the first four
+bytes of the digest and the expression the last eight — so on a running
+deployment it moves every user's directory.
+
+## Maildir sync-on-open
+
+**Maildir sync-on-open** (`storage.maildir_sync_on_select`, default `true`): on
+SELECT/EXAMINE, STATUS and IDLE the Maildir index is reconciled against `cur/` and `new/`,
+so a message delivered by an external MDA or moved/renamed by a second MUA appears without
+an operator rebuild — files in `new/` are migrated to `cur/`, new files gain a UID,
+vanished files are expunged, and out-of-band flag renames keep their UID. It is gated on a
+cheap `cur/`+`new/` mtime token, so a quiescent folder costs a single `stat`. Only Maildir
+honours it; dbox stays index-authoritative.
+
+## dbox reactive rebuild
+
+**dbox reactive rebuild** (`storage.dbox_reactive_rebuild`, default `true`): dbox is
+index-authoritative and does not scan storage on every access, but it self-heals
+reactively. When an **sdbox** read hits a missing or corrupt message file the folder is
+flagged (a persisted FSCKD marker in the index header); the next SELECT, STATUS or IDLE
+poll (or POP3 login) then heals the index under the mailbox lock — every record whose file has vanished is
+expunged (with a QRESYNC tombstone), surviving messages keep their UID. Transient I/O
+errors (EIO, timeouts) do not trigger a heal.
+
+Turning the switch off stops the heal on every path, IMAP and the POP3 login alike. Reads
+still flag folders while it is off, so turning it back on heals them on the next open.
+
+**mdbox** now self-heals reactively too, the same way as sdbox: a read that trips over a
+missing/corrupt message flags the folder FSCKD, and the next SELECT/STATUS/IDLE poll (or
+POP3 login) runs a targeted per-folder heal under the mailbox lock — every index record
+whose message is no longer present in storage is expunged (QRESYNC tombstone), the rest
+keep their UID. This is per-folder and does *not* touch the shared map's refcounts, so it
+needs none of the quiescence the storage-wide rebuild does. Because it goes through the
+shared `box.Scan`, a **concurrent `purge`/`altmove`** (both write the new `m.<N>` before
+unlinking the old) makes the scan incomplete and the heal **abort-and-retry** rather than
+mistake a just-compacted message for a vanished one — so if a folder stays FSCKD, check
+whether a purge is running. A structurally corrupt `m.<N>` record also aborts the heal
+until an operator moves the bad file aside, and the vanished message's map refcount is not
+decremented by the heal (a leak the next operator rebuild + purge reclaims).
+
+## mdbox operator rebuild
+
+For the **operator** side, because mdbox messages are shared across folders through the
+map, a per-folder rebuild would import unrelated messages — so the per-folder endpoint
+(`/api/backend/index/rebuild`) returns `501` for mdbox and there is a dedicated
+**storage-wide rebuild**: `POST /api/backend/index/rebuild-storage {user}` (or
+`yarctl backend index rebuild-storage <user>`). It reconciles the shared map against the
+physical `m.<N>` files under the storage lock, resets every folder index to the messages
+that still exist, **recomputes each map record's refcount from the actual folder
+references** (the reference `rebuild_apply_map` parity), drops map records whose message
+vanished, and bumps a persisted `rebuild_count` generation counter in the map header. It
+**refuses** to run when the scan is incomplete (a half-corrupt `m.<N>` or transient I/O —
+move/repair the named file and re-run) or when a configured alt tier is unmounted (would
+mass-expunge alt-resident mail). It is an operator repair tool (the reference `force-resync`
+parity) and should run with the user's mailboxes **quiesced** — no concurrent delivery
+*and* no concurrent folder operations (CREATE/DELETE/RENAME); neither the delivery
+folder-append nor the restore is serialised on the storage lock, so a concurrent message
+or folder change can race the rebuild.
+
+Each map record is paired with the bytes it names: by its place in the file when the
+GUID there agrees, otherwise by its GUID wherever that message lies. A record found at
+another place is moved there and keeps its map_uid (reported as `repointed`); a record
+whose GUID is found nowhere is dropped as vanished. A folder record whose map_uid is gone,
+or names a message with a different GUID, takes the map_uid that holds its GUID (reported
+as `remapped`) instead of being dropped.
+
+A message present on disk but referenced by no folder becomes **zero-ref** (reported as
+`unreferenced_zeroref` and logged) so the next purge reclaims it — by default it is **not**
+re-filed into a mailbox.
+
+Each mdbox message records the mailbox it was saved into (an `ORIG_MAILBOX` key in the dbox
+trailer, appended after the GUID/size fields — an older reader ignores the unknown key).
+With **`restore_orphans=true`** (`--restore-orphans` on the CLI) the rebuild re-files an
+unreferenced message that carries this tag back into its home folder (created if missing),
+via the normal append path so vsize/modseq/quota stay correct; untagged records are still
+left zero-ref. A restored orphan comes back with **default flags** (unseen, no keywords) —
+flags live in the fileindex and an orphan has no index record to recover them from (an
+accepted gap, like the VANISHED-tombstone gap of the reset path). Restore is off by default
+and per-request, because the tag proves only *"was once in this folder"*, not *"is lost"* —
+a delete-with-refcount-leak carries the same tag, so the resurrection decision stays the
+operator's. A default run (`restore_orphans=false`) writes and reads the tag but takes no
+action, so its numbers are identical to a rebuild without the feature.
+
+The rebuild **preserves each surviving record's own modseq** across the reset (no QRESYNC
+modseq storm on an operator rebuild); `highest_modseq` advances to the greatest value
+carried in, and only a record with no modseq (a freshly assigned UID) is stamped fresh. It
+also **notifies FTS to expunge** every UID it drops, per folder — the storage-wide rebuild,
+the per-folder rebuild, and the reactive heal all return the dropped UIDs so their FTS
+documents are invalidated immediately instead of lingering as ghost entries until the next
+`fts rescan` (the POP3-only reactive heal has no FTS client wired in, so those still rely on
+the next rescan). One accepted gap remains: the reset still loses per-UID VANISHED tombstone
+fidelity for dropped records, since it rewrites the whole set.
+
+## mdbox on-disk layout & rotation
+
+On-disk `m.<N>` files follow the **dbox v2 layout**: the ASCII file-header line
+(`version M<hdr-size> C<create-stamp>`) is written **once per physical file**, before its
+first message, then each message is `[header][body][trailer]`. The reader is
+self-describing — at each record it tells a file-header line (starts with the ASCII version
+digit) apart from a raw message header (starts with the `\x01\x02` magic) by the first
+byte, so a store written by another implementation parses past the first message in a
+multi-message file, and legacy yarilo stores that stamped the header before every record
+still read back unchanged (no migration).
+
+### Record header size
+
+The message header is **30 bytes**, announced as `M1e` in the file-header line: two magic
+bytes, the type byte `N`, spaces, the 16-character hex message size at offsets 13..29, and
+LF as the **last** byte. `u.<UID>` files under sdbox carry the same header.
+
+**The size is read from `M`, never assumed.** Every reader — the fetch path, the compaction
+read, and both rebuild scanners — takes it from the file-header line that introduces the
+record, or from the file's own first line when the record is an appended one that carries
+none. That is what makes records written elsewhere readable: they announce their own size.
+
+Builds before 2.4.1 wrote a 32-byte header and announced it as `M20`. Those stores are
+**read unchanged** — no migration, no rewrite — and nothing writes `M20` again.
+
+A header is rejected when its last byte is not LF. That check is what catches a header read
+at the wrong size: read 32 bytes of a 30-byte header and the last byte is the first byte of
+the body, which is almost never a newline.
+
+**What this does and does not buy.** The *records* parse in both directions, and the claim
+rests on files another implementation actually wrote rather than on files built to match the
+description: a storage file carrying three records, only the first of them preceded by a
+file-header line, plus two single-message files, are held in the server tree and read by the
+tests on every run. In the other direction the record this server writes is held against one
+of those — the file-header line and the message header byte for byte, since those are the
+parts the other implementation reads before it appends, and the metadata trailer by its keys
+and values, since the two implementations write those lines in different orders.
+
+**Serving** such a record is covered too. Another implementation can store a body with bare
+LF; since 2.4.1 the body is converted to CRLF on the way out, and mdbox reports the size it will
+actually serve, as sdbox already did, so `RFC822.SIZE` and the bytes a client receives agree
+([#1527](https://github.com/yarilomail/yarilo/issues/1527)). Mail this server wrote is CRLF on
+disk already and comes back byte for byte.
+
+The *store* is a different question, and it has one answer in each direction.
+
+**Their store, read by this server: converted, not shared.** The index that says which message
+lives at which offset is ours (`yarilo.map.index`, `yarilo.index*`), and theirs is in their own
+format. An mdbox or sdbox store of theirs is therefore **adopted**: on the first open of a folder this
+server reads their index, writes ours beside it, and removes theirs, leaving the messages
+exactly where they lie. That is one-way for the whole store from the first open, and it is
+described in [Migration](/installation/migration#adoption-this-server-takes-over-the-store-in-place).
+Adoption is not sharing: the two servers do not read one store at the same time, and the other
+one cannot serve it afterwards.
+
+**A folder's identity outlives its index.** `yarilo.folders`, under the control root, records the
+UIDVALIDITY each folder was created with. It lives with the mail rather than with the indexes on
+purpose: removing index files is the operator gesture for forcing a rebuild, and this must survive
+it. A folder whose index is lost is reopened with the UIDVALIDITY it always had, so clients do not
+resynchronise. `DELETE` forgets the entry — RFC 3501 §6.3.4 requires a folder created again under
+the same name to look new — and `RENAME` moves it. The file is append-only and folds when it grows
+past a bound. It can never stop a mailbox opening: unreadable, garbled or unwritable, the folder
+opens with the value it would have had without it.
+
+Fresh values come from `yarilo-uidvalidity` beside it, a counter that only rises and is claimed
+with a zero-length `O_EXCL` marker, so a number is never issued twice — not to two folders created
+in one second, and not after a clock steps backwards. The two compose: the allocator guarantees no
+repeat, the record preserves what was issued.
+
+**An mdbox folder whose index is lost is refused, not served empty.** mdbox folders hold no message
+files — the mail is in the shared storage and the folder directory carries only indexes — so the
+filesystem cannot tell a folder that lost its index from one just created. The identity record can,
+and for a folder it knows the open fails, naming the folder and the recovery, instead of answering
+`0 EXISTS` over mail that is still there. For a folder created before the record existed there is
+no entry and the ambiguity remains: it opens as new.
+
+Recovery for mdbox is the operator storage-wide rebuild, run with that user's mailboxes stopped:
+it recomputes every map record's refcount, and under live delivery a message saved but not yet
+appended to its folder would be counted as referenced by nobody and reclaimed by the next purge.
+A per-folder rebuild is not the answer — the only thing outside the index tying a message to a
+folder is the storage trailer, which names the folder a message was *first* saved to, so it would
+file moved mail back to the wrong place.
+
+sdbox has no such ambiguity — its messages are files in the folder — and a folder whose index is
+lost there is rebuilt from them on the next open.
+
+**A yarilo tree, read by them: not possible.** Our index files are ours, nothing converts them
+back, and pointing another implementation at this tree shows an empty mailbox even though every
+message file in it would parse.
+
+Three parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
+under `storage:`, mdbox only):
+
+| Key | Default | Effect |
+|:---|:---|:---|
+| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Left out, it is 10 MiB; `0` or an empty value is refused at startup. |
+| `mdbox_rotate_interval` | `0` (disabled) | Roll the append file once it is older than this, regardless of size: a duration (`"30s"`, `"5m"`, `"1h"`) or a second count. |
+| `mdbox_preallocate_space` | `false` | `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a no-op elsewhere). |
+| `mdbox_map_format` | `v2` | On-disk format of the per-user map index; see [mdbox map index format](#mdbox-map-index-format). |
+
+The age check reads a **persisted per-file create-time** stored in the map header (not a
+filesystem `btime`, which is unreliable over NFS), so it survives restarts. Unlike the reference
+it uses a **rolling window** (`now − createTime > interval`) rather than a clock-boundary
+snap, so "rotate every interval" means the file actually lived at least that long.
+Preallocation uses `FALLOC_FL_KEEP_SIZE` so the file's logical size still grows from zero
+as records are appended — reserving blocks without breaking the offset model — and any
+failure is a non-fatal hint.
+
+The **reactive heal** is retry-bounded per folder per session on the IMAP path: a
+near-continuous purge/altmove keeps every scan incomplete (the heal aborts rather than
+mistake a compacted message for a vanished one), so after a few consecutive aborts the
+session stops auto-retrying that folder — each attempt costs a full storage scan — and logs
+once, pointing the operator at a rebuild. The counter resets on a successful heal or when
+another session clears the marker. The **POP3** path carries no such bound: a POP3 session
+heals at most once, at login, not in a command loop, so it cannot spin; a rapidly
+reconnecting client during a purge could still reproduce the storm across logins, but POP3
+sessions are short and a cross-login bound would need persistent state — an accepted gap.
+
+## mdbox map index format
+
+The per-user map index (`yarilo.map.index`) is what makes an mdbox COPY O(1): every folder
+record points at a `map_uid`, and the map resolves that to `(file_id, offset, size)` plus a
+reference count. Two on-disk formats exist, selected by `storage.mdbox_map_format`:
+
+| Value | Layout |
+|:---|:---|
+| `v2` (default) | A fixed 80-byte header and 36-byte records sorted by `map_uid`. A record is addressed by offset arithmetic and found by binary search over the file bytes, so opening the map parses nothing and builds no lookup table. The header also records which append log the base already folded in, and how far. |
+| `v1` | The older mail-index-backed format: a record stream with per-record extensions that has to be parsed into objects before anything can be looked up. |
+
+**Changing the value converts the map on the next open, in either direction**, preserving
+every `map_uid`. Both writers are atomic (temp file + rename), so an interrupted conversion
+leaves the previous format readable and the next open converts again. A base carrying a
+version this binary does not know is refused rather than guessed at — the map decides which
+bytes belong to which message and which file a purge may unlink.
+
+Choose `v1` only to keep the map readable by an older yarilo image; it is the reason the
+setting exists. It gives up what its header cannot hold: with no log lineage and no record
+digest, a v1 map re-reads its base whenever the file moves and replays its log from the
+start, and the window between writing the base and dropping the log is unprotected, so a
+reference-count delta in it can be applied twice.
+
+## Durability: what a save promises
+
+`storage.mail_fsync` says what has reached the disk by the time a delivery is
+answered — the LMTP `250` for a recipient, the `OK [APPENDUID]` of an APPEND.
+It takes the same three values as the reference implementation, and the same
+default.
+
+| mode | synced before the answer | what it still does not promise |
+|:---|:---|:---|
+| `never` | nothing, including the uidlist row | every byte written is in the page cache only |
+| `optimized` *(default)* | the message body; the uidlist row, as before | the index and its journal, the directory entry |
+| `always` | the above, plus the index journal and the directory after a rename or create | that the directory survives — a synced entry is not a repaired directory |
+
+The body is the half that cannot be rebuilt, which is why `optimized` syncs it
+and nothing else: the index, the list and the flags in a name are all
+reconstructible from the bodies that are on disk. In `never` even the uidlist
+row is left to the filesystem, so a crash can hand a file that already had a uid
+a second one; it is the mode for a stand, or for storage that acknowledges its
+own writes.
+
+Where the sync happens matters as much as whether:
+
+- **maildir** syncs the file in `tmp/` *before* it is named and moved into
+  `cur/`, so the durable bytes precede the answer rather than follow it.
+- **mdbox** syncs `m.<N>` *before* the map records the message, so the map never
+  points at bytes a crash did not write.
+- the **index journal** is synced in `always` only.
+
+The cost is one `fsync` per delivered message. In the code it is paid outside
+any lock — the file is still in `tmp/`, where no other session can see it — but
+on a journalling filesystem it is not free of the others: every `fsync` forces a
+filesystem-journal commit, the commits serialise, and the uidlist row's own
+`fsync`, which *is* taken under the folder's lock, waits behind the commits the
+other deliveries on that node just caused.
+
+Measured on ext4 (`data=ordered`), fifty sessions over twenty accounts, one
+build with only this key changed:
+
+| | `optimized` | `never` |
+|:---|---:|---:|
+| `fsync` calls in a 90-second run | 728 | 0 |
+| one `fsync` of the message body | 1.7 ms | — |
+| one `fsync` of the uidlist row | 1.4 ms | — |
+| uidlist lock held, mean | **26 ms** | **8.7 ms** |
+| index write cycle held, mean | 40 ms | 29 ms |
+
+So the hold grows with how many deliveries a node is making at once, not with
+the cost of the call itself. Expect that where a folder is busy, and read
+`maildir_lock_hold_seconds` rather than guessing.
+
+`never` removes both syncs and is for a stand, or for storage that acknowledges
+a write of its own — a battery-backed controller, or a volume whose mount makes
+the guarantee. A deployment can also get a stronger guarantee than `always` from
+the mount (`sync`, or a filesystem whose journal covers data); `mail_fsync` is
+what yarilo itself promises.
+
+Index writes are a separate matter: the base is replaced atomically (temp file
++ rename) and the log is append-only, so a crash costs the tail of the log
+rather than the folder. The `mail_volatile_path` setting moves the index's temporary
+file — and its fsync — off the mail volume, which is why it is worth setting on
+NFS deployments (see [Path templates](#path-templates)).
+
+```yaml
+storage:
+  mail_fsync: optimized   # never | optimized | always
+```
+
+The Helm chart exposes it under `storage` by the same name.
+
+## When a log folds, and what it costs not to
+
+Every append to a folder's index goes to a log beside it; the log is folded
+into the base file when it gets big enough or old enough. Three settings decide
+when, and each works on its own — set one and the other two keep their built-in
+values.
+
+| setting | built-in | meaning |
+|:---|:---|:---|
+| `mail_index_log_rotate_min_size` | 32 KiB | below this a log is never folded |
+| `mail_index_log_rotate_min_age` | 60 s | above the floor, fold once the log is this old |
+| `mail_index_log_rotate_max_size` | 1 MiB | fold regardless of age |
+
+The same three govern the mdbox map log, which grows more slowly and therefore
+folds less often. One policy, different rates.
+
+### Why the floor exists
+
+**Every open replays the log tail.** Measured on an account with a real
+mailbox: a folder whose log has just been folded opens in ~7.5 ms, one carrying
+27 KB of log opens in ~17 ms — roughly **0.4 ms per kilobyte of log**. The floor
+is what bounds that: it is the cost of opening a mailbox that sits between
+folds, not a tuning knob for how often folding happens.
+
+### Why the age gate exists, and why it is 60 s
+
+The age gate stops a fold firing inside a burst of appends — a log that is
+still growing is not worth folding, since it will cross the floor again in a
+moment. It only has to outlast a typical delivery burst.
+
+At the 5 min it used to be, an actively delivering account carried its log to
+~110 KB past the floor, and across that interval delivery p50 went 74 → 103 ms
+while **p99 went 127 → 249 ms**. At 60 s the log folds about once per hundred
+deliveries and p99 stays at ~128 ms.
+
+### What the floor does not do
+
+The floor only matters when a log grows **slower** than the floor between
+folds — and on an account taking deliveries, it does not.
+
+A fold does not empty the log: it leaves the recent records behind, measured at
+10–18 KB. A hundred deliveries then add roughly 18 KB more, so the log stands
+at 28–36 KB by the end of each window — far past a 16 KiB floor every time, and
+around a 32 KiB one, above it in some windows and just short in others. Either
+way the size condition is met while the log is already older than the 60 s
+gate, so what paces the cycle is the **age**, not the floor.
+
+Nine measured windows at 32 KiB and 16 KiB were indistinguishable: medians 76.0
+and 71.8 ms with overlapping ranges, one fold per window in both.
+
+So on a busy account the tail is held by the **age gate**, not by the floor.
+Lowering the floor there buys nothing. Raising it is what an operator with a
+**large, quietly-delivering** mailbox might do — there the log grows slower than
+the floor, folds are the rarer cost, and a higher floor means fewer of them.
+
+Delivery p50 still moves within a fold cycle — roughly 55–95 ms on the measured
+account, cheapest just after a fold. That range is the price of a cheap open:
+lowering the floor to flatten it would lengthen every open instead, at the rate
+above.
+
+## Folding indexes before a measurement
+
+`yarctl backend index optimize <user> --all` folds every folder index of the
+account **and**, for mdbox, the per-user map. Both are structures a session
+replays when it opens; folding them is what makes an open cost what it will
+cost in steady state.
+
+This matters for benchmarking specifically, and the reason is worth stating
+because it is not obvious: **a read-only workload never folds anything.** The
+map log is folded by writes, and a FETCH-only profile performs none — so a
+freshly seeded account replays the entire seed on every session open, in every
+window, and discarding the first run does not help because the state is not
+warming up, it is stationary. One measured account showed 36.8 ms per map open
+against 0.23 ms after a fold.
+
+So the sequence for any comparative run is:
+
+```sh
+# seed the account, then
+yarctl backend index optimize <user> --all
+# and only then start the measurement window
+```
+
+Do not use `rebuild` for this. A rebuild scans storage and reconciles state; a
+fold writes the base and drops the log. They are different operations, and the
+expensive one standing in for the cheap one is how a seeding script ends up
+doing eleven full storage scans to get the effect of eleven folds.
+
+## File locks, the index cache and write concurrency
+
+All under `storage:`.
+
+| Key | Default | Effect |
+|:---|:---|:---|
+| `storage_lock_method` | `flock` | How a write to a shared file — an index, a uidlist — excludes another writer: `flock`, `fcntl` or `dotlock`. Pick what the mail volume supports; a dict of the `file` driver should use the same. |
+| `storage_lock_stale_timeout` | `180` | Seconds a dotlock may sit unchanged before a waiter takes it over; `0` never takes one over. Only `dotlock` has the question: `flock` and `fcntl` locks die with the process that held them. |
+| `mail_cache_purge_delete_percentage` | `20` | Purge a folder's cache file once this share of its records belongs to messages that are gone; `0` never purges on that ground. |
+| `mail_cache_purge_continued_percentage` | `200` | Purge it once its continued records reach this percentage of the live ones; `0` never purges on that ground. |
+| `mail_cache_purge_min_size` | `32k` | Below this size the cache file is never purged; `"0"` allows a purge at any size. |
+| `max_concurrent_writes` | `0` (unlimited) | Cap on message bodies being written to disk at once, per process, for every driver. A slow volume can be kept from being swamped by a burst; spinning disks suit a few dozen, SSDs a few hundred. |
+
+## Folder names on disk
+
+A client chooses folder names, and the storage layout turns them into paths.
+These settings decide which names are refused, and how the rest are written.
+All under `storage:`.
+
+| Key | Default | Effect |
+|:---|:---|:---|
+| `mailbox_list_validate_fs_names` | `true` | Refuse names that are unsafe as paths: `.` and `..` segments, adjacent separators, a leading `/` or `~`, and the on-disk separator when the namespace speaks another one. Turn it off only for a driver that never builds a path from the name. |
+| `mailbox_list_reserved_segments` | `cur`, `new`, `tmp`, `dbox-Mails`, `fts-flatcurve` | Names a single hierarchy segment may not take, because the layout owns that directory. Only the names the layout in use actually owns are enforced (see the table below). Empty disables the check. It is retroactive: a user who already has such a folder loses access to it. |
+| `mailbox_list_refuse_layout_separator` | `false` | Refuse a name containing the on-disk separator when the namespace speaks a different one — with namespace `/` over Maildir++, `a.b` and `a/b` both land on `.a.b`. Retroactive against ordinary names such as `example.com`, so check that no mailbox holds one before turning it on. |
+| `mailbox_list_storage_escape_char` | empty | Store such names escaped instead of refusing them; see below. Not retroactive. |
+| `mailbox_list_normalize_names_to_nfc` | `true` | Normalise names to Unicode NFC before they are stored or compared, so differently composed spellings of one name are one folder. |
+| `mailbox_list_utf8` | `true` | Write names as UTF-8 on disk; `false` writes modified UTF-7, for a store that already uses it. |
+
+## Moving a user between mailbox formats
+
+One folder name is legal under one format and not under another: **`dbox-Mails`**.
+Maildir++ gives every folder a leading `.`, so `.dbox-Mails` collides with
+nothing; the dbox layouts store a folder as `mailboxes/<name>/dbox-Mails`, where
+that name is their own marker, and a folder called `dbox-Mails` would produce
+`mailboxes/dbox-Mails/dbox-Mails` — an outer directory that is a folder and an
+inner one that is a marker, indistinguishable to a tree walk. So it is refused
+on mdbox and sdbox and accepted on maildir:
+
+| name | mdbox | maildir | sdbox |
+|:--|:--|:--|:--|
+| `New`, `cur`, `new`, `tmp` | OK | OK | OK |
+| `dbox-Mails` | `NO [CANNOT]` | **OK** | `NO [CANNOT]` |
+| `fts-flatcurve` | `NO [CANNOT]` | **OK** | `NO [CANNOT]` |
+
+The first row is the reserved-segment rule working as intended: only the names
+the layout in use actually owns are enforced, and no layout owns those.
+
+`fts-flatcurve` is the full-text index directory a store converted from the
+reference keeps inside a dbox mailbox directory. It is never listed as a folder,
+and on mdbox and sdbox no folder of that name can be created.
+
+**It is a precondition, not a wall.** Set `mailbox_list_storage_escape_char` on
+the target and the name is stored escaped, out from under the marker:
+
+```
+esc=""   ValidateName("dbox-Mails") = refused
+         path = mailboxes/dbox-Mails/dbox-Mails        <- the collision
+
+esc="^"  ValidateName("dbox-Mails") = accepted
+         path = mailboxes/^64box-Mails/dbox-Mails      <- stored literally
+```
+
+Escaping supersedes the refusals that exist because a name could not be
+*represented*, which is what this one is. So the rule for a format migration is:
+
+- **without an escape character on the target** — such a folder cannot be
+  migrated;
+- **with one configured** — it migrates and is stored escaped.
+
+And it inherits that key's retroactivity: enabling it is **not** retroactive, so
+it has to be set on the target **before** the mail arrives, not after.
+
+This is the only name that exists under one driver and cannot exist under
+another, which is why it is stated here rather than left to be discovered.

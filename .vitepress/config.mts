@@ -4,6 +4,15 @@ import { join } from 'node:path'
 
 const SITE = 'https://doc.yarilomail.org'
 
+// Version prefix of this build: main, a release such as 2.4.5, or latest.
+const VERSION = process.env.DOCS_VERSION || 'main'
+const BASE = `/${VERSION}/`
+
+// auth/oauth2.md -> https://doc.yarilomail.org/main/auth/oauth2.html
+function pageUrl(base: string, relativePath: string): string {
+  return `${SITE}${base}${relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '.html')}`
+}
+
 /* First H1 and first prose paragraph of a page, for the llms.txt index. */
 function pageMeta(text: string): { title: string; desc: string } {
   const title = text.match(/^# (.+)$/m)?.[1] ?? ''
@@ -19,14 +28,17 @@ function pageMeta(text: string): { title: string; desc: string } {
 }
 
 function buildLlmsTxt(srcDir: string, outDir: string) {
-  const pages = readdirSync(srcDir).filter(f => f.endsWith('.md')).sort()
+  const pages = (readdirSync(srcDir, { recursive: true }) as string[])
+    .filter(f => f.endsWith('.md'))
+    .map(f => f.split('\\').join('/'))
+    .sort()
   const index: string[] = [
     '# Yarilo',
     '',
     '> Yarilo is a cloud-native mail server written in Go: IMAP, POP3, LMTP,',
     '> Submission, JMAP and Sieve, designed for Kubernetes.',
     '',
-    `Full documentation as a single file: ${SITE}/llms-full.txt`,
+    `Full documentation as a single file: ${SITE}${BASE}llms-full.txt`,
     '',
     '## Documentation',
     '',
@@ -35,9 +47,9 @@ function buildLlmsTxt(srcDir: string, outDir: string) {
   for (const f of pages) {
     const text = readFileSync(join(srcDir, f), 'utf8')
     const { title, desc } = pageMeta(text)
-    const slug = f === 'index.md' ? '' : f.replace(/\.md$/, '')
-    index.push(`- [${title || slug || 'Home'}](${SITE}/${slug})${desc ? ': ' + desc : ''}`)
-    full.push(`<!-- source: ${SITE}/${slug} -->\n\n${text.trim()}`)
+    const url = pageUrl(BASE, f)
+    index.push(`- [${title || f || 'Home'}](${url})${desc ? ': ' + desc : ''}`)
+    full.push(`<!-- source: ${url} -->\n\n${text.trim()}`)
   }
   writeFileSync(join(outDir, 'llms.txt'), index.join('\n') + '\n')
   writeFileSync(join(outDir, 'llms-full.txt'), full.join('\n\n---\n\n') + '\n')
@@ -76,7 +88,7 @@ function jsonLd(pageData: PageData, url: string, title: string, description?: st
   if (!isHome) {
     // A one-item trail is not shown in results, so the docs home has none.
     const crumbs = [
-      { name: 'Yarilo documentation', item: `${SITE}/` },
+      { name: 'Yarilo documentation', item: `${SITE}${BASE}` },
       { name: title, item: url },
     ]
     graph.push({
@@ -109,25 +121,24 @@ export default defineConfig({
   buildEnd(siteConfig) {
     buildLlmsTxt(siteConfig.srcDir, siteConfig.outDir)
   },
-  /* Per-page meta description: frontmatter `description` wins; otherwise
-     the page's first prose paragraph, so no page falls back to the
-     site-wide one-liner. Also emits the canonical link (GitHub Pages
-     serves /PAGE.html as a duplicate of /PAGE) and per-page Open Graph
-     tags built from the same title and description. */
+  /* Per-page description (frontmatter, else first paragraph) and Open Graph
+     tags; releases are canonical to latest, main is not indexed. */
   transformPageData(pageData, { siteConfig }) {
     if (!pageData.frontmatter.description) {
       const file = join(siteConfig.srcDir, pageData.filePath)
       const { desc } = pageMeta(readFileSync(file, 'utf8'))
       if (desc) pageData.description = snippet(desc)
     }
-    const url = `${SITE}/${pageData.relativePath}`
-      .replace(/index\.md$/, '')
-      .replace(/\.md$/, '')
+    const url = pageUrl(BASE, pageData.relativePath)
     const title = pageData.frontmatter.title || pageData.title || 'Yarilo'
     const description = pageData.frontmatter.description || pageData.description
     pageData.frontmatter.head ??= []
+    if (VERSION === 'main') {
+      pageData.frontmatter.head.push(['meta', { name: 'robots', content: 'noindex' }])
+    } else {
+      pageData.frontmatter.head.push(['link', { rel: 'canonical', href: pageUrl('/latest/', pageData.relativePath) }])
+    }
     pageData.frontmatter.head.push(
-      ['link', { rel: 'canonical', href: url }],
       ['meta', { property: 'og:url', content: url }],
       ['meta', { property: 'og:title', content: title }],
       ['meta', { name: 'twitter:title', content: title }],
@@ -145,20 +156,20 @@ export default defineConfig({
   title: 'Yarilo',
   description: 'Yarilo mail server documentation',
   srcDir: 'docs',
-  cleanUrls: true,
-  sitemap: { hostname: 'https://doc.yarilomail.org' },
+  base: BASE,
+  sitemap: { hostname: `${SITE}${BASE}` },
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', href: '/icon.svg' }],
+    ['link', { rel: 'icon', href: `${BASE}icon.svg` }],
     ['meta', { property: 'og:type', content: 'article' }],
     ['meta', { property: 'og:site_name', content: 'Yarilo documentation' }],
     // Social preview, shared with yarilomail.org. Absolute URL is required:
     // crawlers do not resolve relative paths.
-    ['meta', { property: 'og:image', content: `${SITE}/og.png` }],
+    ['meta', { property: 'og:image', content: `${SITE}${BASE}og.png` }],
     ['meta', { property: 'og:image:width', content: '1200' }],
     ['meta', { property: 'og:image:height', content: '630' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:image', content: `${SITE}/og.png` }],
+    ['meta', { name: 'twitter:image', content: `${SITE}${BASE}og.png` }],
   ],
   themeConfig: {
     logo: '/icon.svg',
@@ -171,11 +182,11 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/yarilomail' }
     ],
     nav: [
-      { text: 'Install', link: '/INSTALL' },
-      { text: 'Architecture', link: '/ARCHITECTURE' },
-      { text: 'Features', link: '/PARITY' },
-      { text: 'Admin', link: '/YARILO-ADMIN' },
-      { text: 'Security', link: '/SECURITY' },
+      { text: 'Install', link: '/installation/' },
+      { text: 'Architecture', link: '/architecture/' },
+      { text: 'Features', link: '/architecture/parity' },
+      { text: 'Admin', link: '/operations/yarilo_admin' },
+      { text: 'Security', link: '/operations/security' },
       { text: 'yarilomail.org', link: 'https://yarilomail.org' }
     ],
     sidebar: [
@@ -183,72 +194,72 @@ export default defineConfig({
         text: 'Getting Started',
         items: [
           { text: 'Overview', link: '/' },
-          { text: 'Installation', link: '/INSTALL' },
-          { text: 'DNS for a mail domain', link: '/DNS' },
-          { text: 'Migration', link: '/MIGRATION' },
-          { text: 'General Configuration', link: '/GENERAL' },
-          { text: 'Deployment', link: '/DEPLOYMENT' },
-          { text: 'Docker Compose', link: '/DOCKER-COMPOSE' }
+          { text: 'Installation', link: '/installation/' },
+          { text: 'DNS for a mail domain', link: '/installation/dns' },
+          { text: 'Migration', link: '/installation/migration' },
+          { text: 'General Configuration', link: '/installation/general' },
+          { text: 'Deployment', link: '/installation/deployment' },
+          { text: 'Docker Compose', link: '/installation/docker_compose' }
         ]
       },
       {
         text: 'Architecture',
         items: [
-          { text: 'Overview', link: '/ARCHITECTURE' },
-          { text: 'Feature coverage', link: '/PARITY' },
-          { text: 'Services', link: '/SERVICES' },
-          { text: 'Director', link: '/DIRECTOR' },
-          { text: 'Director API', link: '/DIRECTOR-API' },
-          { text: 'Backend API', link: '/BACKEND-API' }
+          { text: 'Overview', link: '/architecture/' },
+          { text: 'Feature coverage', link: '/architecture/parity' },
+          { text: 'Services', link: '/architecture/services' },
+          { text: 'Director', link: '/architecture/director' },
+          { text: 'Director API', link: '/architecture/director_api' },
+          { text: 'Backend API', link: '/architecture/backend_api' }
         ]
       },
       {
         text: 'Protocols',
         items: [
-          { text: 'IMAP', link: '/IMAP' },
-          { text: 'POP3', link: '/POP3' },
-          { text: 'LMTP', link: '/LMTP' },
-          { text: 'Submission', link: '/SUBMISSION' },
-          { text: 'JMAP', link: '/JMAP' }
+          { text: 'IMAP', link: '/protocols/imap' },
+          { text: 'POP3', link: '/protocols/pop3' },
+          { text: 'LMTP', link: '/protocols/lmtp' },
+          { text: 'Submission', link: '/protocols/submission' },
+          { text: 'JMAP', link: '/protocols/jmap' }
         ]
       },
       {
         text: 'Authentication',
         items: [
-          { text: 'Overview', link: '/AUTH' },
-          { text: 'OAuth2', link: '/AUTH_OAUTH2' },
-          { text: 'SCRAM', link: '/AUTH_SCRAM' },
-          { text: 'Auth Policy', link: '/AUTH_POLICY' },
-          { text: 'Master Users', link: '/MASTER_USERS' },
-          { text: 'Auth Penalty', link: '/AUTH_PENALTY' }
+          { text: 'Overview', link: '/auth/' },
+          { text: 'OAuth2', link: '/auth/oauth2' },
+          { text: 'SCRAM', link: '/auth/scram' },
+          { text: 'Auth Policy', link: '/auth/policy' },
+          { text: 'Master Users', link: '/auth/master_users' },
+          { text: 'Auth Penalty', link: '/auth/penalty' }
         ]
       },
       {
         text: 'Storage',
         items: [
-          { text: 'Mailbox Storage', link: '/STORAGE' },
-          { text: 'mdbox Alt Storage', link: '/MDBOX_ALT' },
-          { text: 'Namespaces', link: '/NAMESPACE' },
-          { text: 'Shared Namespaces', link: '/OWNER_SHARED_NS' },
-          { text: 'Quota', link: '/QUOTA' },
-          { text: 'Dict', link: '/DICT' }
+          { text: 'Mailbox Storage', link: '/storage/' },
+          { text: 'mdbox Alt Storage', link: '/storage/mdbox_alt' },
+          { text: 'Namespaces', link: '/storage/namespace' },
+          { text: 'Shared Namespaces', link: '/storage/owner_shared_ns' },
+          { text: 'Quota', link: '/storage/quota' },
+          { text: 'Dict', link: '/storage/dict' }
         ]
       },
       {
         text: 'Features',
         items: [
-          { text: 'Sieve', link: '/SIEVE' },
-          { text: 'Full-Text Search', link: '/FTS' },
-          { text: 'Virtual Mailboxes', link: '/VIRTUAL' }
+          { text: 'Sieve', link: '/features/sieve' },
+          { text: 'Full-Text Search', link: '/features/fts' },
+          { text: 'Virtual Mailboxes', link: '/features/virtual' }
         ]
       },
       {
         text: 'Operations',
         items: [
-          { text: 'yarilo-admin', link: '/YARILO-ADMIN' },
-          { text: 'Testing', link: '/TESTING' },
-          { text: 'Smoke Tests', link: '/SMOKE' },
-          { text: 'Security policy', link: '/SECURITY' }
+          { text: 'yarilo-admin', link: '/operations/yarilo_admin' },
+          { text: 'Testing', link: '/operations/testing' },
+          { text: 'Smoke Tests', link: '/operations/smoke' },
+          { text: 'Security policy', link: '/operations/security' }
         ]
       }
     ]
