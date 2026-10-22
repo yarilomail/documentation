@@ -1,8 +1,9 @@
 # JMAP configuration
 
 The session resource, the request envelope and the Mail and Quota methods listed
-under [Capabilities](#capabilities) are served, reading and writing. Push is not
-implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)).
+under [Capabilities](#capabilities) are served, reading and writing. Push is
+served over EventSource ([Push](#push)); WebSocket and Web Push are not yet
+([#714](https://github.com/yarilomail/yarilo/issues/714)).
 
 JMAP runs as two binaries, not one. `yarilo-jmap-login` faces clients and
 `yarilo-jmap` owns the user's state; see
@@ -93,7 +94,7 @@ clients batch against what is published.
 | `jmap_max_query_folders` | `64` | Mailboxes one full-text `Email/query` may search. A query over more is refused, never answered from part of them. |
 | `jmap_snippet_max_chars` | `256` | Visible characters in a `SearchSnippet` preview. Markup and HTML escapes are not counted; the subject is never cut. |
 | `jmap_upload_ttl` | `3600` | Seconds an uploaded blob is kept for `Email/import` or `Email/set`. Uploading the same bytes again starts the clock again. `0` is refused at load. |
-| `jmap_push_timeout` | `90` | Idle timeout for a push connection, seconds. Unused: push is not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)). |
+| `jmap_push_poll` | `60` | Seconds between a push stream's looks for changes; `0` turns push off. See [Push](#push). |
 | `jmap_cors_allow_origins` | `[]` | Browser origins allowed to call the endpoint. Empty denies every cross-origin request. Exact match, scheme included. |
 
 The session `state` string is derived from these values, so changing one
@@ -564,10 +565,66 @@ A renamed mailbox keeps its id and its access rights.
 | Sieve — `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
 | Vacation — `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
 | Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured; identities read-only |
+| Push over EventSource | RFC 8620 §7.3 | served; see [Push](#push) |
 | Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
+| Push subscriptions (Web Push) | RFC 8620 §7.2 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
 and is meant to be extracted as a standalone library.
+
+## Push
+
+`GET /jmap/eventsource/` streams `StateChange` events (RFC 8620 §7.3). It is
+the `eventSourceUrl` of the session resource and passes through
+`yarilo-jmap-login`.
+
+### Stream parameters
+
+| Parameter | Values |
+|:---|:---|
+| `types` | type names, comma-separated, or `*` |
+| `closeafter` | `state` or `no` |
+| `ping` | seconds; `0` sends none |
+
+`*` means every type the server answers: `Email`, `Mailbox`, `Thread` and
+`Quota`, plus `Identity`, `EmailSubmission`, `SieveScript` and
+`VacationResponse` where they are served. An unknown name is left out, and a
+request naming no known type is answered `204`.
+
+`closeafter=state` ends the stream after the first `state` event. A `ping`
+event carries `{"interval":N}`.
+
+### Resuming after a disconnect
+
+A `state` event carries the types whose state moved, with their new state
+strings, and an `id`. The id is the account's change counter.
+
+To resume, reconnect with `Last-Event-ID` set to the last id received. Every
+requested type that changed after it is sent at once, so nothing is missed
+while the client was away.
+
+Without `Last-Event-ID` the stream starts from the current state and sends
+only later changes.
+
+### What moves a type
+
+Every write that changes a type's state raises the account's counter, whatever
+the protocol made it: a flag set over IMAP, a delivery over LMTP, a
+subscription, a role, an ACL change, a Sieve script, a sent message.
+
+Each pod with an open stream for an account reads the counter every
+`jmap_push_poll` seconds, so a change arrives within one interval. With
+`jmap_push_poll: 0` the endpoint answers `204`.
+
+`Identity` is read from userdb and has no write path in Yarilo. It moves only
+when userdb does, which the counter does not see.
+
+### Kicks
+
+The stream outlives the proxy's request timeouts, and a kick ends it: a
+session kick from the admin API, or a director `USER-KICKED` for the user,
+including a move to another backend. The client reconnects with
+`Last-Event-ID` and reaches the user's new backend.
 
 ## Quota
 
