@@ -147,6 +147,11 @@ Fields of an entry:
 
 The build fails when an entry is placed on no page or on two, when a marker
 names an unknown key or section, or when an entry has an unknown field or a
-`see_also` to an unknown key. Names, types and defaults are compared with
-the code by the settings exporter of the yarilo repo, in a separate PR check.
+`see_also` to an unknown key.
+
+Every PR also compares the data with the code: `scripts/check-settings.mjs`
+reads the `settings` artifact that yarilo's develop CI exports
+(`hack/settingsexport`) and fails on a key or alias the code lacks, another
+type, or another default. An entry with `default_text` compares key and type
+only. A release's export is attached to its GitHub Release as `settings.json`.
 
