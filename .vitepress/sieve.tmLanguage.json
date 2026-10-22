@@ -1,0 +1,61 @@
+{
+  "name": "sieve",
+  "scopeName": "source.sieve",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#multiline" },
+    { "include": "#strings" },
+    { "include": "#tags" },
+    { "include": "#numbers" },
+    { "include": "#control" },
+    { "include": "#tests" },
+    { "include": "#commands" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.number-sign.sieve", "match": "#.*$" },
+        { "name": "comment.block.sieve", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "multiline": {
+      "name": "string.unquoted.heredoc.sieve",
+      "begin": "\\btext:[ \\t]*(?:#.*)?$",
+      "end": "^\\.\\r?$",
+      "patterns": [{ "include": "#variables" }]
+    },
+    "strings": {
+      "name": "string.quoted.double.sieve",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.sieve", "match": "\\\\." },
+        { "include": "#variables" }
+      ]
+    },
+    "variables": {
+      "name": "variable.other.sieve",
+      "match": "\\$\\{[^}\\s]+\\}"
+    },
+    "tags": {
+      "name": "variable.parameter.sieve",
+      "match": ":[A-Za-z_][A-Za-z0-9_]*"
+    },
+    "numbers": {
+      "name": "constant.numeric.sieve",
+      "match": "\\b[0-9]+[KMGkmg]?\\b"
+    },
+    "control": {
+      "name": "keyword.control.sieve",
+      "match": "\\b(?:require|if|elsif|else|stop|include|return|global|foreverypart|break)\\b"
+    },
+    "tests": {
+      "name": "keyword.operator.word.sieve",
+      "match": "\\b(?:address|allof|anyof|envelope|exists|header|not|size|true|false|body|date|currentdate|environment|ihave|string|hasflag|mailboxexists|metadata|metadataexists|servermetadata|servermetadataexists|duplicate|valid_notify_method|notify_method_capability|specialuse_exists|spamtest|virustest|validextlist)\\b"
+    },
+    "commands": {
+      "name": "entity.name.function.sieve",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    }
+  }
+}
