@@ -31,6 +31,10 @@ GitHub). Apply these conventions to every page:
 - **No issue numbers in the text either.** Readers cannot open them. Say what
   the behaviour is, not which issue changed it; development history, phases
   and checklists do not belong in these pages.
+  This covers links (`[yarilo#2162](…/issues/2162)`, `…/pull/…`), table
+  cells, and comments inside the SVG diagrams. One exception:
+  `operations/security.md` names the issue of a security fix that has no
+  advisory of its own, because that issue is the fix's only public record.
 - **Single H1** per page (the title), H2 for sections, H3 for variants/steps
   within a section.
 - **Short paragraphs, 1–3 sentences, one idea each.** Imperative mood for

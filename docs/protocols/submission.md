@@ -116,7 +116,7 @@ JMAP `EmailSubmission` sends through this same relay, with the same login as the
 A relay inside the cluster usually holds a certificate from an internal CA. To verify it against that CA, set `submission_relay_ssl_ca` to the CA's PEM and keep `submission_relay_ssl_verify: true`. With `internal_tls` on, the chart already mounts the internal CA at `/etc/yarilo/internal-tls/ca.crt`.
 
 ::: warning
-2.4.3 and earlier delivered a reply a step behind after AUTH through the login, so a client could not send through Submission ([yarilo#2271](https://github.com/yarilomail/yarilo/issues/2271)).
+2.4.3 and earlier delivered a reply a step behind after AUTH through the login, so a client could not send through Submission.
 :::
 
 The pre-beta short names — `host`, `port`, `user`, `password`, `ssl`, `ssl_verify`, `trusted`, `connect_timeout`, `command_timeout` — are still accepted.

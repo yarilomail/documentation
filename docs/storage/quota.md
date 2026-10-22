@@ -219,8 +219,7 @@ listener it looks recipients up through. Without it the service answers
 
 From 2.4.2 the chart fills it in: with `components.quotaStatus.auth_master_addr`
 empty it renders the release's auth service on `components.auth.masterListen`.
-**In 2.4.1 the chart leaves it empty**
-([yarilo#2160](https://github.com/yarilomail/yarilo/issues/2160)), so set it there:
+**In 2.4.1 the chart leaves it empty**, so set it there:
 
 ```yaml
 components:
@@ -364,7 +363,7 @@ The chart's `quota:` block uses the `yarilo.yaml` key names with one exception:
 the storage grace is `quota.quota_grace` in the values, rendered as
 `quota_storage_grace`. From 2.4.2 a `quota.quota_storage_grace` in the values
 fails the render and names `quota_grace`; in 2.4.1 it is dropped without a
-warning ([yarilo#2161](https://github.com/yarilomail/yarilo/issues/2161)).
+warning.
 
 The `yarilo-quota-status` pod mounts the mail PV read-only so it can open
 recipient mailboxes; set `quota_rule` in the passdb schema.

@@ -32,7 +32,7 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | LMTP | yes | delivery, proxying to backends, a synthesised `Message-ID` when one is missing |
 | Submission (MSA) | yes | separate service, relay to an external MTA |
 | ManageSieve | yes | RFC 5804 |
-| JMAP | partial | **reads, writes and submits; no push.** `Mailbox/{get,query,set,changes}`, `Email/{get,query,set,import,changes}` (`Email/set` creates, updates keywords and `mailboxIds`, and destroys), `Thread/{get,changes}`, `SearchSnippet/get`, blob upload and download, back-references and creation ids across calls, real state strings. `Quota/{get,changes,query,queryChanges}` (RFC 9425, read-only). `SieveScript/{get,set,query,validate}` (RFC 9661) over the ManageSieve store; `VacationResponse/{get,set}` as the managed Sieve script ManageSieve also sees. `EmailSubmission/{get,set,query,queryChanges,changes}` and `Identity/{get,changes,set}` when a Submission relay is configured; identities are read-only and come from the login address and `identity_aliases`. Push (EventSource, WebSocket RFC 8887, PushSubscription) is not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)). `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design — a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false`. See [JMAP](/protocols/jmap#capabilities) |
+| JMAP | partial | **reads, writes and submits; no push.** `Mailbox/{get,query,set,changes}`, `Email/{get,query,set,import,changes}` (`Email/set` creates, updates keywords and `mailboxIds`, and destroys), `Thread/{get,changes}`, `SearchSnippet/get`, blob upload and download, back-references and creation ids across calls, real state strings. `Quota/{get,changes,query,queryChanges}` (RFC 9425, read-only). `SieveScript/{get,set,query,validate}` (RFC 9661) over the ManageSieve store; `VacationResponse/{get,set}` as the managed Sieve script ManageSieve also sees. `EmailSubmission/{get,set,query,queryChanges,changes}` and `Identity/{get,changes,set}` when a Submission relay is configured; identities are read-only and come from the login address and `identity_aliases`. Push (EventSource, WebSocket RFC 8887, PushSubscription) is not implemented. `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design — a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false`. See [JMAP](/protocols/jmap#capabilities) |
 
 ## IMAP extensions
 
@@ -67,7 +67,7 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | sdbox | yes | |
 | mdbox | yes | including the map, alt storage, and `purge` |
 | mbox | no | no plan; the format is legacy everywhere it still appears |
-| obox / object storage | no | [#247](https://github.com/yarilomail/yarilo/issues/247) |
+| obox / object storage | no | |
 | Index format | yes | the established on-disk index layout, byte-compatible where documented |
 
 ## Authentication
@@ -77,12 +77,12 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | SASL PLAIN / LOGIN | yes | |
 | SASL SCRAM-SHA-1 / SHA-1-PLUS / SHA-256 / SHA-256-PLUS | yes | IMAP, POP3 and submission, channel binding included |
 | SASL XOAUTH2 / OAUTHBEARER | yes | IMAP, POP3 and submission, run by `yarilo-auth` with token introspection; RFC 7628 failure with the client's acknowledgement |
-| SASL CRAM-MD5, DIGEST-MD5 | no | [#245](https://github.com/yarilomail/yarilo/issues/245) |
-| SASL EXTERNAL (client certificates) | no | [#615](https://github.com/yarilomail/yarilo/issues/615) |
-| SASL GSSAPI / Kerberos | no | [#245](https://github.com/yarilomail/yarilo/issues/245) |
+| SASL CRAM-MD5, DIGEST-MD5 | no | |
+| SASL EXTERNAL (client certificates) | no | |
+| SASL GSSAPI / Kerberos | no | |
 | passdb/userdb: SQL (MySQL, PostgreSQL, SQLite) | yes | |
 | passdb/userdb: passwd-file, static | yes | |
-| passdb/userdb: LDAP, PAM, Lua, IMAP | no | [#558](https://github.com/yarilomail/yarilo/issues/558) |
+| passdb/userdb: LDAP, PAM, Lua, IMAP | no | |
 | Password schemes | partial | `PLAIN`, `CLEARTEXT`, `CRYPT`, `BCRYPT`/`BLF-CRYPT`, `SHA512-CRYPT`, `SCRAM-SHA-1`, `SCRAM-SHA-256`. The older MD5 and SHA1 scheme families are not implemented |
 | Master users | yes | |
 | Auth policy / penalty (weakforced-style) | yes | |
@@ -119,8 +119,8 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | Feature | yarilo | Notes |
 |:---|:---|:---|
 | Director (per-user backend affinity) | yes | own ring and peer sync, plus a per-user flush hook (`flush_program`) — see [Director](/architecture/director) |
-| Replication (dsync) | no | [#249](https://github.com/yarilomail/yarilo/issues/249) |
-| Shared and public namespaces | partial | namespaces and ACLs work; cross-user delivery and some enforcement gaps remain ([#544](https://github.com/yarilomail/yarilo/issues/544)) |
+| Replication (dsync) | no | |
+| Shared and public namespaces | partial | namespaces and ACLs work; cross-user delivery and some enforcement gaps remain |
 | Virtual mailboxes | partial | a namespace whose mailboxes are defined by a configuration file of folders and `SEARCH` rules; kept in sync while open, with `FETCH`, `SEARCH`, `SORT`, `THREAD`, `STORE`, `EXPUNGE`, `COPY` and `MOVE` acting on the real message, `APPEND`/`COPY`/`MOVE` into one storing to its save folder, and annotation lines filtering the folders. `+` has no effect, as `\Recent` is not tracked. See [Virtual Mailboxes](/features/virtual) |
 | imap-hibernate | no | idle IMAP sessions are not parked into a separate process; each holds its own. No issue open yet — this row is the record |
 | Prometheus metrics, health endpoints | yes | per-command latencies, storage and index counters, `/healthz` and `/readyz` |

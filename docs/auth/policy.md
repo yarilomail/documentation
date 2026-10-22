@@ -80,12 +80,10 @@ From 2.4.2 a key under its `auth.policy` name fails the render and names the
 chart's, and `check_before`, `check_after` and `report_after` set to `false`
 and `hash_truncate_bits: 0` reach the config. In 2.4.1 such a key is dropped,
 the three switches cannot be turned off through the chart (a `false` is
-rendered as `true`), and `hash_truncate_bits: 0` is rendered as `12`
-([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
+rendered as `true`), and `hash_truncate_bits: 0` is rendered as `12`.
 
 `auth_policy_server_api_header` and `auth_policy_hash_nonce` expand `${ENV}`,
-so both can come from a Secret; 2.4.1 and earlier take them literally
-([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)). Through the
+so both can come from a Secret; 2.4.1 and earlier take them literally. Through the
 chart, name the Secret in `*_secret_ref` to keep the value out of the config
 ConfigMap:
 

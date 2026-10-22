@@ -821,7 +821,7 @@ would have removed the owner's own subscriptions silently.
 
 Idempotent: the sources are removed only after every row is in the destination,
 so a failure leaves the run repeatable, and a second run finds nothing. Both
-historical names are read — the current one and the pre-#1159 path form.
+historical names are read — the current one and the older path form.
 
 Reply: `sources` (files read), `folded` (keys added), `already` (keys the
 destination held).

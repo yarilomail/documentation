@@ -119,7 +119,7 @@ selected), `oauth2_introspection_mode` picks the transport:
 | Value | Transport |
 |:---|:---|
 | `post` (default) | RFC 7662: POST `application/x-www-form-urlencoded` with `token=<token>` in the body |
-| `auth` | GET with `Authorization: Bearer <token>` header; the token is not in the URL. 2.4.3-dev.20 and earlier sent a POST with an empty body ([yarilo#2246](https://github.com/yarilomail/yarilo/pull/2246)) |
+| `auth` | GET with `Authorization: Bearer <token>` header; the token is not in the URL. 2.4.3-dev.20 and earlier sent a POST with an empty body |
 | `get` | GET `<url>?token=<token>` |
 
 ### Helm
@@ -144,8 +144,7 @@ components:
 ```
 
 From 2.4.2 a key under its `oauth2_` name fails the render and names the
-chart's; in 2.4.1 it is dropped without a warning
-([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
+chart's; in 2.4.1 it is dropped without a warning.
 
 To keep the introspection client secret out of the config ConfigMap, name a
 Secret in `client_secret_ref` instead of setting `client_secret`:
@@ -216,7 +215,7 @@ the service announced:
 - **IMAP** — `AUTH=OAUTHBEARER` and `AUTH=XOAUTH2` in `CAPABILITY`
 - **POP3** — `CAPA` lists them on the `SASL` line
 - **Submission (SMTP)** — the EHLO `AUTH` line lists them
-- **ManageSieve** — the `SASL` capability lists them; `AUTHENTICATE "OAUTHBEARER" "<base64>"`, challenges as quoted base64. 2.4.3-dev.21 and earlier offered only `PLAIN LOGIN` here ([yarilo#2248](https://github.com/yarilomail/yarilo/issues/2248))
+- **ManageSieve** — the `SASL` capability lists them; `AUTHENTICATE "OAUTHBEARER" "<base64>"`, challenges as quoted base64. 2.4.3-dev.21 and earlier offered only `PLAIN LOGIN` here
 - **JMAP** — a `401` lists `Bearer realm="jmap"` next to `Basic`; a request's
   `Authorization: Bearer <token>` is run in `yarilo-auth` as OAUTHBEARER for the
   `jmap` service, with no authzid, so the token names the user
@@ -314,8 +313,7 @@ auth:
   HTTP Basic auth.
 - `oauth2_client_secret` expands `${ENV}`, like a passdb `dsn`, so it can
   come from a Secret (through the chart: [`client_secret_ref`](#helm)).
-  2.4.1 and earlier take it literally
-  ([yarilo#2163](https://github.com/yarilomail/yarilo/issues/2163)).
+  2.4.1 and earlier take it literally.
 - `oauth2_active_attribute: active` + `oauth2_active_value: "true"` enforces the
   RFC 7662 `active` field explicitly even when client + server
   versions disagree on the default.
@@ -362,14 +360,12 @@ Validator-level errors translate to chain results:
 A deployment that mixes OAuth and SQL accounts handles both with one
 chain: tokens are decided by the OAuth entries, passwords by SQL (after an
 OAuth entry has tried them as a token, or through its password grant). 2.4.3-dev.21
-and earlier handed a refused bearer token on to SQL as a password
-([yarilo#2247](https://github.com/yarilomail/yarilo/issues/2247)).
+and earlier handed a refused bearer token on to SQL as a password.
 
 A temporary failure reaches the client as one: IMAP `NO [UNAVAILABLE]`,
 POP3 `-ERR [SYS/TEMP]`, submission `454 4.7.0`, ManageSieve `NO (TRYLATER)`;
 a refused token or password is `[AUTHENTICATIONFAILED]`, `[AUTH]`, `535`,
-`(AUTHENTICATIONFAILED)`. 2.4.3-dev.21 and earlier answered both the same way
-([yarilo#2250](https://github.com/yarilomail/yarilo/issues/2250)).
+`(AUTHENTICATIONFAILED)`. 2.4.3-dev.21 and earlier answered both the same way.
 
 ## Privacy notes
 
@@ -388,8 +384,7 @@ a refused token or password is `[AUTHENTICATIONFAILED]`, `[AUTH]`, `535`,
 - For `local` mode, the JWKS auto-refreshes every hour and on an unknown
   `kid`, at most once per `oauth2_jwks_unknown_kid_interval_seconds`. A
   token whose `iss` is not in `oauth2_issuers` is refused before the JWKS is
-  asked, so it cannot use that refresh up and delay a key rotation
-  ([yarilo#2249](https://github.com/yarilomail/yarilo/issues/2249)); set
+  asked, so it cannot use that refresh up and delay a key rotation; set
   `oauth2_issuers` for that protection.
 - For `introspection` / `tokeninfo` / `discovery`, pair with
   `auth.cache` to avoid one HTTP call per IMAP IDLE reconnect.
