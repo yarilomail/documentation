@@ -23,6 +23,8 @@ jobs:
           npm run docs:build
           mkdir site
           cp -R .vitepress/dist site/main
+      - name: Check anchors
+        run: node scripts/check-anchors.mjs site/main /main/
       - name: Assemble the site root
         run: |
           test "$(node scripts/site-root.mjs register site main)" = true
