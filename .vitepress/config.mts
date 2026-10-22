@@ -2,6 +2,7 @@ import { defineConfig, type DefaultTheme, type PageData } from 'vitepress'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import sieve from './sieve.tmLanguage.json'
+import { expandSettings, hasSettings } from './settings'
 
 const SITE = 'https://doc.yarilomail.org'
 
@@ -26,7 +27,7 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 // A page's H2 sections as collapsed sidebar children; ids repeat as -1, -2 like the build's.
 function withSections(item: DefaultTheme.SidebarItem): DefaultTheme.SidebarItem {
   const link = item.link!
-  const text = readFileSync(join('docs', link.endsWith('/') ? `${link}index.md` : `${link}.md`), 'utf8')
+  const text = expandSettings(readFileSync(join('docs', link.endsWith('/') ? `${link}index.md` : `${link}.md`), 'utf8'), BASE)
   const seen = new Map<string, number>()
   const sections: DefaultTheme.SidebarItem[] = []
   for (const m of text.replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1/gm, '').matchAll(/^(#{1,6}) (.+?)(?: \{#([^}]+)\})?$/gm)) {
@@ -76,7 +77,7 @@ function buildLlmsTxt(srcDir: string, outDir: string) {
   ]
   const full: string[] = []
   for (const f of pages) {
-    const text = readFileSync(join(srcDir, f), 'utf8')
+    const text = expandSettings(readFileSync(join(srcDir, f), 'utf8'), BASE, true)
     const { title, desc } = pageMeta(text)
     const url = pageUrl(BASE, f)
     index.push(`- [${title || f || 'Home'}](${url})${desc ? ': ' + desc : ''}`)
@@ -155,8 +156,10 @@ export default defineConfig({
   /* Per-page description (frontmatter, else first paragraph) and Open Graph
      tags; releases are canonical to latest, main is not indexed. */
   transformPageData(pageData, { siteConfig }) {
+    const file = join(siteConfig.srcDir, pageData.filePath)
+    // Settings are H3s; list them under their sections in the outline.
+    if (hasSettings(readFileSync(file, 'utf8'))) pageData.frontmatter.outline ??= [2, 3]
     if (!pageData.frontmatter.description) {
-      const file = join(siteConfig.srcDir, pageData.filePath)
       const { desc } = pageMeta(readFileSync(file, 'utf8'))
       if (desc) pageData.description = snippet(desc)
     }
@@ -195,6 +198,8 @@ export default defineConfig({
     languages: [sieve as any],
     // Break points after / . _ so a long identifier does not widen its table.
     config(md) {
+      const parse = md.parse.bind(md)
+      md.parse = (src, env) => parse(expandSettings(src, BASE), env)
       const code = md.renderer.rules.code_inline!
       md.renderer.rules.code_inline = (...args) => code(...args)
         .replace(/>([^<]*)<\/code>$/, (_, t: string) => `>${t.replace(/([/._])(?=.)/g, '$1<wbr>')}</code>`)
@@ -301,6 +306,12 @@ export default defineConfig({
           { text: 'Testing', link: '/operations/testing' },
           { text: 'Smoke Tests', link: '/operations/smoke' },
           { text: 'Security policy', link: '/operations/security' }
+        ]
+      },
+      {
+        text: 'Reference',
+        items: [
+          { text: 'All settings', link: '/reference/settings' }
         ]
       }
     ])

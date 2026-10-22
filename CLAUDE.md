@@ -105,5 +105,48 @@ branch. Never edit `gh-pages` by hand.
   already out. Avoid it; when unavoidable, keep the old path working.
 - `site-root/` — files served from the site root, outside any version
   (`CNAME`, `robots.txt`, the IndexNow key, `legacy-pages.json`).
+- `data/settings.yaml` — every documented `yarilo.yaml` setting, keyed by its
+  full path (`general.ssl.ssl_min_protocol`). See "Settings" below.
 - `docs/index.md` — landing page; keep it `layout: doc` style (sidebar
   visible), not a hero page.
+
+## Settings
+
+Settings are not written as tables. Each one is an entry in
+`data/settings.yaml`, and a page places entries where they belong:
+
+```md
+## `general.ssl`
+
+Shared TLS certificate. Prose about the section stays in the page.
+
+<!-- @settings general.ssl -->
+```
+
+A marker takes sections (every key in that section) or full keys, separated
+by spaces. Each entry renders as an `###` heading with the key's name and an
+anchor of its full path (`#general.ssl.ssl_min_protocol`), a card, and the
+description. `docs/reference/settings.md` lists every entry through
+`<!-- @settings-index -->`.
+
+Fields of an entry:
+
+| Field | Meaning |
+|:---|:---|
+| `type` | `string`, `boolean`, `integer`, `list` or `map` (required) |
+| `unit` | e.g. `seconds`, shown beside the type |
+| `default` | the binary's default; leave out or `""` for none |
+| `default_text` | prose instead of `default`, when it is computed at start |
+| `values` | the accepted values of an enumeration |
+| `aliases` | other names the loader accepts |
+| `helm` | the chart value that sets it |
+| `see_also` | full keys of related settings |
+| `added`, `changed` | version, and for `changed` a `text` |
+| `advanced` | `true` marks it as not normally changed |
+| `description` | Markdown (required) |
+
+The build fails when an entry is placed on no page or on two, when a marker
+names an unknown key or section, or when an entry has an unknown field or a
+`see_also` to an unknown key. Names, types and defaults are compared with
+the code by the settings exporter of the yarilo repo, in a separate PR check.
+

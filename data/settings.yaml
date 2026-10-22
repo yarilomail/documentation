@@ -1,0 +1,192 @@
+# Every documented yarilo.yaml setting, keyed by its full path.
+# Field reference: CLAUDE.md, "Settings".
+
+hostname:
+  type: string
+  default_text: the host's own name (`os.Hostname()`)
+  description: |
+    The name yarilo answers with and stamps into mail. It sits at the top
+    level of `yarilo.yaml`, not inside `general:`, because more than one
+    section reads it.
+
+chart_version:
+  type: string
+  default: ""
+  advanced: true
+  description: |
+    Written by the Helm chart, never by an operator. A process compares it with
+    the chart version it was built from and warns at start when they differ.
+
+general.ssl.ssl_server_cert_file:
+  type: string
+  default: ""
+  aliases: [tls_cert]
+  see_also: [general.ssl.ssl_server_key_file]
+  description: |
+    Path to the PEM certificate, or the full chain. `${ENV_VAR}` is expanded at
+    startup.
+
+general.ssl.ssl_server_key_file:
+  type: string
+  default: ""
+  aliases: [tls_key]
+  see_also: [general.ssl.ssl_server_cert_file]
+  description: |
+    Path to the PEM private key that matches `ssl_server_cert_file`.
+
+general.ssl.ssl_server_alt_cert_file:
+  type: string
+  default: ""
+  aliases: [tls_alt_cert]
+  see_also: [general.ssl.ssl_server_alt_key_file]
+  description: |
+    Optional second certificate, for example ECDSA beside RSA, chosen per
+    client by SNI.
+
+general.ssl.ssl_server_alt_key_file:
+  type: string
+  default: ""
+  aliases: [tls_alt_key]
+  see_also: [general.ssl.ssl_server_alt_cert_file]
+  description: |
+    Private key for `ssl_server_alt_cert_file`.
+
+general.ssl.ssl_min_protocol:
+  type: string
+  default: TLS1.2
+  values: [TLS1.2, TLS1.3]
+  aliases: [tls_min_version]
+  description: |
+    Minimum TLS version a client may negotiate.
+
+general.ssl.ssl_prefer_server_ciphers:
+  type: boolean
+  default: false
+  aliases: [prefer_server_ciphers]
+  description: |
+    Use the server's cipher-suite preference order instead of the client's.
+
+general.haproxy.timeout:
+  type: integer
+  unit: seconds
+  default: 3
+  description: |
+    Time to wait for the PROXY header. The connection is closed when it does
+    not arrive in time.
+
+general.haproxy.haproxy_trusted_networks:
+  type: list
+  default: [127.0.0.1/32, 10.0.0.0/8]
+  aliases: [trusted_nets]
+  description: |
+    CIDRs whose PROXY headers are accepted. A connection from anywhere else
+    keeps its TCP source address.
+
+general.xclient.trusted_nets:
+  type: list
+  default: []
+  changed:
+    - version: 2.4.4
+      text: The default was `127.0.0.1/32, 10.0.0.0/8`; it now trusts nobody.
+  description: |
+    CIDRs of the proxies and relays allowed to issue XCLIENT. Empty trusts
+    none.
+
+general.limits.mail_max_userip_connections:
+  type: integer
+  default: 10
+  description: |
+    Simultaneous connections per user and IP pair, counted across all IMAP and
+    POP3 listeners. `0` is unlimited. A userdb field of the same name overrides
+    it per user.
+
+general.startup_dial_retries:
+  type: integer
+  default: 3
+  description: |
+    Attempts to reach an external dependency, such as warden or Redis, at
+    startup before the process gives up.
+
+login.login_proxy_timeout:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: login.login_proxy_timeout
+  description: |
+    Time a login proxy may spend reaching the user's backend and bringing the
+    session up there: the connect, re-routes to another backend, the preamble
+    and the backend's greeting, with every retry inside the same window. Past
+    it the client gets a temporary failure (`NO [UNAVAILABLE]` on IMAP) and may
+    log in again. A user's `proxy_timeout` (see [Authentication](/auth/))
+    replaces it.
+
+login.transient_retries:
+  type: integer
+  default: 3
+  helm: login.transientRetries
+  see_also: [login.transient_relogin_cap]
+  description: |
+    Extra attempts a transient failure gets (auth temporary failure, auth dial,
+    backend session setup) before the client is told the service is
+    unavailable. `0` fails on the first error.
+
+login.transient_relogin_cap:
+  type: integer
+  default: 3
+  helm: login.transientReloginCap
+  see_also: [login.transient_retries]
+  description: |
+    Once the retries are spent, the proxy answers `NO [UNAVAILABLE]` and keeps
+    the connection open for another login. This many such answers close the
+    connection. Independent of `auth_max_attempts`. `0` closes on the first.
+
+auth_service.auth_startup_wait:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: components.auth.startup_wait
+  description: |
+    Time to wait for yarilo-auth at startup. `0` does not wait.
+
+locks_client.locks_client_startup_wait:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: components.locks.client.startup_wait
+  description: |
+    Time to wait for yarilo-locks at startup. `0` does not wait.
+
+auth_client.auth_client_pool_size:
+  type: integer
+  default: 4
+  helm: components.auth.client.pool_size
+  description: |
+    Connections to yarilo-auth kept open for userdb lookups. `0` dials per
+    lookup. On shutdown each connection still serving a lookup is waited for
+    up to a second.
+
+auth_client.auth_client_pool_idle_timeout:
+  type: integer
+  unit: seconds
+  default: 300
+  helm: components.auth.client.pool_idle_timeout
+  description: |
+    Time an unused pooled connection is kept. `0` never closes one for
+    idleness.
+
+internal_tls.session_cache_size:
+  type: integer
+  default: 64
+  helm: internalTLS.sessionCacheSize
+  description: |
+    TLS sessions an internal client keeps for resumption. `0` turns resumption
+    off.
+
+internal_tls.session_cache_ttl:
+  type: integer
+  unit: seconds
+  default: 0
+  helm: internalTLS.sessionCacheTtl
+  description: |
+    Time a cached session may be resumed. `0` keeps it until the cache evicts
+    it.
