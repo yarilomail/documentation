@@ -639,14 +639,14 @@ defaults for `OpSettings` that the caller can override per-op.
 debugging: `drivers`, `exists`, `lookup`, `iterate`, `set`, `unset`,
 `atomic-inc`, `expire-scan`, `commit-batch` (stdin TAB-delimited script).
 It is a client of `yarilo-backend-api`, which owns the configured dicts;
-the CLI names a dict and never opens one itself. See [Dict — yarilo's key-value abstraction](/storage/dict)
+the CLI names a dict and never opens one itself. See [Dictionaries](/storage/dict)
 for the full reference.
 
-### Deferred from this phase
+### Limitations
 
-- LDAP / CDB read-only drivers — niche, add when a customer asks.
-- Async callback API — `context.Context` cancellation already covers
-  the cancellation use cases.
+- There are no LDAP or CDB drivers.
+- There is no asynchronous callback API; a caller cancels through its
+  `context.Context`.
 
 ---
 
@@ -664,17 +664,7 @@ and the standard operational shape for it:
 
 Each namespace MAY use its own separator (permitted by the model; we follow it).
 
-### Phase ordering
-
-| Phase | Delivers |
-|:---|:---|
-| **NS-1a** (`v1.20`) | Wire-protocol: `NAMESPACE` response driven by `cfg.Namespaces[]`. Only Personal carries real mailboxes. |
-| **NS-1b** (`v1.21`, shipped) | Per-namespace storage routing via in-session `nsHandle` dispatch keyed on namespace prefix. Each implemented namespace opens its own `UserMailbox` + `UserIndex` + per-namespace `subscriptions-<ns>` file at login. `LIST` traverses every implemented namespace (personal first, then by prefix). `SELECT`/`STATUS`/`APPEND`/`COPY`/`MOVE`/`SUBSCRIBE` route by prefix. METADATA `/private/*` on shared/public mailboxes embeds a SHA-256 hash of the accessing user in the dict key (`priv/box/<guid>/u-<userhash>/<entry>`) so users do not see each other's private annotations on the same folder; `/shared/*` stays global. Other users' mailboxes arrive with NS-2. |
-| **ACL-1** | RFC 4314 — required for Shared / Other Users / Public to be actually usable (without it any user reads anyone's stuff). Enforcement primitives shipped (#490); namespace-aware LMTP/Sieve delivery + POST-right shipped (#503/#504). |
-| **NS-2 (owner-templated)** | Owner-templated shared / other namespaces (`prefix: user/%u/`, `location: maildir:%h`): the location variables expand against the **owner** (userdb lookup), and the `nsHandle` is built **on demand per owner** and cached per session. Owner-tier ACL: the owner's own session has implicit full rights; a peer is gated by the owner's ACL. **Same farm tag only** — resolves the owner's storage when the owner's mailbox carries the same farm tag (same PV) as the session's mailbox; a different-farm owner is NS-3. Works in standalone and single-farm backend. Design: [Owner-templated shared namespaces + dynamic per-owner resolution](/storage/owner_shared_ns) (#499 item 3). |
-| **NS-3** | Director routing: when accessing `user/alice/*` and alice's mailbox carries a **different farm tag** (its data is on a PV the accessing pod does not mount), route just the owner-access leg to a pod in alice's farm (cross-pod RPC or namespace-pinned pool). Same-farm access (incl. standalone and single-farm backend) works without this. NS-2 fails closed (`NO` / LMTP implicit-keep) when the owner is on a different farm tag. Cross-farm owner access is not implemented ([#544](https://github.com/yarilomail/yarilo/issues/544)). |
-
-### Storage layout (post-NS-1b)
+### Storage layout
 
 ```
 /var/mail/vhosts/<domain>/<user>/        ← personal, per-user (existing)
