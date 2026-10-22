@@ -598,12 +598,10 @@ event carries `{"interval":N}`.
 A `state` event carries the types whose state moved, with their new state
 strings, and an `id`. The id is the account's change counter.
 
-To resume, reconnect with `Last-Event-ID` set to the last id received. Every
-requested type that changed after it is sent at once, so nothing is missed
-while the client was away.
-
-An id the server never issued, one past its counter, sends every requested
-type at once.
+To resume, reconnect with `Last-Event-ID` set to the last id received. The
+current state of every requested type is sent at once, so nothing is missed
+while the client was away, even if the account moved to another backend
+meanwhile.
 
 Without `Last-Event-ID` the stream starts from the current state and sends
 only later changes.
