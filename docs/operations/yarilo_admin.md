@@ -328,7 +328,7 @@ IDX  ADDR              LEFT | RIGHT                       LINK                  
 Use `-O json` for the structured object (`schemaVersion`, `self`, `size`,
 `members[]`, `tombstones[]`, `backendSetHash`) — suitable for programmatic topology assertions.
 
-#### `--all` — cross-replica view with a health verdict
+#### Cross-replica view
 
 Because ring membership is per-replica, `--all` makes the queried director
 aggregate every replica's own view server-side (one authorized fan-out to

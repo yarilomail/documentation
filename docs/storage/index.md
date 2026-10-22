@@ -1,4 +1,4 @@
-# Storage — self-healing, rebuild & mdbox tuning
+# Mailbox storage
 
 Mailbox backends (Maildir, sdbox, mdbox) and the FileIndex (binary mail-index v7.3 wire
 format: `.index` / `.index.log` / `.index.names`). All index mutations go through the

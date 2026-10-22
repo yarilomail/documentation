@@ -37,7 +37,7 @@ value is computed from the mailbox index.
 | `backend-api` /show, /recalc | `CountUsage`; /recalc force-rebuilds each folder's aggregate |
 | POP3 | **nothing** — POP3 never appends, so no enforcement; DELE→expunge decrements the index aggregate automatically |
 
-## Two distinct entities — do not conflate
+## Quota engine and IMAP QUOTA
 
 1. **quota engine** (`quota.enabled`) — the count backend + enforcement on
    **every save**: IMAP APPEND/COPY/MOVE (OVERQUOTA), LMTP delivery (552, or 452
@@ -181,7 +181,7 @@ rejected) and receives the crossing context via the environment: `USER`,
 `over` crossings fire on save (IMAP APPEND/COPY/MOVE, LMTP delivery); `under`
 crossings fire on the IMAP expunge that drops usage back below the threshold.
 
-## quota_over_status — external over-flag sync
+## External over-quota flag
 
 Keeps an external "over quota" flag in sync so an MTA can reject mail to
 over-quota users without querying the mail server. At **login** (IMAP) the actual

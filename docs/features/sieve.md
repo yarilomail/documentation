@@ -33,7 +33,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 ## Configuration
 
-### `yarilo.yaml` — top-level `sieve:` section
+### Settings in yarilo.yaml
 
 | Key | Type | Default | Description |
 |:----|:-----|:--------|:------------|
@@ -70,7 +70,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 All keys keep the `sieve_` prefix even under the `sieve:` section, matching the config koanf tags.
 
-### Helm `values.yaml` — top-level `sieve:` section
+### Settings in the Helm chart
 
 The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `sieve_` prefix):
 
@@ -211,7 +211,7 @@ A user's script includes one with `include :global "spam";`.
 
 A failed run delivers the message to INBOX (implicit keep) and logs why.
 
-## Outbound mail — redirect and vacation
+## Outbound mail from redirect and vacation
 
 When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
 
@@ -315,7 +315,7 @@ Yarilo ships six proprietary Sieve extensions under the `vnd.yarilo.*` namespace
 
 ---
 
-### `vnd.yarilo.debug` — script-level debug logging
+### `vnd.yarilo.debug`
 
 Appends timestamped messages to `.yarilo.sieve.log` in the user's home directory. Intended for troubleshooting script logic without touching system logs.
 
@@ -328,7 +328,7 @@ The log file is created on first write with mode `0600`. Each line is `<RFC 3339
 
 ---
 
-### `vnd.yarilo.environment` — operator-defined environment items
+### `vnd.yarilo.environment`
 
 Exposes delivery-time variables to scripts via the standard `environment` test. Built-in items:
 
@@ -358,7 +358,7 @@ Exposed as `vnd.yarilo.config.tenant` and `vnd.yarilo.config.region`.
 
 ---
 
-### `vnd.yarilo.pipe` — pipe message to an external program
+### `vnd.yarilo.pipe`
 
 Feeds the full RFC 5322 message to an external program. The program receives no output — exit code determines success. Useful for archiving, indexing, or side-effect triggering.
 
@@ -394,7 +394,7 @@ World-writable executables are refused.
 
 ---
 
-### `vnd.yarilo.filter` — rewrite message through an external program
+### `vnd.yarilo.filter`
 
 Like `pipe`, but the program's stdout replaces the message body. If the program exits non-zero or produces no output, the original message is passed through unchanged.
 
@@ -418,7 +418,7 @@ The `filter` action returns `true` if the program exited 0 and produced output. 
 
 ---
 
-### `vnd.yarilo.execute` — run a program and capture its output
+### `vnd.yarilo.execute`
 
 Runs a program with optional stdin and makes its stdout available to the script. Unlike `pipe`/`filter`, the program does not receive the full message unless the script explicitly passes content. Exit code is exposed as a boolean result.
 
@@ -444,7 +444,7 @@ The same program resolution and environment variable rules as `vnd.yarilo.pipe` 
 | `sieve_execute_exec_timeout` | `10` | Subprocess timeout in seconds |
 | `sieve_execute_input_eol` | `crlf` | Line endings written to stdin: `crlf` or `lf` |
 
-### `vnd.yarilo.report` — send an ARF abuse report
+### `vnd.yarilo.report`
 
 Generates an [RFC 5965](https://www.rfc-editor.org/rfc/rfc5965) Abuse Reporting Format (ARF) message about the current message and submits it to a target address (via `sieve_submission_host`, the same path as `redirect`/`vacation`). The report is a `multipart/report; report-type=feedback-report` with a human-readable part, a `message/feedback-report` machine part, and the reported message (full, or headers-only with `:headers_only`).
 

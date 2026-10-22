@@ -2,7 +2,7 @@
 description: "How yarilo implements IMAP NAMESPACE (RFC 2342, RFC 9051): personal, other users' and shared namespaces, hierarchy separators, prefixes and config keys."
 ---
 
-# Namespaces — IMAP NAMESPACE (RFC 2342 / RFC 9051 §6.3.10)
+# Namespaces
 
 yarilo supports the three RFC 9051 namespace classes:
 

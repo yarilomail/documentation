@@ -1,4 +1,4 @@
-# Dict — yarilo's key-value abstraction
+# Dictionaries
 
 `pkg/dict` is the general key-value store every yarilo feature that needs
 durable per-user or per-mailbox state sits on top of. A single contract
@@ -267,7 +267,7 @@ Behaviour in mapped mode:
 
 ---
 
-## CLI — `yarctl backend dict`
+## Managing dictionaries with yarctl
 
 `yarctl backend dict` is a client of `yarilo-backend-api`, which owns the
 configured dicts. The CLI never opens a dict itself: it names one, and the

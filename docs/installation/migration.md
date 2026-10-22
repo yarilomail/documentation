@@ -58,7 +58,7 @@ The GUID line is the one that matters for a client: a message keeps its identity
 across the conversion even though its UID changes, which is what lets a JMAP
 client recognise mail it already knows.
 
-## `--guid-backfill` — stable message identifiers {#guid-backfill-stable-message-identifiers}
+## Stable message identifiers {#guid-backfill-stable-message-identifiers}
 
 ```sh
 yarilo-migrate --guid-backfill --config /etc/yarilo/yarilo.yaml \
@@ -91,7 +91,7 @@ without one cannot be placed in a conversation.
 
 **Effect:** writes message metadata in place. Reads the mail.
 
-## `--thread-backfill` — conversations for existing accounts {#thread-backfill-conversations-for-existing-accounts}
+## Conversations for existing accounts {#thread-backfill-conversations-for-existing-accounts}
 
 ```sh
 yarilo-migrate --thread-backfill --config /etc/yarilo/yarilo.yaml \
@@ -199,7 +199,7 @@ files, so it is pointed at directly. A dbox tree is not — the records parse,
 but the index saying which message sits at which offset has to be read, which
 is what both routes below do and what pointing at the tree does not.
 
-#### Adoption — this server takes over the store in place {#adoption-this-server-takes-over-the-store-in-place}
+#### Adopting the store in place {#adoption-this-server-takes-over-the-store-in-place}
 
 Point the deployment at the store and open a folder. The first open reads the
 other server's index for that folder, writes ours beside it, and removes theirs.
@@ -268,7 +268,7 @@ folder's write lock — so a delivery arriving mid-conversion waits for it. On a
 three-thousand-message folder that wait is tens of milliseconds, the same order
 as an ordinary large SELECT.
 
-#### Import — `--src dbox-ref` reads their store and writes ours {#import-src-dbox-ref-reads-their-store-and-writes-ours}
+#### Importing into a new store {#import-src-dbox-ref-reads-their-store-and-writes-ours}
 
 ```sh
 # /srv/old-mail/example.com/alice/… is alice@example.com
