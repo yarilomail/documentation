@@ -603,6 +603,9 @@ To resume, reconnect with `Last-Event-ID` set to the last id received. Every
 requested type that changed after it is sent at once, so nothing is missed
 while the client was away.
 
+An id the server never issued, one past its counter, sends every requested
+type at once.
+
 Without `Last-Event-ID` the stream starts from the current state and sends
 only later changes.
 
