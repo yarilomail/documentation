@@ -17,11 +17,13 @@ interface Setting {
   added?: string
   changed?: { version: string; text: string }[]
   advanced?: boolean
+  // chart: a Helm value, compared with values.yaml instead of the config export.
+  source?: 'chart'
   description: string
 }
 
 const FIELDS = new Set(['type', 'unit', 'default', 'default_text', 'values', 'aliases', 'helm',
-  'see_also', 'added', 'changed', 'advanced', 'description'])
+  'see_also', 'added', 'changed', 'advanced', 'source', 'description'])
 const TYPES = new Set(['string', 'boolean', 'integer', 'list', 'map'])
 const PLACE = /^<!-- @settings ([^>]+?) -->$/gm
 const INDEX = /^<!-- @settings-index -->$/m
@@ -33,6 +35,8 @@ const nameOf = (key: string) => key.slice(key.lastIndexOf('.') + 1)
 for (const [key, s] of Object.entries(settings)) {
   const unknown = Object.keys(s).filter(f => !FIELDS.has(f))
   if (unknown.length) throw new Error(`data/settings.yaml: ${key}: unknown field ${unknown.join(', ')}`)
+  if (s.source !== undefined && s.source !== 'chart') throw new Error(`data/settings.yaml: ${key}: source must be chart or left out`)
+  if (s.source === 'chart' && (s.helm || s.aliases)) throw new Error(`data/settings.yaml: ${key}: a chart value takes no helm or aliases`)
   if (!TYPES.has(s.type) || !s.description) {
     throw new Error(`data/settings.yaml: ${key}: needs a description and a type of ${[...TYPES].join(', ')}`)
   }
@@ -81,6 +85,7 @@ function card(key: string, s: Setting, base: string, plain: boolean): string {
     return `<a href="${base}${page.slice(1)}${page.endsWith('/') ? '' : '.html'}#${k}">${code(nameOf(k))}</a>`
   }
   const rows: [string, string][] = [
+    ...(s.source === 'chart' ? [['Set in', 'Helm values'] as [string, string]] : []),
     ['Default', defaultHtml(s)],
     ['Type', s.type + (s.unit ? `, ${esc(s.unit)}` : '')],
   ]
@@ -100,20 +105,22 @@ function card(key: string, s: Setting, base: string, plain: boolean): string {
   return `<div class="setting-card"><dl>${body}</dl>${advanced}</div>`
 }
 
-function block(key: string, base: string, plain: boolean): string {
+function block(key: string, base: string, plain: boolean, level: number): string {
   const s = settings[key]
   const id = plain ? '' : ` {#${key}}`
-  return `### \`${nameOf(key)}\`${id}\n\n${card(key, s, base, plain)}\n\n${s.description.trim()}\n`
+  return `${'#'.repeat(level)} \`${nameOf(key)}\`${id}\n\n${card(key, s, base, plain)}\n\n${s.description.trim()}\n`
 }
 
 function index(): string {
   const bySection = new Map<string, string[]>()
   for (const key of Object.keys(settings)) {
-    const section = sectionOf(key)
+    const section = (settings[key].source === 'chart' ? 'chart:' : '') + sectionOf(key)
     bySection.set(section, [...(bySection.get(section) ?? []), key])
   }
-  return [...bySection].map(([section, keys]) =>
-    `## ${section ? `\`${section}\`` : 'Top level'}\n\n` + keys.map(k => {
+  const title = (s: string) => s.startsWith('chart:') ? `Helm values: \`${s.slice(6)}\`` : s ? `\`${s}\`` : 'Top level'
+  const order = [...bySection].sort(([a], [b]) => Number(a.startsWith('chart:')) - Number(b.startsWith('chart:')))
+  return order.map(([section, keys]) =>
+    `## ${title(section)}\n\n` + keys.map(k => {
       const s = settings[k]
       const dflt = s.default_text ? '' : s.default === undefined || s.default === '' ? '' :
         `, default \`${Array.isArray(s.default) ? (s.default.join(', ') || '[]') : s.default}\``
@@ -125,8 +132,17 @@ export const hasSettings = (src: string) => new RegExp(PLACE.source, 'm').test(s
 
 // plain: Markdown cards and no heading ids, for llms-full.txt.
 export function expandSettings(src: string, base: string, plain = false): string {
-  return src
-    .replace(PLACE, (_, tokens: string) => tokens.trim().split(/\s+/).flatMap(t => resolve(t, 'page'))
-      .map(k => block(k, base, plain)).join('\n'))
-    .replace(INDEX, index)
+  // A setting's heading sits one level below the heading the marker is under.
+  let level = 2, fence = false
+  const out = src.split('\n').map(line => {
+    if (/^\s*(```|~~~)/.test(line)) fence = !fence
+    if (fence) return line
+    const h = line.match(/^(#{1,6}) /)
+    if (h) level = h[1].length
+    const m = line.match(/^<!-- @settings ([^>]+?) -->$/)
+    if (!m) return line
+    return m[1].trim().split(/\s+/).flatMap(t => resolve(t, 'page'))
+      .map(k => block(k, base, plain, Math.min(level + 1, 6))).join('\n')
+  }).join('\n')
+  return out.replace(INDEX, index)
 }

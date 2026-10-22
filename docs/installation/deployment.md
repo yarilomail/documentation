@@ -238,14 +238,10 @@ Safety + migration:
   returns): a dead backend heartbeats nowhere and never re-registers, so a gossiped
   ghost simply ages out at TTL.
 
-Config (snake_case, section-prefixed; `yarilo.yaml` + Helm `values.yaml`):
-- `director_service.backend_expire` — seconds of missed heartbeat before a backend
-  is removed ring-wide.
-- sidecar side: `backend_register.director_addr` (director ClusterIP),
-  `backend_register.register_interval`, `backend_register.tag` (NFS shard),
-  `backend_register.vhosts`. One `backend_register` block per pod drives the single
-  `yarilo-backend-reg` sidecar; there is **no** per-protocol registration path
-  (config-not-binary: one registration mechanism, no modes).
+One `backend_register` block per pod drives the single `yarilo-backend-reg`
+sidecar; there is **no** per-protocol registration path.
+
+<!-- @settings director_service.backend_expire backend_register.director_addr backend_register.register_interval backend_register.tag backend_register.vhosts -->
 
 ### Backend watchdog probe
 
@@ -284,11 +280,7 @@ self-check touches **nothing shared** — so a hung NFS handle restarts the one 
 that mounts it, and a database hiccup restarts nothing. A single protocol
 container restarts alone; the other protocols on the pod keep serving.
 
-Config (snake_case, section-prefixed; `yarilo.yaml` + Helm `values.yaml`):
-`telemetry.liveness_watchdog.liveness_watchdog_enabled` / `_interval_seconds` /
-`_timeout_seconds` / `_failure_threshold`, and `_fault_injection_enabled` — a
-self-destruct switch that exposes `POST /debug/fault/deadlock` to confirm the
-restart path on a live pod, off by default.
+<!-- @settings telemetry.liveness_watchdog -->
 
 ### Profiling a live pod
 
@@ -297,12 +289,17 @@ default**. They answer questions no metric can: which function a saturated
 worker is actually in, where a component's allocations come from, and why
 adding CPU makes a stage slower rather than faster.
 
-One switch:
+One switch turns them on:
 
-| Value | Serves | Contains |
-|:---|:---|:---|
-| `telemetry.pprof.enabled` | `/debug/pprof/profile`, `trace`, `allocs`, `heap`, `goroutine`, `block`, `mutex`, `threadcreate`, `cmdline`, `symbol` | stacks, counts and symbol names — which code paths this process runs and what they cost |
-| | `/debug/loglevel` (GET the level, POST `{"level":"debug","ttl":"10m"}` to change it for the whole process) | the current level; off, the route answers 404 |
+<!-- @settings telemetry.telemetry_pprof_enabled -->
+
+It serves:
+
+- `/debug/pprof/profile`, `trace`, `allocs`, `heap`, `goroutine`, `block`,
+  `mutex`, `threadcreate`, `cmdline` and `symbol`: stacks, counts and symbol
+  names, which say what code paths the process runs and what they cost;
+- `/debug/loglevel`: `GET` returns the level, and `POST {"level":"debug","ttl":"10m"}`
+  changes it for the whole process. Off, the route answers 404.
 
 `block` and `mutex` are in that list but stay silent until a sampling rate is
 set; see below.
@@ -345,10 +342,7 @@ leaving it on for a year.
 but they answer with an **empty profile** until sampling is turned on — a
 diagnostic that returns 200 and says nothing. Two more values do that:
 
-| Value | Default | Sets |
-|:---|:---|:---|
-| `telemetry.pprof.blockProfileRate` | `0` (off) | one sample per this many nanoseconds of blocked time |
-| `telemetry.pprof.mutexProfileFraction` | `0` (off) | one sample per this many mutex contention events |
+<!-- @settings telemetry.telemetry_block_profile_rate telemetry.telemetry_mutex_profile_fraction -->
 
 They are separate from `enabled` because serving a route and collecting samples
 are different costs. The route is free while nobody fetches it; the sampling is
@@ -487,7 +481,11 @@ from different processes, read from a single place (the login proxy).
 
 Warden holds three pieces of shared state: the per-IP auth-failure **penalty** counter, the
 per-`user@ip` **session** accounting (the connection limit), and the **kick bus** (`EMIT`/`SUBSCRIBE`).
-Where that state lives is a single config choice — `components.warden.service.state_backend`:
+Where that state lives is a single config choice:
+
+<!-- @settings warden_service.state_backend -->
+
+How the two values differ:
 
 | `state_backend` | State lives in | Replicas | Deploy strategy |
 |:---|:---|:---|:---|
@@ -590,6 +588,8 @@ internal_tls:
   ca:   /etc/yarilo/tls/ca.crt
 ```
 
+<!-- @settings locks_service.mode locks_service.listen locks_service.redis locks_service.socket locks_client.mode locks_client.endpoints locks_client.socket -->
+
 #### Redis password
 
 A Redis that requires a password gets it from a Secret, never from the
@@ -599,18 +599,16 @@ every process that opens Redis: auth (session tokens), warden, locks, dict,
 quota-status, backend-api and the session containers. The bundled Redis then
 starts with `--requirepass` from the same Secret.
 
+<!-- @settings redis.passwordSecret -->
+
 The config names the variable next to each Redis URL, and the loader expands
 it at startup:
 
-| Client | Key |
-|:---|:---|
-| auth session tokens | `auth.token.redis_password` |
-| warden | `warden_service.redis_password` |
-| locks | `locks_service.redis_password` |
-| a dict with `driver: redis` (quota clone, ACL owner registry, Sieve vacation and duplicate) | `password` in its `settings` |
+<!-- @settings auth.token.redis_password warden_service.redis_password locks_service.redis_password -->
 
-The chart renders the first three; a redis dict is the operator's, so add
-`password: "${YARILO_REDIS_PASSWORD}"` to its settings. A separate password
+The chart renders these three. A dict with `driver: redis` (quota clone, ACL
+owner registry, Sieve vacation and duplicate) is the operator's, so add
+`password: "${YARILO_REDIS_PASSWORD}"` to its `settings`. A separate password
 wins over one inside the URL. Do not put the password in the URL: the URL is
 rendered into the ConfigMap as written.
 
@@ -631,6 +629,8 @@ every certificate it makes; **a certificate you provide MUST carry
 hint) rather than as a cryptic "ServerName must be specified" on the first dial.
 `saslLogin` and `quotaStatus` now also carry an `internalTLS` block/mount — every
 component that dials an internal service needs the cert mounted.
+
+<!-- @settings internal_tls.server_name -->
 
 The director **ring** dial is separate — see below.
 
@@ -685,6 +685,8 @@ config of a component that got no certificate. Per-component `secretName` stays,
 for your own certificates. With the switch off, every internal port is plain and
 each server logs that roles are not checked.
 
+<!-- @settings internal_tls.enabled internal_tls.cert internal_tls.key internal_tls.ca -->
+
 **Certificates from the chart.** Every component without its own `secretName`
 gets `<release>-<role>-internal-tls`, made by the chart (`genSignedCert`,
 10 years) and signed by:
@@ -717,6 +719,8 @@ expiry. For renewal over time use cert-manager.
 
 The install notes (`NOTES.txt`) repeat this when the chart makes its own CA.
 
+<!-- @settings internalTLS.ca.secretName internalTLS.certGeneration -->
+
 **Upgrading a release that ran with internal TLS off.** Turning it on switches
 every internal link from plain to TLS at once. While the rollout runs, new pods
 speak TLS and old ones do not, so internal calls between old and new pods fail
@@ -727,6 +731,8 @@ your choosing.
 **cert-manager.** With `internalTLS.certManager.enabled` and
 `internalTLS.certManager.issuerRef`, the chart renders one `Certificate` per
 role with the same DNS names, and cert-manager makes and renews the Secrets.
+
+<!-- @settings internalTLS.certManager.enabled internalTLS.certManager.issuerRef -->
 
 **Your own certificates.** Set `secretName` per component. Each certificate
 carries `<role>.role.yarilo.internal` for that component, plus
@@ -764,12 +770,7 @@ that say on the network layer what the role matrix says in the handshake:
 The client-facing login ports carry no policy and stay open. Egress is not
 restricted. The policies need a CNI that enforces them (Calico, Cilium, …).
 
-| Key | Default | Meaning |
-|:---|:---|:---|
-| `networkPolicy.enabled` | `true` | render the policies |
-| `networkPolicy.adminFrom` | `[]` | peers for operator tools outside the chart's pods (smoketest, yarilo-migrate) on the admin, auth and locks ports; empty: `kubectl exec` into backend-api or director |
-| `networkPolicy.mtaFrom` | `[]` (everyone) | who may reach the MTA-facing ports |
-| `networkPolicy.telemetryFrom` | `[]` (everyone) | who may reach telemetry and health; kubelet probes come from the node and keep passing when it is narrowed (checked on Calico) |
+<!-- @settings networkPolicy -->
 
 Narrowing to a Postfix in a neighbouring namespace, and to Prometheus in
 `monitoring`:
@@ -1320,6 +1321,8 @@ Synced between directors over the peer protocol.
 
 ## Initial placement policy
 
+<!-- @settings director_service.assignment_policy -->
+
 Only the **first** (unpinned) user→backend assignment consults the policy; sticky
 pins and USER-MOVE are unaffected. The director is the **single
 owner** of placement — the LOOKUP path, LMTP `RouteUser`, and the admin
@@ -1348,10 +1351,7 @@ independently pick a pod and split a user's per-user writer.
 
   The placement is replicated across the director ring, so a director restart
   does not re-place a domain, and it is forgotten after
-  `director_service.director_domain_expire` (seconds, default `900`, Helm:
-  `components.director.director_domain_expire`) without a session — its own
-  knob, deliberately not the user TTL: a domain forgotten between two logins
-  would be placed elsewhere and the affinity would be lost with nobody asking.
+  `director_domain_expire` without a session.
 
   **Load counted at placement, not at connect.** The count a placement compares
   is the backend's active sessions **plus the placements it has already been
@@ -1362,15 +1362,10 @@ independently pick a pod and split a user's per-user writer.
   same reason.)
 
   **Rebalance.** When the busiest backend of a tag rises more than
-  `director_service.director_domain_rebalance_percent` above the quietest
-  (`0` in the binary, `20` from the chart; **`0` turns it off**, and the chart reads the key with `hasKey`
-  so a `0` in values is a `0` in the config), one domain moves down — but only
+  `director_domain_rebalance_percent` above the quietest, one domain moves down — but only
   when the move actually narrows the spread, and among such moves the one that
   disconnects the fewest sessions. A move ends that domain's sessions on the
-  backend it left, one user at a time through the confirmed kill. `_interval`
-  (default `60`) is how often this is judged and `_cooldown` (default `600`) how
-  long a moved domain is left alone, which is what keeps two backends either
-  side of the line from trading a domain.
+  backend it left, one user at a time through the confirmed kill.
 
   **What it does not do.** It does not split a domain: one large domain still
   fills the backend it was placed on, and the cure for that is spreading the
@@ -1394,6 +1389,10 @@ pins TTL-expire), so don't be surprised by a populated userDir after a mass
 operation. Reference parity: the reference does hash + vhosts weighting only;
 `least_sessions` is a yarilo extension, default stays reference-compatible.
 
+### Domain placement settings
+
+<!-- @settings director_service.director_domain_expire director_service.director_domain_rebalance_percent director_service.director_domain_rebalance_interval director_service.director_domain_rebalance_cooldown -->
+
 ---
 
 ## USER-MOVE and pin longevity
@@ -1412,8 +1411,10 @@ it touches the pin of every user with an active session in the replicated
 session registry. Each director refreshes from its own ring-replicated
 session view, so no extra propagation is needed. Once the user's **last session
 closes**, the touches stop and the pin **lapses back to the ring hash** after
-`director_service.user_expire`. So a move survives exactly as long as the user
-stays connected; an idle user deterministically returns to their hash backend.
+`user_expire`. So a move survives exactly as long as the user stays connected;
+an idle user deterministically returns to their hash backend.
+
+<!-- @settings director_service.user_expire -->
 
 Operators who need a **permanent** placement should use **tags** (a user's
 tag-pool is routing configuration), not a move.
@@ -1422,24 +1423,10 @@ tag-pool is routing configuration), not a move.
 
 ## Kick pacing
 
-Two knobs shape how sessions are torn down, matching the reference's kick delay and
-parallel-kick limit:
+Three settings shape how sessions are torn down. The last bounds a deliberate
+evacuation; see [Director](/architecture/director).
 
-- **`director_service.user_kick_delay`** (default `2`s) — an admin-initiated
-  kick (director API, typically the tail of a user move) waits this long before
-  the `USER-KICKED` push, so an in-flight command on the old backend can
-  complete. Applies to the **admin path only**: a backend-down / lease-expiry
-  kick fires immediately (there is nothing to grace on a dead backend), and the
-  split-writer conflict-kick is never delayed. `0` kicks immediately.
-
-- **`director_service.max_parallel_kicks`** (default `100`) — when a backend
-  goes down, its sessions are kicked in batches of this size with a short pause
-  between batches, spreading the re-login stampede across the surviving backends
-  instead of firing every kick at once. `0` kicks all at once.
-
-A third knob, `director_service.max_parallel_moves` (default `5`), bounds a deliberate
-evacuation instead: `yarctl director backends flush` drains a backend in a window of at most
-this many confirmed kills. See [Director](/architecture/director).
+<!-- @settings director_service.user_kick_delay director_service.max_parallel_kicks director_service.max_parallel_moves -->
 
 ---
 

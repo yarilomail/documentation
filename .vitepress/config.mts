@@ -158,7 +158,7 @@ export default defineConfig({
   transformPageData(pageData, { siteConfig }) {
     const file = join(siteConfig.srcDir, pageData.filePath)
     // Settings are H3s; list them under their sections in the outline.
-    if (hasSettings(readFileSync(file, 'utf8'))) pageData.frontmatter.outline ??= [2, 3]
+    if (hasSettings(readFileSync(file, 'utf8'))) pageData.frontmatter.outline ??= [2, 4]
     if (!pageData.frontmatter.description) {
       const { desc } = pageMeta(readFileSync(file, 'utf8'))
       if (desc) pageData.description = snippet(desc)
