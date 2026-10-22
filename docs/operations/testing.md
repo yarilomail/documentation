@@ -86,7 +86,7 @@ stays in the report by name, with the flag that would enable it:
 
 This matters because the earlier gate counted only what it ran, and a rollout
 that lost a flag reported `11/11` green with fewer checks than the one before
-it (#1197). A count of what ran cannot describe what was not asked for, so the
+it. A count of what ran cannot describe what was not asked for, so the
 report always describes the whole intended gate.
 
 ### Demanding the whole gate
@@ -170,8 +170,8 @@ the storage-name escaping path is not exercised by any routine rollout gate.
 This is deliberate, and it is written here so the gap is not later mistaken for
 an oversight and patched with a second mechanism.
 
-The escaping path — and the NFC-against-escaping interaction that #1113 turned
-into a form-preserving property — is covered by unit tests that assert on
+The escaping path — and the NFC-against-escaping interaction, a form-preserving
+property — is covered by unit tests that assert on
 computed strings, plus one end-to-end IMAP test with a `t.Skip` precondition:
 it needs a filesystem that does not compose names on creation, so it skips on
 macOS (APFS) and carries the weight on the CI runners (self-hosted Linux, which
@@ -203,7 +203,7 @@ The second must cover the **whole tree**, not the package being edited.
 Tagged code is not confined to the engine package: its consumers and the
 benchmark harness are behind the same tag, and their fixtures are where a
 changed contract surfaces. Keying the FTS index path by the folder GUID
-(#1183) passed a tagged run of `internal/fts/flatcurve` and failed CI on five
+passed a tagged run of `internal/fts/flatcurve` and failed CI on five
 fixtures elsewhere that built a mailbox reference with no GUID, plus a test
 that computed the shard path with the layout the change had just removed.
 Those are exactly the places a package-scoped run cannot reach.
@@ -246,7 +246,7 @@ CPU limit.
 ### Measuring a language other than English
 
 The generator emits English, and the English stopword list was the one already
-correct — 174 words matching its source exactly, unchanged by #1021 and #1025.
+correct — 174 words matching its source exactly, unchanged by the stopword changes.
 A sandbox run therefore shows **nothing** for those changes, by construction
 rather than by measurement.
 

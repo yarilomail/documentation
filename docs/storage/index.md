@@ -1,4 +1,4 @@
-# Storage — self-healing, rebuild & mdbox tuning
+# Mailbox storage
 
 Mailbox backends (Maildir, sdbox, mdbox) and the FileIndex (binary mail-index v7.3 wire
 format: `.index` / `.index.log` / `.index.names`). All index mutations go through the
@@ -187,8 +187,7 @@ and values, since the two implementations write those lines in different orders.
 
 **Serving** such a record is covered too. Another implementation can store a body with bare
 LF; since 2.4.1 the body is converted to CRLF on the way out, and mdbox reports the size it will
-actually serve, as sdbox already did, so `RFC822.SIZE` and the bytes a client receives agree
-([#1527](https://github.com/yarilomail/yarilo/issues/1527)). Mail this server wrote is CRLF on
+actually serve, as sdbox already did, so `RFC822.SIZE` and the bytes a client receives agree. Mail this server wrote is CRLF on
 disk already and comes back byte for byte.
 
 The *store* is a different question, and it has one answer in each direction.

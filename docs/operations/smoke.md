@@ -127,14 +127,8 @@ in the ways below, and nothing else.
 | FTS | one message with a unique marker | nothing |
 | JMAP header forms | one message in `YariloSmoke` | that message and the folder |
 
-**It does not empty INBOX**, and must not. It did until #1056: a helper selected
-INBOX, searched for everything and expunged it, twenty-five times per run.
-Nothing in the flags or in this document said the account had to be disposable,
-and the loss was silent — the delete ignored its error and the helper returned
-nothing on any failure path.
-
-Every check identifies its own message by a unique subject or marker, which is
-what it needed all along; the clearing was defensive and destructive at once.
+**It does not empty INBOX**, and must not: the account need not be disposable.
+Every check identifies its own message by a unique subject or marker.
 `TestNothingEmptiesTheInbox` reads the source and fails on any function that
 selects INBOX, searches `ALL` and deletes the result — deleting a message the
 check itself sent stays allowed, because the fault was the breadth and not the

@@ -1,4 +1,4 @@
-# yarilo-backend-api — backend-plane HTTP wire reference
+# Backend HTTP API
 
 `yarilo-backend-api` exposes the operator surface for per-account state over HTTP: dict, ACL, quota, folders, users, index, mdbox storage, messages, subscriptions, special-use, metadata, sessions and full-text search. One instance runs per backend pod in the co-located layout, or as its own Deployment otherwise.
 
@@ -8,7 +8,7 @@ For the director's own admin endpoints (ring, backends, users) see [Director API
 
 ## Transport
 
-- **Protocol:** JSON over HTTP, or over HTTPS with mutual TLS when `internal_tls.enabled: true`. The director API is HTTPS with mutual TLS too when `internal_tls.enabled: true`; both accept the `admin` role (see [Peer roles](/installation/deployment#peer-roles-2132)).
+- **Protocol:** JSON over HTTP, or over HTTPS with mutual TLS when `internal_tls.enabled: true`. The director API is HTTPS with mutual TLS too when `internal_tls.enabled: true`; both accept the `admin` role (see [Peer roles](/installation/deployment#peer-roles)).
 - **Auth:** Bearer token in `Authorization: Bearer <token>`. The server reads it from the `BACKEND_API_TOKEN` env var, which the chart wires from a Secret. An empty token stops the service at start; running without one takes an explicit `backend_api.auth_disabled: true` (local dev only), and setting both is refused too.
 - **IP allow-list:** when `backend_api.allowed_nets` is set, clients outside those CIDRs get `403 forbidden` before the bearer check. An entry that is not a CIDR stops the service at start.
 - **Request bodies:** every `POST` endpoint takes a JSON body. `GET` endpoints take query parameters.
@@ -474,7 +474,7 @@ mailboxes actually reseeded, and `skipped` lists the rest with a reason
 
 **`rebuild` merges; `rebuild --all` replaces.** A named folder list reseeds
 exactly those folders and leaves every other folder's index rows untouched —
-repairing one mailbox must not delete the index for the rest (#1151). Passing
+repairing one mailbox must not delete the index for the rest. Passing
 `"all": true` (CLI `--all`) instead addresses every folder in the namespace and
 *replaces* the index, which is the only form that clears rows for folders that
 no longer exist. `all` and `folders` are alternatives (`400` together), and the
@@ -500,7 +500,7 @@ same walk and diffs it against the index: per folder, `missing` (in the file,
 not the index), `stale` (in the index, not the file) and `mismatched` (both,
 different rights), with `in_sync` summarising. Scope follows the write it
 previews — a named subset compares those folders, `--all` compares everything.
-This is the answer to "did my deployment drift, and where" (#1154), which was
+This is the answer to "did my deployment drift, and where", which was
 otherwise answerable only by comparing `list` against `get` folder by folder —
 presuming the folder list the drifted index was supposed to provide.
 
@@ -511,12 +511,12 @@ and `folder: ""` are the same empty string, so the intent has no other
 spelling. On the reply side there is no such ambiguity — **an empty `mailbox`
 (or `folder` in the drift report) IS the namespace root**: that is its name
 in the store, no folder can be called `""`, and this sentence is its
-definition (#1163). The root's rows are the ones that inherit to every
+definition. The root's rows are the ones that inherit to every
 mailbox under them.
 
 ### `POST /api/backend/acl/registry/list` and `POST /api/backend/acl/registry/rebuild`
 
-The owner-discovery registry (#1168): a dict in the reference's shared-boxes
+The owner-discovery registry: a dict in the reference's shared-boxes
 key space, synced wherever the `yarilo-acl-list` index is written. `list`
 answers "which owners may this caller discover" for the bare user plus
 `anyone` grants (group grants resolve against the session identity, which the
@@ -821,7 +821,7 @@ would have removed the owner's own subscriptions silently.
 
 Idempotent: the sources are removed only after every row is in the destination,
 so a failure leaves the run repeatable, and a second run finds nothing. Both
-historical names are read — the current one and the pre-#1159 path form.
+historical names are read — the current one and the older path form.
 
 Reply: `sources` (files read), `folded` (keys added), `already` (keys the
 destination held).

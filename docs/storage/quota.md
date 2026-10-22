@@ -37,7 +37,7 @@ value is computed from the mailbox index.
 | `backend-api` /show, /recalc | `CountUsage`; /recalc force-rebuilds each folder's aggregate |
 | POP3 | **nothing** — POP3 never appends, so no enforcement; DELE→expunge decrements the index aggregate automatically |
 
-## Two distinct entities — do not conflate
+## Quota engine and IMAP QUOTA
 
 1. **quota engine** (`quota.enabled`) — the count backend + enforcement on
    **every save**: IMAP APPEND/COPY/MOVE (OVERQUOTA), LMTP delivery (552, or 452
@@ -181,7 +181,7 @@ rejected) and receives the crossing context via the environment: `USER`,
 `over` crossings fire on save (IMAP APPEND/COPY/MOVE, LMTP delivery); `under`
 crossings fire on the IMAP expunge that drops usage back below the threshold.
 
-## quota_over_status — external over-flag sync
+## External over-quota flag
 
 Keeps an external "over quota" flag in sync so an MTA can reject mail to
 over-quota users without querying the mail server. At **login** (IMAP) the actual
@@ -219,8 +219,7 @@ listener it looks recipients up through. Without it the service answers
 
 From 2.4.2 the chart fills it in: with `components.quotaStatus.auth_master_addr`
 empty it renders the release's auth service on `components.auth.masterListen`.
-**In 2.4.1 the chart leaves it empty**
-([yarilo#2160](https://github.com/yarilomail/yarilo/issues/2160)), so set it there:
+**In 2.4.1 the chart leaves it empty**, so set it there:
 
 ```yaml
 components:
@@ -364,7 +363,7 @@ The chart's `quota:` block uses the `yarilo.yaml` key names with one exception:
 the storage grace is `quota.quota_grace` in the values, rendered as
 `quota_storage_grace`. From 2.4.2 a `quota.quota_storage_grace` in the values
 fails the render and names `quota_grace`; in 2.4.1 it is dropped without a
-warning ([yarilo#2161](https://github.com/yarilomail/yarilo/issues/2161)).
+warning.
 
 The `yarilo-quota-status` pod mounts the mail PV read-only so it can open
 recipient mailboxes; set `quota_rule` in the passdb schema.

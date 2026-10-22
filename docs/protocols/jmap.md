@@ -2,8 +2,7 @@
 
 The session resource, the request envelope and the Mail and Quota methods listed
 under [Capabilities](#capabilities) are served, reading and writing. Push is
-served over EventSource ([Push](#push)); WebSocket and Web Push are not yet
-([#714](https://github.com/yarilomail/yarilo/issues/714)).
+served over EventSource ([Push](#push)); WebSocket and Web Push are not yet.
 
 JMAP runs as two binaries, not one. `yarilo-jmap-login` faces clients and
 `yarilo-jmap` owns the user's state; see
@@ -566,8 +565,8 @@ A renamed mailbox keeps its id and its access rights.
 | Vacation — `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
 | Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured; identities read-only |
 | Push over EventSource | RFC 8620 §7.3 | served; see [Push](#push) |
-| Push over WebSocket | RFC 8887 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
-| Push subscriptions (Web Push) | RFC 8620 §7.2 | not implemented ([#714](https://github.com/yarilomail/yarilo/issues/714)) |
+| Push over WebSocket | RFC 8887 | not implemented |
+| Push subscriptions (Web Push) | RFC 8620 §7.2 | not implemented |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
 and is meant to be extracted as a standalone library.

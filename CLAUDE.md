@@ -19,9 +19,22 @@ GitHub). Apply these conventions to every page:
 - **One page = one task or one topic.** Prefer splitting a long page over
   growing a mega-page.
 - **Topic-named headings**, noun or gerund phrases: "Creating the first
-  user", "Listening ports", "Waiting for the certificate". Never letter/number
-  section labels ("Part A", "A.1", "B.4") — headings must produce readable
-  anchors.
+  user", "Listening ports", "Waiting for the certificate". A heading names one
+  topic and nothing else:
+  - no dash joining two names ("yarilo-locks — design", "`--all` — cross-replica
+    view"): pick the topic ("Write locking", "Cross-replica view");
+  - no issue or PR numbers ("(#753)", "PR #581");
+  - no section numbers ("3.1", "7.1a", "Part A");
+  - no config key glued to the topic ("Ring mTLS — `director_service.…`"): the
+    key belongs in its settings card or in the text. A heading that *is* one
+    name, such as a Sieve extension (`` `vnd.yarilo.pipe` ``), is fine.
+- **No issue numbers in the text either.** Readers cannot open them. Say what
+  the behaviour is, not which issue changed it; development history, phases
+  and checklists do not belong in these pages.
+  This covers links (`[yarilo#2162](…/issues/2162)`, `…/pull/…`), table
+  cells, and comments inside the SVG diagrams. One exception:
+  `operations/security.md` names the issue of a security fix that has no
+  advisory of its own, because that issue is the fix's only public record.
 - **Single H1** per page (the title), H2 for sections, H3 for variants/steps
   within a section.
 - **Short paragraphs, 1–3 sentences, one idea each.** Imperative mood for

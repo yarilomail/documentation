@@ -348,7 +348,7 @@ lists members known dead on this replica with the tombstone age.
 }
 ```
 
-`backendSetHash` (#846) is a stable hash over this replica's routing backend set
+`backendSetHash` is a stable hash over this replica's routing backend set
 (`{ip, port, tag, vhosts, up}`, order-independent). Replicas that agree on
 routing share the same hash; a difference is a diverged backend set (a dropped
 `RING-CHANGE`), flagged by the `--all` verdict below.
@@ -365,7 +365,7 @@ Bearer token) and returns each replica's view plus a health verdict. `healthy`
 is `false` when any `error`-severity issue is present: `peer-unreachable` (a
 member whose view could not be collected — never silently dropped),
 `view-size-mismatch`, `backend-set-divergence` (replicas hashing their routing
-backend set differently — #846), `asymmetric-edge`, `tombstone-divergence`.
+backend set differently), `asymmetric-edge`, `tombstone-divergence`.
 `seq-lag` is
 `warn` only and does not affect `healthy`. `assumptions` records that peer API
 endpoints are derived from each ring IP + this replica's `api.listen` port

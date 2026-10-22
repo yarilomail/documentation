@@ -63,7 +63,7 @@
   <line x1="600" y1="330" x2="600" y2="126" stroke="#475569" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ag)"/>
   <text x="608" y="150" text-anchor="start" fill="#475569" font-size="9" font-weight="bold">BACKEND-UP heartbeat</text>
   <text x="608" y="162" text-anchor="start" fill="#475569" font-size="8">pod IP · seq · protocol-ready-gated</text>
-  <text x="608" y="173" text-anchor="start" fill="#475569" font-size="8">(#776 lease · #787 PONG+backoff)</text>
+  <text x="608" y="173" text-anchor="start" fill="#475569" font-size="8">(lease · PONG + backoff)</text>
 
   <!-- ══════════════════════════════════════════════════
        ONE co-located pod: 5 protocols + fts + backend-api + reg sidecar, one IP
@@ -114,14 +114,14 @@
   <rect x="42" y="316" width="250" height="70" rx="5" fill="#e0e7ff" stroke="#4338ca" stroke-width="2"/>
   <text x="167" y="334" text-anchor="middle" fill="#4338ca" font-size="10" font-weight="bold">yarilo-fts (localhost)</text>
   <text x="167" y="348" text-anchor="middle" fill="#475569" font-size="8">per-user Xapian · sticky pod = sole writer</text>
-  <text x="167" y="360" text-anchor="middle" fill="#475569" font-size="8">single-writer free → #675/#676</text>
+  <text x="167" y="360" text-anchor="middle" fill="#475569" font-size="8">single writer per user</text>
   <text x="167" y="374" text-anchor="middle" fill="#64748b" font-size="7">best-effort · NOT in readiness gate</text>
 
   <rect x="300" y="316" width="190" height="70" rx="5" fill="#f0fdf4" stroke="#15803d" stroke-width="2"/>
   <text x="395" y="334" text-anchor="middle" fill="#15803d" font-size="10" font-weight="bold">yarilo-backend-api</text>
   <text x="395" y="348" text-anchor="middle" fill="#475569" font-size="8">admin API · per-user writer</text>
   <text x="395" y="360" text-anchor="middle" fill="#475569" font-size="8">listens pod-IP only</text>
-  <text x="395" y="374" text-anchor="middle" fill="#64748b" font-size="7">admin LOOKUP-routed (#792)</text>
+  <text x="395" y="374" text-anchor="middle" fill="#64748b" font-size="7">admin LOOKUP-routed</text>
 
   <rect x="498" y="316" width="216" height="70" rx="5" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
   <text x="606" y="334" text-anchor="middle" fill="#334155" font-size="10" font-weight="bold">yarilo-backend-reg</text>

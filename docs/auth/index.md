@@ -22,7 +22,7 @@ A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters �
 | `max_idle_conns` | SQL: idle connections kept for reuse. Default: the same as `max_open_conns`; `0` keeps none. |
 | `conn_max_lifetime` | SQL: seconds before a connection is recycled. Default `300`; `0` = never. |
 | `conn_max_idle_time` | SQL: seconds an idle connection is kept. Default `60`; `0` = never. A negative value in any of these four is refused at startup. |
-| `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2 ([yarilo#2168](https://github.com/yarilomail/yarilo/pull/2168)). |
+| `username_filter` | Any driver: the entry is tried only for names that match. Masks separated by spaces or commas, `*` and `?` wildcards, case-sensitive; a leading `!` excludes. With at least one inclusion, a name must match one. A skipped entry is as if absent for that name — on login, on a userdb lookup, and for SCRAM. Empty (the default) tries every name. From 2.4.2. |
 
 ```yaml
 auth:
@@ -687,8 +687,7 @@ keys on this page matter:
   `max_open_conns`, `max_idle_conns`, `conn_max_lifetime` and
   `conn_max_idle_time`. From 2.4.2 a key under the name this page uses fails
   the render and names the chart's; in 2.4.1 it is dropped without a warning,
-  and the pool settings are not passed on at all
-  ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)). The same
+  and the pool settings are not passed on at all. The same
   holds for `components.auth.oauth2[]` (the names without `oauth2_`, with
   `scopes` and `extra_fields` for `oauth2_scope` and `oauth2_fields`) and for
   `components.auth.policy` (`url`, `api_header`, `hash_truncate_bits`,

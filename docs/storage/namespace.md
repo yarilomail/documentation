@@ -2,7 +2,7 @@
 description: "How yarilo implements IMAP NAMESPACE (RFC 2342, RFC 9051): personal, other users' and shared namespaces, hierarchy separators, prefixes and config keys."
 ---
 
-# Namespaces — IMAP NAMESPACE (RFC 2342 / RFC 9051 §6.3.10)
+# Namespaces
 
 yarilo supports the three RFC 9051 namespace classes:
 
@@ -29,8 +29,7 @@ off.
 
 With `acl.enabled: true`, rights are checked on `SELECT`, on every read
 and write, and on `LIST` — a user without the lookup right does not learn
-the mailbox exists. Some enforcement gaps remain for cross-user delivery
-([#544](https://github.com/yarilomail/yarilo/issues/544)), so treat that
+the mailbox exists. Some enforcement gaps remain for cross-user delivery, so treat that
 issue as the list of what is not yet covered rather than as a statement
 that nothing is.
 
@@ -195,8 +194,7 @@ unaffected and resolve to one path for everyone.
 
 The owner is resolved when its mailbox carries the same farm tag (same PV)
 as the session's — standalone and single-farm deployments. An owner on a
-**different farm tag** is not reachable yet
-([yarilo#544](https://github.com/yarilomail/yarilo/issues/544)). `LIST ""
+**different farm tag** is not reachable yet. `LIST ""
 "user/%"` lists the owners who granted the caller something when
 `acl_sharing_map` names a dict for the owner registry; without it, an owner is
 reached only by naming it. See [Owner-templated shared namespaces + dynamic per-owner resolution](/storage/owner_shared_ns) for
@@ -282,7 +280,7 @@ have no quota root of their own — `quota:` has no per-namespace setting. See
 | Behaviour | Status |
 |:---|:---|
 | `RENAME` across namespaces (`foo` → `Shared/foo`) | refused with `NO` |
-| An owner whose mailbox is on another farm tag | not reachable; [yarilo#544](https://github.com/yarilomail/yarilo/issues/544) |
+| An owner whose mailbox is on another farm tag | not reachable |
 | A `type: other` namespace with a fixed prefix | `NO`: there is no owner to resolve; use an owner-templated prefix |
 | Owner variables other than `%u` in a prefix | not supported |
 
@@ -374,7 +372,7 @@ it renders `list` only when it is set, so an omitted one keeps the default
 above, and it turns an unquoted `yes`/`no` (a YAML boolean to Helm) back into
 `yes`/`no`. **In 2.4.1** quote `list` and set it on every entry: that chart
 renders an omitted `list` as `false` and an unquoted `yes` as `true`, and the
-pods then refuse to start ([yarilo#2164](https://github.com/yarilomail/yarilo/issues/2164)).
+pods then refuse to start.
 
 ```yaml
 namespaces:

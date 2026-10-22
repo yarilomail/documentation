@@ -1,4 +1,4 @@
-# yarilo — Architecture
+# Architecture
 
 This document is the **authoritative reference** for yarilo's architecture.
 All development decisions must be consistent with what is written here.
@@ -50,10 +50,10 @@ these, never a reconciliation of the two copies:
 
 - `insertRight(spec)` was **deleted**, not corrected — the predicate that chose
   the right by namespace type was itself the defect; IMAP now always requires
-  the insert right (#1119).
+  the insert right.
 - `FolderSubpathForm`'s NFC parameter was **removed**, not typed — a path
   builder must not decide the name form; normalisation moved to the one owner,
-  `mailbox.NormalizeName`, at the name-entry boundary (#1113).
+  `mailbox.NormalizeName`, at the name-entry boundary.
 - `adminCheckPRc` was **deleted** — it carried the admin path's own, weaker
   resolution of the `a` right, and the fix was a call to the same
   `requireAdminOn` the IMAP path uses, not a repair of its logic. It is the
@@ -61,10 +61,10 @@ these, never a reconciliation of the two copies:
   merely drifting, it was **letting a peer escalate** — `SETACL` in a shared
   namespace was ungated because its private owner-check compared the session
   user against themselves. Two implementations of one idea are not always a
-  cosmetic cost (#1107, #1108).
+  cosmetic cost.
 - the CLI's `get`→edit→`set` helpers were **erased**, not canonicalised —
   leaving them would keep a second, unlocked way to write an ACL, and the next
-  author reaches for what already exists (#1114).
+  author reaches for what already exists.
 
 A corollary, made checkable: "one implementation" means *complete*, not merely
 *single*. A shared constructor with fewer fields than the one it did not absorb
@@ -73,7 +73,7 @@ first omitted `Groups`/`ACLUser`/`ACLGroups` — exactly the fields the LMTP
 construction carried — so wiring LMTP to it, the obvious next step, would have
 **silently switched group ACLs off at delivery**. The check is: compare the
 field set against the *most complete* of the constructions you are absorbing,
-not the first (#1109, #1115).
+not the first.
 
 ### A test's fixture must distinguish the two behaviours
 
@@ -138,7 +138,7 @@ inter-component coordination.
 
 <img src="/yarilo_standalone.svg" width="100%" alt="Standalone deployment topology"/>
 
-> **Note (#908):** the diagrams draw `yarilo-warden` as a single shared service for
+> **Note:** the diagrams draw `yarilo-warden` as a single shared service for
 > clarity. Its replica count is a config value, not a fixed topology: with
 > `state_backend: redis` warden runs N replicas behind the same ClusterIP (all state
 > — penalty, sessions, kick bus — in shared Redis), and with `state_backend: memory`
@@ -193,7 +193,7 @@ The logical request flow (login → session → shared services → storage):
   yarilo-lmtp                 # LMTP delivery backend
   yarilo-auth                 # passdb + userdb (shared service)
   yarilo-auth-worker
-  yarilo-warden                # connlimit + session counters + kick bus (shared; Redis Pub/Sub across replicas, #908)
+  yarilo-warden                # connlimit + session counters + kick bus (shared; Redis Pub/Sub across replicas)
   yarilo-director             # ring + userDir
   yarilo-locks                # cross-pod write coordination (per backend tag)
 ```
@@ -263,7 +263,7 @@ or binary. External storage (NFS, an external Redis) is outside the chart.
 helm upgrade --install yarilo ./helm -n yarilo -f values-prod.yaml
 ```
 
-### values-prod.yaml — example
+### Example values-prod.yaml
 
 ```yaml
 components:
@@ -319,7 +319,7 @@ As rendered with the director topology (the sandbox values).
 resources for every protocol, so the director keeps one ring and one user map,
 and the pod's IP serves every protocol (the login proxy picks the port).
 Co-locating fts gives each user index a single writer. Independent
-per-protocol scaling is given up for routing coherence (#788). The backend is a
+per-protocol scaling is given up for routing coherence. The backend is a
 StatefulSet for stable pod identities behind the headless Service.
 
 **Trade-off:** cross-protocol writes to one mailbox (LMTP delivery + IMAP STORE) meet in the mailbox's own files; see [Locks](#locks) for where a lock is taken and where it is not.
@@ -453,7 +453,7 @@ Rules that must never be violated:
 
 Components talk over **mTLS TCP** through k8s Services (not classic IPC over pipes or Unix sockets — this is RPC),
 the data plane between a login proxy and a backend pod included. Which role each port accepts is the
-[peer roles](/installation/deployment#peer-roles-2132) table; the NetworkPolicies say the same on the network layer.
+[peer roles](/installation/deployment#peer-roles) table; the NetworkPolicies say the same on the network layer.
 
 | From | To | Transport | Protocol |
 |:---|:---|:---|:---|
@@ -483,7 +483,7 @@ Certificates are mounted at `/etc/yarilo/internal-tls/{tls.crt,tls.key,ca.crt}`,
 one Secret per component. The chart makes them from the internal CA, or
 cert-manager issues them, or the operator provides them; the role table, the
 issuance options and the re-issue rules are in
-[Peer roles](/installation/deployment#peer-roles-2132). Internal TLS is on by default
+[Peer roles](/installation/deployment#peer-roles). Internal TLS is on by default
 (`internalTLS.enabled`).
 
 ---
@@ -910,7 +910,7 @@ to the last whole BOUNDARY record.
 
 - Why: a network lock on the per-message mailbox write path cost 46 ms per
   client cycle with under 1 ms spent in the lock server itself, and fifty
-  sessions queued on it (#1809). Nine correct lock fixes moved nothing
+  sessions queued on it. Nine correct lock fixes moved nothing
   because none of them was at the wait.
 - No probe at start: the volume is not tested for lock support when the
   process starts. A method the kernel refuses (`ENOLCK`, `EOPNOTSUPP`) falls
@@ -929,7 +929,7 @@ client afterwards.
 
 - Why: a quota count inside the expunge hold re-opened the folder, which
   asked for the same non-reentrant mutex — the session waited on itself for
-  as long as the client stayed connected (#1853).
+  as long as the client stayed connected.
 - Guard: `TestTheHoldOpensNoFolder`, plus an end-to-end row with a session
   that has no counted usage and a quota clone on.
 
@@ -938,7 +938,7 @@ user's map lock are both taken, the folder comes first. A folder asked for
 under a held map is refused by name, per goroutine, and counted
 (`yarilo_mdbox_lock_order_refused_total`). A user-wide lock is taken once
 per operation, never once per message: an expunge of N bodies locks the map
-once (`RemoveManyHeld`; 50 acquisitions per 50-message expunge → 1, #1884).
+once (`RemoveManyHeld`; 50 acquisitions per 50-message expunge → 1).
 
 **A change touching a hold or a lock is reviewed by walking one command to
 the leaves.** A diff does not show the chain: `HoldFolder → notify → quota →
@@ -951,13 +951,13 @@ Box.Folder → reconcile → the same mutex` crossed four layers and three PRs.
 **The transaction is the `UserIndex` contract.** `Begin → Expunge / Append /
 UpdateFlags / MarkDirty → Commit`: one hold, one record group in the journal
 up to BOUNDARY, one modseq bump. The per-message methods are not a second
-path (#1827).
+path.
 
 **A reader never serves a transaction cut short.** A group is applied only
 when the file holds every byte the BOUNDARY promises, asked of the file at
 that moment; a group the pass confirmed past what it read is fetched in full
 before `committedEnd` moves. The journal tail is read in one call, never
-eight bytes at a time (reads per command 5,398 → 22, #1848, #1859).
+eight bytes at a time (reads per command 5,398 → 22).
 
 **Journal rotation is configuration**: `mail_index_log_rotate_min_size` /
 `max_size` / `min_age` (32k / 1M / 60s). Compaction folds the base and
@@ -1014,8 +1014,8 @@ decision, not a throughput one.
 **Measure where before how much.** Before a performance fix: the breakdown
 of one operation on the stand's topology, with the counters that already
 exist. A stall with low CPU and idle disk gets a goroutine dump
-(`/debug/pprof/goroutine?debug=2`) before any bisection; it named #1853 and
-#1884 where eight slots of throughput could not. `hack/stand/watch-stalls.sh`
+(`/debug/pprof/goroutine?debug=2`) before any bisection; it names the cause where eight slots of throughput
+cannot. `hack/stand/watch-stalls.sh`
 takes that dump, the auth histogram and the cluster snapshot on the first
 stall of a run.
 

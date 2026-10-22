@@ -60,7 +60,7 @@ chart's passdb names (`password_query`, `passwd_file`, …) as described in
 the config and turns the separator form off, and `auth_master_user_separator`
 under `master_users` fails the render and names `separator`. In 2.4.1 an empty
 `separator` is rendered as `*`, so the separator form cannot be turned off
-through the chart ([yarilo#2162](https://github.com/yarilomail/yarilo/issues/2162)).
+through the chart.
 
 ## Logging in as another user
 
