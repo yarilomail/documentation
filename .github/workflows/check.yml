@@ -25,6 +25,12 @@ jobs:
           cp -R .vitepress/dist site/main
       - name: Check anchors
         run: node scripts/check-anchors.mjs site/main /main/
+      # main documents the next release; yarilo's develop CI writes its export to settings-export.
+      - name: Compare settings with the code
+        run: |
+          git fetch -q --depth=1 origin settings-export
+          git show FETCH_HEAD:settings.json > "$RUNNER_TEMP/settings.json"
+          node scripts/check-settings.mjs "$RUNNER_TEMP/settings.json"
       - name: Assemble the site root
         run: |
           test "$(node scripts/site-root.mjs register site main)" = true
