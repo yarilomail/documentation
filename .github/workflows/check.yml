@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   build:
@@ -26,16 +25,11 @@ jobs:
           cp -R .vitepress/dist site/main
       - name: Check anchors
         run: node scripts/check-anchors.mjs site/main /main/
-      # main documents the next release, which is yarilo develop.
+      # main documents the next release; yarilo's develop CI writes its export to settings-export.
       - name: Compare settings with the code
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          id=$(gh api 'repos/yarilomail/yarilo/actions/artifacts?name=settings&per_page=50' \
-            -q '[.artifacts[] | select(.workflow_run.head_branch == "develop" and (.expired | not))][0].id')
-          [ -n "$id" ] && [ "$id" != null ] || { echo "::error::no settings export from yarilo develop"; exit 1; }
-          gh api "repos/yarilomail/yarilo/actions/artifacts/$id/zip" > "$RUNNER_TEMP/settings.zip"
-          unzip -o -q "$RUNNER_TEMP/settings.zip" settings.json -d "$RUNNER_TEMP"
+          git fetch -q --depth=1 origin settings-export
+          git show FETCH_HEAD:settings.json > "$RUNNER_TEMP/settings.json"
           node scripts/check-settings.mjs "$RUNNER_TEMP/settings.json"
       - name: Assemble the site root
         run: |

@@ -150,8 +150,9 @@ names an unknown key or section, or when an entry has an unknown field or a
 `see_also` to an unknown key.
 
 Every PR also compares the data with the code: `scripts/check-settings.mjs`
-reads the `settings` artifact that yarilo's develop CI exports
-(`hack/settingsexport`) and fails on a key or alias the code lacks, another
-type, or another default. An entry with `default_text` compares key and type
-only. A release's export is attached to its GitHub Release as `settings.json`.
+reads `settings.json` from the `settings-export` branch, which yarilo's
+develop CI rewrites after every gate (`hack/settingsexport`), and fails on a
+key or alias the code lacks, another type, or another default. An entry with
+`default_text` compares key and type only. Never edit `settings-export` by
+hand. A release's export is also attached to its GitHub Release.
 
