@@ -584,3 +584,202 @@ director_service.max_parallel_moves:
   description: |
     Confirmed kills in flight while `yarctl director backends flush` drains a
     backend.
+
+auth.passdb[].driver:
+  type: string
+  default: ""
+  values: [sqlite, mysql, postgres, passwd-file, static]
+  description: |
+    The backend this passdb entry reads.
+
+auth.passdb[].dsn:
+  type: string
+  default: ""
+  description: |
+    SQL drivers: the driver's connection string. `${ENV_VAR}` is expanded at
+    startup.
+
+auth.passdb[].passwd_file_path:
+  type: string
+  default: ""
+  aliases: [passwd_file]
+  description: |
+    `passwd-file` driver: path to the user file. `${ENV_VAR}` is expanded at
+    startup.
+
+auth.passdb[].passdb_sql_query:
+  type: string
+  default: ""
+  aliases: [password_query]
+  see_also: ["auth.passdb[].userdb_sql_query"]
+  description: |
+    SQL: a custom `SELECT` for authentication. Unset, the built-in
+    `yarilo_users` schema is used. See [Custom queries](#custom-queries).
+
+auth.passdb[].userdb_sql_query:
+  type: string
+  default: ""
+  aliases: [user_query]
+  see_also: ["auth.passdb[].passdb_sql_query"]
+  description: |
+    SQL: the userdb lookup (`home`, `mail`, extra fields) used by delivery,
+    quota-status and the backend API. Unset, the built-in
+    `SELECT username, home, mail FROM yarilo_users WHERE username = %u AND enabled = 1`
+    runs, so set it with a schema of your own. See [Contract](#contract).
+
+auth.passdb[].userdb_sql_iterate_query:
+  type: string
+  default: ""
+  aliases: [iterate_query]
+  description: |
+    SQL: the query that lists users, for admin tooling.
+
+auth.passdb[].passdb_default_password_scheme:
+  type: string
+  default_text: "`PLAIN` for SQL, `CRYPT` for passwd-file"
+  aliases: [default_pass_scheme]
+  description: |
+    The scheme assumed when a stored password has neither a `{SCHEME}` prefix
+    nor a crypt(3) marker.
+
+auth.passdb[].skip_schema:
+  type: boolean
+  default: false
+  description: |
+    SQL: skip `CREATE TABLE IF NOT EXISTS yarilo_users` at startup, for an
+    existing schema.
+
+auth.passdb[].max_open_conns:
+  type: integer
+  default_text: "`25` for mysql, `8` for postgres, `1` for sqlite"
+  see_also: ["auth.passdb[].max_idle_conns"]
+  description: |
+    SQL: connections the entry's pool may hold. `0` is unlimited. A negative
+    value is refused at startup.
+
+auth.passdb[].max_idle_conns:
+  type: integer
+  default_text: the same as `max_open_conns`
+  see_also: ["auth.passdb[].max_open_conns"]
+  description: |
+    SQL: idle connections kept for reuse. `0` keeps none. A negative value is
+    refused at startup.
+
+auth.passdb[].conn_max_lifetime:
+  type: integer
+  unit: seconds
+  default_text: "`300`"
+  description: |
+    SQL: age at which a connection is recycled. `0` is never. A negative
+    value is refused at startup.
+
+auth.passdb[].conn_max_idle_time:
+  type: integer
+  unit: seconds
+  default_text: "`60`"
+  description: |
+    SQL: how long an idle connection is kept. `0` is never. A negative value
+    is refused at startup.
+
+auth.passdb[].username_filter:
+  type: string
+  default: ""
+  added: 2.4.2
+  description: |
+    Any driver: the entry is tried only for names that match. Masks are
+    separated by spaces or commas, with `*` and `?` wildcards, case-sensitive;
+    a leading `!` excludes. With at least one inclusion, a name must match
+    one. A skipped entry is as if absent for that name: on login, on a userdb
+    lookup, and for SCRAM. Empty tries every name.
+
+auth.passdb[].static_password:
+  type: string
+  default: ""
+  see_also: ["auth.passdb[].nopassword"]
+  description: |
+    `static` driver: the shared password, with a `{SCHEME}` prefix or in
+    `passdb_default_password_scheme`. `${ENV_VAR}` is expanded at startup.
+
+auth.passdb[].nopassword:
+  type: boolean
+  default: false
+  see_also: ["auth.passdb[].static_password"]
+  description: |
+    `static` driver: accept **any** password, for proxy front-ends where the
+    upstream authenticates. Excludes `static_password`.
+
+auth.passdb[].fields:
+  type: map
+  default: {}
+  description: |
+    `static` driver: templated user fields, expanding `%u`, `%n` and `%d`.
+    `userdb_`-prefixed keys fill the userdb; bare keys travel on the passdb
+    path (`allow_nets`, `proxy`, …).
+
+auth.passdb[].userdb_static_allow_all_users:
+  type: boolean
+  default: false
+  added: 2.4.2
+  description: |
+    `static` driver: `false` answers a userdb lookup that no login preceded
+    only for a user some passdb in the chain knows; `true` answers any name. A
+    static entry is its own passdb too, so the two agree for every name its
+    `username_filter` accepts.
+
+auth.auth_max_attempts:
+  type: integer
+  default: 3
+  helm: components.auth.auth_max_attempts
+  description: |
+    Failed authentications one IMAP or POP3 connection may make before it is
+    closed. Submission closes after the first.
+
+auth.auth_failure_delay:
+  type: integer
+  unit: seconds
+  default: 2
+  helm: components.auth.failure_delay
+  see_also: [auth.internal_failure_delay_ms]
+  description: |
+    How long every failed reply (wrong password, unknown user, malformed
+    exchange) is held back, so the timing does not tell an unknown user from
+    a wrong password. `0` disables it, for tests.
+
+auth.internal_failure_delay_ms:
+  type: integer
+  unit: milliseconds
+  default: 2000
+  helm: components.auth.internal_failure_delay_ms
+  see_also: [auth.auth_failure_delay]
+  description: |
+    The same delay for internal failures, such as a passdb that does not
+    answer.
+
+auth.cache.auth_cache_size:
+  type: string
+  default: ""
+  aliases: [cache_size]
+  helm: components.auth.cache.cache_size
+  description: |
+    Size of the in-process cache of passdb answers (`"100M"`, `"512k"`).
+    Empty or `0` disables it; the chart sets `100M`.
+
+auth.cache.auth_cache_ttl:
+  type: integer
+  unit: seconds
+  default: 1800
+  aliases: [ttl_seconds]
+  helm: components.auth.cache.ttl_seconds
+  description: |
+    How long a successful answer is kept.
+
+auth.cache.auth_cache_negative_ttl:
+  type: integer
+  unit: seconds
+  default: 1800
+  aliases: [negative_ttl_seconds]
+  helm: components.auth.cache.negative_ttl_seconds
+  description: |
+    How long a failed answer is kept. Each entry carries a digest of the
+    password that produced it, so a cached failure answers only that password
+    again and cannot lock out the right one.
