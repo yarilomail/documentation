@@ -55,3 +55,47 @@
   border-radius: 4px;
   background: var(--vp-c-divider);
 }
+
+/* Settings card: label and value side by side, under the setting's heading. */
+.vp-doc .setting-card {
+  display: inline-block;
+  min-width: min(100%, 360px);
+  max-width: 100%;
+  margin: 12px 0 4px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 22px;
+}
+.vp-doc .setting-card dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+}
+.vp-doc .setting-card dt,
+.vp-doc .setting-card dd {
+  margin: 0;
+  padding: 6px 14px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+.vp-doc .setting-card dt {
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-weight: 500;
+  text-align: right;
+}
+.vp-doc .setting-card dt:first-of-type,
+.vp-doc .setting-card dt:first-of-type + dd {
+  border-top: none;
+}
+.vp-doc .setting-card dd code {
+  margin-right: 4px;
+}
+.vp-doc .setting-advanced {
+  margin: 0;
+  padding: 6px 14px;
+  border-top: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-danger-soft);
+  color: var(--vp-c-text-1);
+}
