@@ -8,10 +8,10 @@ Yarilo is a cloud-native mail server written in Go: IMAP, POP3, LMTP, Submission
 
 ## Where to start
 
-- [Installation](./INSTALL) — get a working instance up.
-- [General Configuration](./GENERAL) — `yarilo.yaml` structure and core settings.
-- [Architecture Overview](./ARCHITECTURE) — services, deployment topologies, the director ring.
-- [Deployment](./DEPLOYMENT) — Helm chart and production layouts.
+- [Installation](/installation/) — get a working instance up.
+- [General Configuration](/installation/general) — `yarilo.yaml` structure and core settings.
+- [Architecture Overview](/architecture/) — services, deployment topologies, the director ring.
+- [Deployment](/installation/deployment) — Helm chart and production layouts.
 
 ## Highlights
 

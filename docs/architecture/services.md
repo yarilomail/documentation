@@ -1,0 +1,135 @@
+# Services configuration
+
+The `services` section controls which listeners are started and how each one behaves at the network level. Each service is a named block under `services:`. A missing key or `enabled: false` means the listener is not started.
+
+---
+
+## Common fields
+
+All services share the following fields:
+
+| Key | Default | Description |
+|:---|:---|:---|
+| `enabled` | `false` | Start this listener on startup. |
+| `port` | — | TCP port to bind. Required: there is no default, and an unset port binds port `0`, a random one. The table below gives the conventional ports. |
+| `ssl_mode` | — | TLS mode: `ssl` = implicit TLS; `starttls` = plain with STARTTLS upgrade; `no` = plain only. |
+| `haproxy_protocol` | `false` | Extract real client IP from HAProxy PROXY header. Uses `general.haproxy` for timeout and trusted nets. |
+| `xclient_protocol` | `false` | Accept XCLIENT command from trusted relays. Uses `general.xclient.trusted_nets`, empty by default; only peers in it see XCLIENT advertised. |
+| `auth_allow_cleartext` | `true` | When `false`, PLAIN and LOGIN are hidden and refused on a connection that is not TLS, not behind HAProxy and not local: IMAP `LOGIN`/`AUTHENTICATE` get `NO [PRIVACYREQUIRED]`, POP3 `USER`/`PASS`/`AUTH` `-ERR [AUTH]`, SMTP `AUTH` `523 5.7.10`, ManageSieve `AUTHENTICATE` `NO "Cleartext authentication disallowed on non-secure (SSL/TLS) connections."`. After STARTTLS they work as usual. |
+| `ssl` | — | Per-service SSL override. Same fields as `general.ssl`. If set, overrides only the specified fields. |
+
+::: warning Renamed with an inverted sense
+`auth_allow_cleartext` replaces the pre-beta `disable_plaintext_auth`, and the meaning is flipped: `auth_allow_cleartext: false` is what `disable_plaintext_auth: true` used to say. The old key is still accepted on its own. Setting **both** keys on one listener refuses startup — even when their values agree — because a config carrying both is one edit away from meaning the opposite of what it says.
+:::
+
+---
+
+## Listeners
+
+The ports are the conventional ones, which the Helm chart uses; set `port` explicitly in a hand-written config.
+
+| Key | Port | ssl_mode | Protocol doc |
+|:---|:---|:---|:---|
+| `imaps` | `993` | `ssl` | [IMAP configuration](/protocols/imap) |
+| `imap` | `143` | `starttls` | [IMAP configuration](/protocols/imap) |
+| `submission` | `587` | `starttls` | [Submission configuration](/protocols/submission) |
+| `submissions` | `465` | `ssl` | [Submission configuration](/protocols/submission) |
+| `pop3` | `110` | `starttls` | [POP3 configuration](/protocols/pop3) |
+| `pop3s` | `995` | `ssl` | [POP3 configuration](/protocols/pop3) |
+| `lmtp` | `24` | `no` | [LMTP configuration](/protocols/lmtp) |
+| `managesieve` | `4190` | `starttls` | [SIEVE](/features/sieve) |
+| `jmap` | `8443` | `ssl` | [JMAP](/protocols/jmap) |
+
+Two more listeners are internal, on the backend behind their login proxy, and plain:
+
+| Key | Port (chart) | ssl_mode | Serves |
+|:---|:---|:---|:---|
+| `managesieve_be` | `14190` | `no` | ManageSieve sessions from `yarilo-managesieve-login` |
+| `jmap_be` | `10443` | `no` | JMAP requests from `yarilo-jmap-login` |
+
+---
+
+## Examples
+
+### Minimal: IMAPS only
+
+```yaml
+services:
+  imaps:
+    enabled: true
+    port: 993
+    ssl_mode: ssl
+```
+
+### IMAP + IMAPS behind HAProxy
+
+```yaml
+services:
+  imaps:
+    enabled: true
+    port: 993
+    ssl_mode: ssl
+    haproxy_protocol: true
+  imap:
+    enabled: true
+    port: 143
+    ssl_mode: starttls
+    haproxy_protocol: true
+    auth_allow_cleartext: false
+```
+
+### Full mail server (IMAP + Submission + POP3)
+
+```yaml
+services:
+  imaps:
+    enabled: true
+    port: 993
+    ssl_mode: ssl
+  imap:
+    enabled: true
+    port: 143
+    ssl_mode: starttls
+    auth_allow_cleartext: false
+  submission:
+    enabled: true
+    port: 587
+    ssl_mode: starttls
+    auth_allow_cleartext: false
+  submissions:
+    enabled: true
+    port: 465
+    ssl_mode: ssl
+    auth_allow_cleartext: false
+  pop3s:
+    enabled: true
+    port: 995
+    ssl_mode: ssl
+```
+
+### LMTP backend node (yarilo-lmtp)
+
+```yaml
+services:
+  lmtp:
+    enabled: true
+    port: 24
+    ssl_mode: no
+```
+
+Accepts preamble connections from `yarilo-lmtp-login` only. See [LMTP configuration](/protocols/lmtp) for architecture and `lmtp_login_service` config.
+
+---
+
+### Per-service TLS certificate override
+
+```yaml
+services:
+  imaps:
+    enabled: true
+    port: 993
+    ssl_mode: ssl
+    ssl:
+      ssl_server_cert_file: /etc/ssl/mail.example.com/cert.pem
+      ssl_server_key_file:  /etc/ssl/mail.example.com/key.pem
+```

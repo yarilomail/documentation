@@ -3,10 +3,13 @@ name: Deploy docs
 on:
   push:
     branches: [main]
+    # A release tag (v2.4.5) publishes that version; prerelease tags such as
+    # v2.4.5-dev.4 do not match.
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -14,9 +17,14 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# The gh-pages branch holds the whole published site, one directory per
+# version. A run rebuilds only its own version (and `latest` when that
+# version is the newest release), then publishes the branch.
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.register.outputs.latest }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,11 +37,54 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run docs:build
+      - name: Resolve version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            echo "DOCS_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_NAME" = main ]; then
+            echo "DOCS_VERSION=main" >> "$GITHUB_ENV"
+          else
+            echo "::error::run from main or a release tag, not $GITHUB_REF_NAME"; exit 1
+          fi
+      - name: Check out the published site
+        run: |
+          if git fetch origin gh-pages; then
+            git worktree add --detach site FETCH_HEAD
+          else
+            git worktree add --detach site
+            git -C site rm -rfq .
+          fi
+      - name: Build ${{ env.DOCS_VERSION }}
+        run: |
+          npm run docs:build
+          rm -rf "site/${DOCS_VERSION:?}"
+          cp -R .vitepress/dist "site/$DOCS_VERSION"
+      - id: register
+        run: echo "latest=$(node scripts/site-root.mjs register site "$DOCS_VERSION")" >> "$GITHUB_OUTPUT"
+      - name: Build latest
+        if: steps.register.outputs.latest == 'true'
+        env:
+          DOCS_VERSION: latest
+        run: |
+          npm run docs:build
+          rm -rf site/latest
+          cp -R .vitepress/dist site/latest
+      - run: node scripts/site-root.mjs root site
+      - name: Commit the published site
+        # One orphan commit, force-pushed: the branch is build output, and
+        # its history would only grow the clone every run fetches.
+        run: |
+          cd site
+          git checkout -q --orphan publish
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -qm "Publish $DOCS_VERSION from ${GITHUB_SHA::7}"
+          git push -f origin HEAD:gh-pages
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .vitepress/dist
+          path: site
 
   deploy:
     needs: build
@@ -46,7 +97,9 @@ jobs:
         uses: actions/deploy-pages@v4
 
   indexnow:
-    needs: deploy
+    needs: [build, deploy]
+    # Only `latest` is in the sitemap, so only its rebuild is news.
+    if: needs.build.outputs.latest == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Notify IndexNow (Bing, Yandex, Seznam, Naver)
