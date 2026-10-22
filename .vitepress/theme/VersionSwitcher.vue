@@ -4,8 +4,7 @@ import { useData, useRoute } from 'vitepress'
 
 const { site } = useData()
 const route = useRoute()
-// Read at runtime from the site root, so an older version lists the
-// releases published after it.
+// Fetched at runtime so older versions list newer releases.
 const versions = ref<{ latest: string | null; releases: string[] } | null>(null)
 const current = computed(() => site.value.base.replace(/\//g, ''))
 

@@ -3,8 +3,7 @@ name: Deploy docs
 on:
   push:
     branches: [main]
-    # A release tag (v2.4.5) publishes that version; prerelease tags such as
-    # v2.4.5-dev.4 do not match.
+    # Release tags only; v2.4.5-dev.4 does not match.
     tags: ['v[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
 
@@ -17,9 +16,7 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-# The gh-pages branch holds the whole published site, one directory per
-# version. A run rebuilds only its own version (and `latest` when that
-# version is the newest release), then publishes the branch.
+# gh-pages holds every published version; a run rebuilds only its own.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,9 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history: lastUpdated (the "Last updated" line and the
-          # JSON-LD dateModified) reads each page's last commit, and a
-          # shallow clone gives every page the date of the newest one.
+          # lastUpdated reads each page's last commit.
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -71,8 +66,7 @@ jobs:
           cp -R .vitepress/dist site/latest
       - run: node scripts/site-root.mjs root site
       - name: Commit the published site
-        # One orphan commit, force-pushed: the branch is build output, and
-        # its history would only grow the clone every run fetches.
+        # Build output: one orphan commit, so the fetch stays small.
         run: |
           cd site
           git checkout -q --orphan publish
@@ -107,9 +101,7 @@ jobs:
           SITE="https://doc.yarilomail.org"
           KEY="2d4ef23e415848c4aeee9fc1d84ce7c6"
 
-          # Pages may take a moment to serve the new build; wait for the key
-          # file, then take the URL list from the freshly deployed sitemap so
-          # it never drifts from the site.
+          # Wait until Pages serves the new build, then ping the sitemap URLs.
           for i in $(seq 1 20); do
             curl -sf "${SITE}/${KEY}.txt" | grep -qx "${KEY}" && break
             sleep 15

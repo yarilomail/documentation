@@ -4,13 +4,11 @@ import { join } from 'node:path'
 
 const SITE = 'https://doc.yarilomail.org'
 
-/* Every build is one version of the docs, served under its own prefix:
-   `main` (unreleased), a release such as `2.4.5`, or `latest` (the newest
-   release). The deploy workflow sets it; local builds default to `main`. */
+// Version prefix of this build: main, a release such as 2.4.5, or latest.
 const VERSION = process.env.DOCS_VERSION || 'main'
 const BASE = `/${VERSION}/`
 
-/* Public URL of a source page, e.g. auth/oauth2.md -> /main/auth/oauth2.html. */
+// auth/oauth2.md -> https://doc.yarilomail.org/main/auth/oauth2.html
 function pageUrl(base: string, relativePath: string): string {
   return `${SITE}${base}${relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '.html')}`
 }
@@ -123,12 +121,8 @@ export default defineConfig({
   buildEnd(siteConfig) {
     buildLlmsTxt(siteConfig.srcDir, siteConfig.outDir)
   },
-  /* Per-page meta description: frontmatter `description` wins; otherwise
-     the page's first prose paragraph, so no page falls back to the
-     site-wide one-liner. Also emits per-page Open Graph tags built from the
-     same title and description, and points search engines at `latest`:
-     a release links its canonical there, and `main` describes unreleased
-     code, so it is kept out of the index. */
+  /* Per-page description (frontmatter, else first paragraph) and Open Graph
+     tags; releases are canonical to latest, main is not indexed. */
   transformPageData(pageData, { siteConfig }) {
     if (!pageData.frontmatter.description) {
       const file = join(siteConfig.srcDir, pageData.filePath)

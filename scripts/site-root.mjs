@@ -1,15 +1,5 @@
-// Maintains the top level of the published site, which holds one directory
-// per docs version (main, latest, 2.4.5, ...).
-//
-//   node scripts/site-root.mjs register <site> <version>
-//     Records <version> in <site>/versions.json and prints "true" when the
-//     `latest` directory must be rebuilt: <version> is the newest release, or
-//     no release exists yet and <version> is main.
-//
-//   node scripts/site-root.mjs root <site>
-//     Writes the files that live outside any version: site-root/*, the root
-//     redirect to /latest/, the redirects from the pre-versioning page URLs,
-//     and copies of the sitemap, llms.txt and 404 page of `latest`.
+// Root of the published site, outside the version directories.
+// Usage: register <site> <version> | root <site>
 
 import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -32,7 +22,7 @@ function readVersions() {
 }
 
 function redirectPage(target) {
-  // The script keeps the #fragment; the meta refresh covers clients without JS.
+  // The script keeps the #fragment; the meta refresh works without JS.
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -47,6 +37,7 @@ function redirectPage(target) {
 `
 }
 
+// Records the version; prints true when latest must be rebuilt from it.
 if (cmd === 'register') {
   const v = readVersions()
   if (version !== 'main' && !v.releases.includes(version)) {

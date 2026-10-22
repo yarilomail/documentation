@@ -1,0 +1,48 @@
+name: Check docs
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Fails on dead links and Vue parse errors.
+      - name: Build main
+        run: |
+          npm run docs:build
+          mkdir site
+          cp -R .vitepress/dist site/main
+      - name: Assemble the site root
+        run: |
+          test "$(node scripts/site-root.mjs register site main)" = true
+          DOCS_VERSION=latest npm run docs:build
+          cp -R .vitepress/dist site/latest
+          node scripts/site-root.mjs root site
+      - name: Check redirects
+        run: |
+          test -f site/index.html
+          for old in $(jq -r 'keys[]' site-root/legacy-pages.json); do
+            path=$(jq -r --arg k "$old" '.[$k]' site-root/legacy-pages.json)
+            case "$path" in */) page="site/latest${path}index.html" ;; *) page="site/latest${path}.html" ;; esac
+            test -f "site/$old.html" || { echo "::error::no redirect for /$old"; exit 1; }
+            test -f "$page" || { echo "::error::/$old redirects to missing $page"; exit 1; }
+          done
+      - name: Check release registration
+        run: |
+          mkdir releases
+          test "$(node scripts/site-root.mjs register releases 2.4.5)" = true
+          test "$(node scripts/site-root.mjs register releases 2.4.10)" = true
+          test "$(node scripts/site-root.mjs register releases 2.4.9)" = false
+          test "$(node scripts/site-root.mjs register releases main)" = false
+          test "$(jq -c . releases/versions.json)" = '{"latest":"2.4.10","releases":["2.4.10","2.4.9","2.4.5"]}'
