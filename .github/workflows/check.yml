@@ -30,7 +30,8 @@ jobs:
         run: |
           git fetch -q --depth=1 origin settings-export
           git show FETCH_HEAD:settings.json > "$RUNNER_TEMP/settings.json"
-          node scripts/check-settings.mjs "$RUNNER_TEMP/settings.json"
+          curl -sfL https://raw.githubusercontent.com/yarilomail/yarilo/develop/helm/values.yaml -o "$RUNNER_TEMP/values.yaml"
+          node scripts/check-settings.mjs "$RUNNER_TEMP/settings.json" "$RUNNER_TEMP/values.yaml"
       - name: Assemble the site root
         run: |
           test "$(node scripts/site-root.mjs register site main)" = true

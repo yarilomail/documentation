@@ -137,9 +137,10 @@ Shared TLS certificate. Prose about the section stays in the page.
 ```
 
 A marker takes sections (every key in that section) or full keys, separated
-by spaces. Each entry renders as an `###` heading with the key's name and an
-anchor of its full path (`#general.ssl.ssl_min_protocol`), a card, and the
-description. `docs/reference/settings.md` lists every entry through
+by spaces. Name full keys when another page documents other keys of the same
+section. Each entry renders as a heading one level below the heading the
+marker sits under, with the key's name and an anchor of its full path
+(`#general.ssl.ssl_min_protocol`), a card, and the description. `docs/reference/settings.md` lists every entry through
 `<!-- @settings-index -->`.
 
 Fields of an entry:
@@ -156,6 +157,7 @@ Fields of an entry:
 | `see_also` | full keys of related settings |
 | `added`, `changed` | version, and for `changed` a `text` |
 | `advanced` | `true` marks it as not normally changed |
+| `source` | `chart` for a Helm value that is not a `yarilo.yaml` key (`networkPolicy.enabled`); left out otherwise |
 | `description` | Markdown (required) |
 
 The build fails when an entry is placed on no page or on two, when a marker
@@ -166,6 +168,7 @@ Every PR also compares the data with the code: `scripts/check-settings.mjs`
 reads `settings.json` from the `settings-export` branch, which yarilo's
 develop CI rewrites after every gate (`hack/settingsexport`), and fails on a
 key or alias the code lacks, another type, or another default. An entry with
-`default_text` compares key and type only. Never edit `settings-export` by
+`source: chart` is compared with `helm/values.yaml` of yarilo's develop
+instead. An entry with `default_text` compares key and type only. Never edit `settings-export` by
 hand. A release's export is also attached to its GitHub Release.
 

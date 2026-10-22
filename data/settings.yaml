@@ -190,3 +190,397 @@ internal_tls.session_cache_ttl:
   description: |
     Time a cached session may be resumed. `0` keeps it until the cache evicts
     it.
+
+director_service.backend_expire:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: components.director.backend_expire
+  see_also: [backend_register.register_interval]
+  description: |
+    Missed heartbeats for this long remove a backend from the ring on every
+    director, and its users are rehashed onto the other backends of its tag.
+
+backend_register.director_addr:
+  type: string
+  default: ""
+  helm: backend_register.director_addr
+  description: |
+    The director Service the registration sidecar sends `BACKEND-UP` to. Any
+    replica may answer: the registration is spread around the ring.
+
+backend_register.register_interval:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: backend_register.register_interval
+  see_also: [director_service.backend_expire]
+  description: |
+    How often the sidecar re-registers the pod. It sends only while every
+    protocol container of the pod is ready, so a wedged container lets the
+    lease run out.
+
+backend_register.tag:
+  type: string
+  default: ""
+  helm: backend_register.tag
+  description: |
+    The storage shard this pod serves: one tag is one NFS volume and one
+    backend release. It is never the protocol; a pod serves every protocol.
+
+backend_register.vhosts:
+  type: integer
+  default: 100
+  helm: backend_register.vhosts
+  see_also: [director_service.assignment_policy]
+  description: |
+    The pod's weight on the ring, from `1` to `100`. Under
+    `assignment_policy: least_sessions`, `0` drains the backend: it takes no
+    new users.
+
+telemetry.liveness_watchdog.liveness_watchdog_enabled:
+  type: boolean
+  default: false
+  helm: telemetry.livenessWatchdog.enabled
+  description: |
+    Restart a container whose request path is wedged (a deadlock, a hung NFS
+    handle) while the process still answers. The self-check touches nothing
+    shared, so a database hiccup restarts nothing.
+
+telemetry.liveness_watchdog.liveness_watchdog_interval_seconds:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: telemetry.livenessWatchdog.intervalSeconds
+  description: |
+    How often the self-check runs.
+
+telemetry.liveness_watchdog.liveness_watchdog_timeout_seconds:
+  type: integer
+  unit: seconds
+  default: 5
+  helm: telemetry.livenessWatchdog.timeoutSeconds
+  description: |
+    How long one self-check may take before it counts as failed.
+
+telemetry.liveness_watchdog.liveness_watchdog_failure_threshold:
+  type: integer
+  default: 3
+  helm: telemetry.livenessWatchdog.failureThreshold
+  description: |
+    Failed self-checks in a row before the liveness probe fails.
+
+telemetry.liveness_watchdog.liveness_watchdog_fault_injection_enabled:
+  type: boolean
+  default: false
+  advanced: true
+  helm: telemetry.livenessWatchdog.faultInjectionEnabled
+  description: |
+    Expose `POST /debug/fault/deadlock`, which wedges the self-check so you
+    can confirm on a live pod that the watchdog restarts it. Leave it off
+    outside such a check.
+
+telemetry.telemetry_pprof_enabled:
+  type: boolean
+  default: false
+  helm: telemetry.pprof.enabled
+  description: |
+    Serve the Go profilers and `/debug/loglevel` on the telemetry port. Every
+    component logs a warning at each start while it is on.
+
+telemetry.telemetry_block_profile_rate:
+  type: integer
+  default: 0
+  helm: telemetry.pprof.blockProfileRate
+  see_also: [telemetry.telemetry_mutex_profile_fraction]
+  description: |
+    One sample per this many nanoseconds of blocked time; `0` is off, and
+    `/debug/pprof/block` then answers with an empty profile. Every blocking
+    operation pays while it is on.
+
+telemetry.telemetry_mutex_profile_fraction:
+  type: integer
+  default: 0
+  helm: telemetry.pprof.mutexProfileFraction
+  see_also: [telemetry.telemetry_block_profile_rate]
+  description: |
+    One sample per this many mutex contention events; `0` is off, and
+    `/debug/pprof/mutex` then answers with an empty profile. Every contended
+    mutex pays while it is on.
+
+warden_service.state_backend:
+  type: string
+  default_text: "`memory`"
+  values: [memory, redis]
+  helm: components.warden.service.state_backend
+  description: |
+    Where warden keeps its penalty counters, session accounting and kick bus.
+    `memory` keeps them in the pod and allows one replica only; `redis`
+    shares them and allows any number.
+
+auth.token.redis_password:
+  type: string
+  default: ""
+  description: |
+    Password of the Redis that holds session tokens. Set it to
+    `${YARILO_REDIS_PASSWORD}`; it wins over a password in the URL.
+
+warden_service.redis_password:
+  type: string
+  default: ""
+  description: |
+    Password of warden's Redis. Set it to `${YARILO_REDIS_PASSWORD}`; it wins
+    over a password in the URL.
+
+locks_service.redis_password:
+  type: string
+  default: ""
+  description: |
+    Password of the Redis behind yarilo-locks. Set it to
+    `${YARILO_REDIS_PASSWORD}`; it wins over a password in the URL.
+
+redis.passwordSecret:
+  source: chart
+  type: map
+  default: {name: "", key: password}
+  description: |
+    The Secret (`name`, `key`) whose value becomes `YARILO_REDIS_PASSWORD` in
+    every process that opens Redis. The bundled Redis starts with the same
+    password.
+
+locks_service.mode:
+  type: string
+  default: ""
+  values: [remote, embedded]
+  description: |
+    `remote` serves locks over mTLS TCP with Redis behind it, and is the only
+    mode for Kubernetes. `embedded` keeps them in memory behind a Unix socket,
+    for tests and single-process runs.
+
+locks_service.listen:
+  type: string
+  default: ""
+  helm: components.locks.service.listen
+  description: |
+    Address yarilo-locks serves on in remote mode, `:9104` in the chart.
+
+locks_service.redis:
+  type: string
+  default: ""
+  description: |
+    Redis URL that holds the lock state in remote mode. Leave the password out
+    of the URL; the ConfigMap renders the URL as written.
+
+locks_service.socket:
+  type: string
+  default: ""
+  description: |
+    Unix socket yarilo-locks serves on in embedded mode.
+
+locks_client.mode:
+  type: string
+  default: ""
+  values: [remote, embedded]
+  description: |
+    How a session process reaches yarilo-locks; matches the service's mode.
+
+locks_client.endpoints:
+  type: list
+  default: []
+  description: |
+    yarilo-locks addresses a session process dials in remote mode, normally
+    the ClusterIP Service on `:9104`.
+
+locks_client.socket:
+  type: string
+  default: ""
+  description: |
+    Unix socket a session process dials in embedded mode.
+
+internal_tls.enabled:
+  type: boolean
+  default: true
+  helm: internalTLS.enabled
+  description: |
+    Internal mTLS for every internal port. In the chart this one switch drives
+    the config, the mounts and the certificates of every component. Off, every
+    internal port is plain and each server logs that roles are not checked.
+
+internal_tls.cert:
+  type: string
+  default: /etc/yarilo/tls/tls.crt
+  description: |
+    This component's certificate.
+
+internal_tls.key:
+  type: string
+  default: /etc/yarilo/tls/tls.key
+  description: |
+    The private key of `cert`.
+
+internal_tls.ca:
+  type: string
+  default: /etc/yarilo/tls/ca.crt
+  description: |
+    The CA every internal peer's certificate must chain to.
+
+internal_tls.server_name:
+  type: string
+  default: ""
+  helm: internalTLS.serverName
+  description: |
+    The one name every internal client verifies its peer against, instead of
+    the host it dialed. The chart sets it to `<release>-internal` and puts it
+    in every certificate it makes; a certificate you provide must carry it as
+    a SAN. Empty with internal TLS on fails at startup.
+
+internalTLS.ca.secretName:
+  source: chart
+  type: string
+  default: ""
+  description: |
+    An existing `kubernetes.io/tls` Secret with the CA the chart signs
+    internal certificates with. Empty, the chart makes a CA once and keeps it
+    in `<release>-internal-ca`. A GitOps renderer must set it (or use
+    cert-manager): without `lookup` it would make a new CA on every render.
+
+internalTLS.certGeneration:
+  source: chart
+  type: integer
+  default: 0
+  description: |
+    Raise it to re-issue every certificate the chart made. There is no
+    renewal by age.
+
+internalTLS.certManager.enabled:
+  source: chart
+  type: boolean
+  default: false
+  see_also: [internalTLS.certManager.issuerRef]
+  description: |
+    Let cert-manager make and renew the internal certificates: one
+    `Certificate` per role, with the same names.
+
+internalTLS.certManager.issuerRef:
+  source: chart
+  type: map
+  default: {kind: Issuer, name: ""}
+  see_also: [internalTLS.certManager.enabled]
+  description: |
+    The cert-manager issuer that signs them.
+
+networkPolicy.enabled:
+  source: chart
+  type: boolean
+  default: true
+  description: |
+    Render ingress policies that state on the network what the peer roles
+    state in the handshake. They need a CNI that enforces them; egress is not
+    restricted.
+
+networkPolicy.adminFrom:
+  source: chart
+  type: list
+  default: []
+  description: |
+    Peers for operator tools outside the chart's pods (smoketest,
+    yarilo-migrate) on the admin, auth and locks ports. Empty: `kubectl exec`
+    into backend-api or the director.
+
+networkPolicy.mtaFrom:
+  source: chart
+  type: list
+  default: []
+  description: |
+    Who may reach the MTA-facing ports. Empty is everyone.
+
+networkPolicy.telemetryFrom:
+  source: chart
+  type: list
+  default: []
+  description: |
+    Who may reach telemetry and health. Empty is everyone. Kubelet probes come
+    from the node and keep passing when it is narrowed.
+
+director_service.assignment_policy:
+  type: string
+  default: hash
+  values: [hash, least_sessions, domain]
+  helm: components.director.assignment_policy
+  description: |
+    How a user's first backend is chosen; sticky pins and moves do not consult
+    it. The choices are described in [Initial placement policy](#initial-placement-policy).
+
+director_service.director_domain_expire:
+  type: integer
+  unit: seconds
+  default: 900
+  helm: components.director.director_domain_expire
+  description: |
+    How long a domain placed by `assignment_policy: domain` keeps its backend
+    with no session. Separate from the user TTL so that a domain is not
+    forgotten between two logins.
+
+director_service.director_domain_rebalance_percent:
+  type: integer
+  default: 0
+  helm: components.director.director_domain_rebalance_percent
+  see_also: [director_service.director_domain_rebalance_interval, director_service.director_domain_rebalance_cooldown]
+  description: |
+    Move one domain down when the busiest backend of a tag is this much above
+    the quietest. `0` is off in the binary; the chart sets `20`, and a `0` in
+    the values stays `0`.
+
+director_service.director_domain_rebalance_interval:
+  type: integer
+  unit: seconds
+  default: 60
+  helm: components.director.director_domain_rebalance_interval
+  description: |
+    How often the rebalance is judged.
+
+director_service.director_domain_rebalance_cooldown:
+  type: integer
+  unit: seconds
+  default: 600
+  helm: components.director.director_domain_rebalance_cooldown
+  description: |
+    How long a moved domain is left alone, so that two backends either side of
+    the line do not trade it.
+
+director_service.user_expire:
+  type: integer
+  unit: seconds
+  default: 900
+  helm: components.director.user_expire
+  description: |
+    How long a user's pin outlives their last session. While any session is
+    open the pin is refreshed; after it, the user returns to their hash
+    backend.
+
+director_service.user_kick_delay:
+  type: integer
+  unit: seconds
+  default: 2
+  helm: components.director.user_kick_delay
+  description: |
+    An admin kick, usually the tail of a move, waits this long so a command in
+    flight on the old backend completes. A kick for a dead backend and a
+    conflict kick never wait. `0` kicks at once.
+
+director_service.max_parallel_kicks:
+  type: integer
+  default: 100
+  helm: components.director.max_parallel_kicks
+  description: |
+    When a backend goes down, its sessions are kicked in batches of this size,
+    which spreads the re-logins over the surviving backends. `0` kicks all at
+    once.
+
+director_service.max_parallel_moves:
+  type: integer
+  default: 5
+  helm: components.director.max_parallel_moves
+  description: |
+    Confirmed kills in flight while `yarctl director backends flush` drains a
+    backend.

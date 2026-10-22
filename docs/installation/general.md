@@ -170,7 +170,7 @@ Read by the IMAP, POP3, Submission and ManageSieve login proxies.
 
 A process that starts while a dependency rolls waits for it instead of exiting into a restart loop. The wait applies at startup only; requests do not use it.
 
-<!-- @settings auth_service locks_client -->
+<!-- @settings auth_service.auth_startup_wait locks_client.locks_client_startup_wait -->
 
 ## `auth_client` pool
 
@@ -180,6 +180,6 @@ Userdb lookups from session processes reuse pooled connections to yarilo-auth.
 
 ## `internal_tls` session resumption
 
-<!-- @settings internal_tls -->
+<!-- @settings internal_tls.session_cache_size internal_tls.session_cache_ttl -->
 
 A negative value is refused at startup for every key above.
