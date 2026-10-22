@@ -393,7 +393,7 @@ CLI: `yarctl director ring status --all`
 
 #### `POST /api/director/ring` and `DELETE /api/director/ring`
 
-Both return `410 Gone`. Ring membership is self-organizing: a director joins by pointing `director_service.peers` at a seed, and a member is removed automatically when its neighbor finds it dead. There is nothing for an operator to add or remove. See [Ring formation](/architecture/director#ring-formation-design-history).
+Both return `410 Gone`. Ring membership is self-organizing: a director joins by pointing `director_service.peers` at a seed, and a member is removed automatically when its neighbor finds it dead. There is nothing for an operator to add or remove. See [Ring formation](/architecture/director#ring-formation).
 
 `yarctl director ring add` and `ring remove` print this explanation.
 

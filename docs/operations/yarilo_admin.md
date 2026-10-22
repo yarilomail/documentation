@@ -368,7 +368,7 @@ plus this replica's `api.listen` port, so all directors must share the same
 
 ### `director ring add` and `director ring remove`
 
-Both fail with `410 Gone` and print why: ring membership is self-organizing. A director joins through its `director_service.peers` seed, and a dead member is removed by its neighbors. See [Ring formation](/architecture/director#ring-formation-design-history).
+Both fail with `410 Gone` and print why: ring membership is self-organizing. A director joins through its `director_service.peers` seed, and a dead member is removed by its neighbors. See [Ring formation](/architecture/director#ring-formation).
 
 
 ---

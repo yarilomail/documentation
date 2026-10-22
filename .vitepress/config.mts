@@ -286,7 +286,7 @@ export default defineConfig({
           { text: 'Mailbox Storage', link: '/storage/' },
           { text: 'mdbox Alt Storage', link: '/storage/mdbox_alt' },
           { text: 'Namespaces', link: '/storage/namespace' },
-          { text: 'Shared Namespaces', link: '/storage/owner_shared_ns' },
+          { text: "Other Users' Mailboxes", link: "/storage/owner_shared_ns" },
           { text: 'Quota', link: '/storage/quota' },
           { text: 'Dict', link: '/storage/dict' }
         ]
