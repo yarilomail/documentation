@@ -1,6 +1,7 @@
 import { defineConfig, type PageData } from 'vitepress'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import sieve from './sieve.tmLanguage.json'
 
 const SITE = 'https://doc.yarilomail.org'
 
@@ -159,6 +160,8 @@ export default defineConfig({
   base: BASE,
   sitemap: { hostname: `${SITE}${BASE}` },
   lastUpdated: true,
+  // Shiki ships no Sieve grammar.
+  markdown: { languages: [sieve as any] },
   head: [
     ['link', { rel: 'icon', href: `${BASE}icon.svg` }],
     ['meta', { property: 'og:type', content: 'article' }],
