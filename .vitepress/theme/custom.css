@@ -7,3 +7,51 @@
     display: none;
   }
 }
+
+/* The text column takes the whole space beside the outline instead of
+   stopping at ~690px, so wide tables fit. */
+.VPDoc.has-aside .content-container {
+  max-width: none !important;
+}
+@media (min-width: 960px) and (max-width: 1439px) {
+  .VPDoc.has-aside .container > .content {
+    padding-left: 32px;
+  }
+  .VPDoc .aside {
+    max-width: 224px;
+  }
+}
+@media (min-width: 1440px) {
+  :root {
+    --vp-sidebar-width: 304px;
+  }
+  .VPSidebar {
+    width: var(--vp-sidebar-width) !important;
+    padding-right: 32px !important;
+    padding-left: 32px !important;
+  }
+  .VPContent.has-sidebar {
+    padding-left: var(--vp-sidebar-width) !important;
+    padding-right: 0 !important;
+  }
+  .VPNavBar.has-sidebar .content {
+    padding-left: var(--vp-sidebar-width) !important;
+    padding-right: 32px !important;
+  }
+  .VPNavBar.has-sidebar div.title {
+    width: var(--vp-sidebar-width) !important;
+    padding-left: 32px !important;
+  }
+  .VPNav div.divider {
+    padding-left: var(--vp-sidebar-width) !important;
+  }
+}
+
+/* A table wider than the column scrolls; keep its scrollbar visible. */
+.vp-doc table::-webkit-scrollbar {
+  height: 8px;
+}
+.vp-doc table::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--vp-c-divider);
+}

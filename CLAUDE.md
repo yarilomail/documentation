@@ -97,7 +97,10 @@ branch. Never edit `gh-pages` by hand.
   (`installation`, `architecture`, `protocols`, `auth`, `storage`,
   `features`, `operations`); file names are lowercase with underscores, and
   a section's overview is its `index.md`. Sidebar groups and nav live in
-  `.vitepress/config.mts` (update it when adding/renaming a page).
+  `.vitepress/config.mts` (update it when adding/renaming a page). Each
+  page's `##` headings become its collapsible sub-entries automatically;
+  `scripts/check-anchors.mjs` (run on every PR) fails on any `#anchor` link,
+  sidebar or in-page, that names no heading.
 - Renaming or moving a published page breaks its URL in every release
   already out. Avoid it; when unavoidable, keep the old path working.
 - `site-root/` — files served from the site root, outside any version

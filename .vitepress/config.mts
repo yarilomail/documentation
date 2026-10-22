@@ -1,4 +1,4 @@
-import { defineConfig, type PageData } from 'vitepress'
+import { defineConfig, type DefaultTheme, type PageData } from 'vitepress'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import sieve from './sieve.tmLanguage.json'
@@ -12,6 +12,36 @@ const BASE = `/${VERSION}/`
 // auth/oauth2.md -> https://doc.yarilomail.org/main/auth/oauth2.html
 function pageUrl(base: string, relativePath: string): string {
   return `${SITE}${base}${relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '.html')}`
+}
+
+// Same as VitePress's heading slugify, so sidebar anchors match heading ids.
+function slugify(str: string): string {
+  return str.normalize('NFKD').replace(/[\u0300-\u036F]/g, '').replace(/[\u0000-\u001f]/g, '')
+    .replace(/[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g, '-').replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '').replace(/^(\d)/, '_$1').toLowerCase()
+}
+
+const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+// A page's H2 sections as collapsed sidebar children; ids repeat as -1, -2 like the build's.
+function withSections(item: DefaultTheme.SidebarItem): DefaultTheme.SidebarItem {
+  const link = item.link!
+  const text = readFileSync(join('docs', link.endsWith('/') ? `${link}index.md` : `${link}.md`), 'utf8')
+  const seen = new Map<string, number>()
+  const sections: DefaultTheme.SidebarItem[] = []
+  for (const m of text.replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1/gm, '').matchAll(/^(#{1,6}) (.+?)(?: \{#([^}]+)\})?$/gm)) {
+    const title = m[2].replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*|__/g, '')
+    let id = m[3] ?? slugify(title)
+    const n = seen.get(id) ?? 0
+    seen.set(id, n + 1)
+    if (n) id = `${id}-${n}`
+    if (m[1] === '##') sections.push({ text: escapeHtml(title), link: `${link}#${id}` })
+  }
+  return sections.length < 2 ? item : { ...item, collapsed: true, items: sections }
+}
+
+function sidebar(groups: DefaultTheme.SidebarItem[]): DefaultTheme.SidebarItem[] {
+  return groups.map(g => ({ ...g, collapsed: false, items: g.items!.map(withSections) }))
 }
 
 /* First H1 and first prose paragraph of a page, for the llms.txt index. */
@@ -161,7 +191,15 @@ export default defineConfig({
   sitemap: { hostname: `${SITE}${BASE}` },
   lastUpdated: true,
   // Shiki ships no Sieve grammar.
-  markdown: { languages: [sieve as any] },
+  markdown: {
+    languages: [sieve as any],
+    // Break points after / . _ so a long identifier does not widen its table.
+    config(md) {
+      const code = md.renderer.rules.code_inline!
+      md.renderer.rules.code_inline = (...args) => code(...args)
+        .replace(/>([^<]*)<\/code>$/, (_, t: string) => `>${t.replace(/([/._])(?=.)/g, '$1<wbr>')}</code>`)
+    },
+  },
   head: [
     ['link', { rel: 'icon', href: `${BASE}icon.svg` }],
     ['meta', { property: 'og:type', content: 'article' }],
@@ -192,7 +230,7 @@ export default defineConfig({
       { text: 'Security', link: '/operations/security' },
       { text: 'yarilomail.org', link: 'https://yarilomail.org' }
     ],
-    sidebar: [
+    sidebar: sidebar([
       {
         text: 'Getting Started',
         items: [
@@ -265,6 +303,6 @@ export default defineConfig({
           { text: 'Security policy', link: '/operations/security' }
         ]
       }
-    ]
+    ])
   }
 })
