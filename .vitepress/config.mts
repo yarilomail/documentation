@@ -316,7 +316,8 @@ export default defineConfig({
       {
         text: 'Reference',
         items: [
-          { text: 'All settings', link: '/reference/settings' }
+          { text: 'All settings', link: '/reference/settings' },
+          { text: 'RFC support', link: '/reference/rfcs' }
         ]
       }
     ])
