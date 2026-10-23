@@ -64,6 +64,10 @@ GitHub). Apply these conventions to every page:
   Inside code spans and fences they are safe, **except** when a line *starts*
   with `<token>`: CommonMark parses that as an HTML block even inside a
   multi-line code span. Rewrap the line instead of escaping.
+- External links get `rel="nofollow"` at build time, except to seconddns.com,
+  yarilomail.org and github.com/yarilomail (`.vitepress/links.mjs`). Write a
+  plain Markdown link; `scripts/check-nofollow.mjs`, run on every PR, fails
+  on an external link without it.
 - Links to yarilo source code use full GitHub URLs
   (`https://github.com/yarilomail/yarilo/tree/main/...`) — repo-relative
   paths are dead links here and fail the build.

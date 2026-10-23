@@ -25,6 +25,8 @@ jobs:
           cp -R .vitepress/dist site/main
       - name: Check anchors
         run: node scripts/check-anchors.mjs site/main /main/
+      - name: Check external links are nofollow
+        run: node scripts/check-nofollow.mjs site/main
       # main documents the next release; yarilo's develop CI writes its export to settings-export.
       - name: Compare settings with the code
         run: |
