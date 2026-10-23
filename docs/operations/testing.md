@@ -63,7 +63,7 @@ docker run --rm dovecot/imaptest \
   port=993 \
   ssl=yes \
   user=u1@d00001.test \
-  pass='Yarilo!test1' \
+  pass='HIDDEN' \
   no_pipelining=yes \
   clients=1 \
   count=5
