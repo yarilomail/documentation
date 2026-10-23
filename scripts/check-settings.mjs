@@ -10,6 +10,7 @@ const values = parse(readFileSync(process.argv[3], 'utf8'))
 const valueAt = key => key.split('.').reduce((o, k) => (o != null && typeof o === 'object' && k in o ? o[k] : undefined), values)
 const kindOf = v => Array.isArray(v) ? 'list' : v === null ? 'map' : typeof v === 'object' ? 'map'
   : typeof v === 'number' ? (Number.isInteger(v) ? 'integer' : 'number') : typeof v
+const pattern = key => new RegExp('^' + key.replace(/[.[\]]/g, '\\$&').replace(/\*/g, '[^.]+') + '$')
 const section = key => key.includes('.') ? key.slice(0, key.lastIndexOf('.')) : ''
 
 // A default left out, null, "" and an empty list all mean "nothing set".
@@ -32,7 +33,14 @@ for (const [key, s] of Object.entries(data)) {
     }
     continue
   }
-  const c = code.get(key)
+  // A * stands for a name the code lists one by one, such as each listener
+  // under services; every match must agree, so the first stands for all.
+  const matches = key.includes('*') && !code.has(key) ? [...code.keys()].filter(k => pattern(key).test(k)) : []
+  for (const m of matches.slice(1)) {
+    const a = code.get(matches[0]), b = code.get(m)
+    if (a.kind !== b.kind || JSON.stringify(a.default) !== JSON.stringify(b.default)) errors.push(`${key}: ${m} differs from ${matches[0]}`)
+  }
+  const c = code.get(key) ?? code.get(matches[0])
   if (!c) {
     errors.push(`${key}: not in the code`)
     continue
@@ -48,7 +56,7 @@ for (const [key, s] of Object.entries(data)) {
   for (const alias of s.aliases ?? []) {
     // An alias with a dot is a full key elsewhere; a bare one sits beside the key.
     const full = alias.includes('.') ? alias : section(key) ? `${section(key)}.${alias}` : alias
-    if (!code.has(full)) errors.push(`${key}: alias ${alias} is not a key of the code (${full})`)
+    if (!code.has(full) && ![...code.keys()].some(k => pattern(full).test(k))) errors.push(`${key}: alias ${alias} is not a key of the code (${full})`)
   }
 }
 for (const e of errors) console.log(e)

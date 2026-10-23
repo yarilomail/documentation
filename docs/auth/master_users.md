@@ -27,11 +27,9 @@ auth:
           WHERE username = %u
 ```
 
-| Setting | Default | Notes |
-|:---|:---|:---|
-| `enabled` | `false` | Master switch. Off refuses every impersonation attempt before the chain runs. |
-| `masterdb` | — | A dedicated passdb chain for master credentials. Same drivers and fields as `auth.passdb` (`sql`, `passwd-file`, …). |
-| `auth_master_user_separator` | `*` | Separator for the legacy login form below. Empty disables that form; the SASL form keeps working. |
+<!-- @settings auth.master_users -->
+
+`masterdb` is a dedicated passdb chain for master credentials, with the same drivers and fields as `auth.passdb` (`sql`, `passwd-file`, …).
 
 Grants come from either of two places: a hit in `masterdb`, or a true
 `master_user` field (`master_user=yes`) on an ordinary passdb answer — a
