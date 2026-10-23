@@ -1508,6 +1508,25 @@ auth.policy.auth_policy_report_after_auth:
     Send `?command=report` after every decision, without waiting for the
     answer. It never delays the reply to the client.
 
+auth.policy.auth_policy_request_attributes:
+  type: map
+  default:
+    device_id: "%{client_id}"
+    fail_type: "%{fail_type}"
+    login: "%{requested_username}"
+    protocol: "%{protocol}"
+    pwhash: "%{hashed_password}"
+    remote: "%{remote_ip}"
+    session_id: "%{session}"
+  helm: components.auth.policy.request_attributes
+  added: 2.4.5
+  description: |
+    The request body: a body key to its value template. A key `name/sub` puts
+    `sub` inside the object `name`. See [Request body](/auth/policy#request-body)
+    for the variables. An entry adds or replaces one key; a default key cannot
+    be removed. A template naming an unknown variable stops `yarilo-auth` at
+    start.
+
 protocol.lmtp.login_greeting:
   type: string
   default: Yarilo ready.
@@ -1886,6 +1905,17 @@ protocol.imap.imap_id_send:
     Space-separated key-value pairs sent in the ID response (RFC 2971). `*`
     means the server's own value. An empty string turns the ID extension off
     after login.
+
+protocol.imap.imap_id_retain:
+  type: boolean
+  default: false
+  helm: protocol.imap.imap_id_retain
+  added: 2.4.5
+  description: |
+    Keep what a client sends in `ID` before login and pass it to the auth
+    service, where the [policy server](/auth/policy) sees it as `device_id`.
+    The login's own `x-` keys are left out; at most 30 pairs and 256 bytes are
+    kept.
 
 protocol.imap.login_greeting:
   type: string
