@@ -42,13 +42,7 @@
   font-weight: 600;
 }
 
-/* The current page in the sidebar is marked by a bar, not only by colour. */
-.VPSidebarItem.is-active > .item {
-  box-shadow: inset 2px 0 0 var(--yarilo-orange);
-  padding-left: 10px;
-}
-
-/* Notes and warnings as a bar on the left rather than a filled box. */
+/* Notes and warnings keep their fill and gain a bar on the left. */
 .vp-doc .custom-block {
   border-width: 0 0 0 4px;
   border-style: solid;
