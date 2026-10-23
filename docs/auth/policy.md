@@ -316,50 +316,16 @@ exemption applied to the cross-pod penalty store.
 The `auth: ok` and `auth: fail` log lines carry `policy_result` and
 `policy_penalty`, the tarpit seconds, when a check ran.
 
-## wforce example
+## wforce
 
-Count different failed passwords per IP and per IP and login over an hour,
-tarpit a login after 3 and refuse an IP after 50:
-
-```lua
-addListener("0.0.0.0:8084", false, "", "", {})
-setWebserverPassword(os.getenv("WFORCE_HTTP_PASSWORD"))
-
-local field_map = {}
-field_map["diffFailedPasswords"] = "hll"
-newStringStatsDB("OneHourDB", 600, 6, field_map)
-
-function report(lt)
-   if not lt.success and not lt.policy_reject then
-      local sdb = getStringStatsDB("OneHourDB")
-      sdb:twAdd(lt.remote, "diffFailedPasswords", lt.pwhash)
-      sdb:twAdd(lt.remote:tostring() .. ":" .. lt.login, "diffFailedPasswords", lt.pwhash)
-   end
-end
-
-function allow(lt)
-   local sdb = getStringStatsDB("OneHourDB")
-   if sdb:twGet(lt.remote, "diffFailedPasswords") > 50 then
-      return -1, "Too many failed logins, try again later", "per-IP limit", {}
-   end
-   if sdb:twGet(lt.remote:tostring() .. ":" .. lt.login, "diffFailedPasswords") > 3 then
-      return 3, "", "per-login limit", {}
-   end
-   return 0, "", "", {}
-end
-
-setReport(report)
-setAllow(allow)
-```
-
-`yarilo-auth` sends the password as `Authorization: Basic` in
-`auth_policy_server_api_header`, base64 of `wforce:<password>`.
+[wforce Integration](/auth/wforce) deploys weakforced as the policy server,
+with a policy against password guessing and the steps to turn it on.
 
 ## Rollout strategy
 
 1. **Shadow mode** (week 1) — set `auth_policy_log_only: true`, watch the logs
-   for would-have-rejected events. Tune policy server thresholds
-   until false-positive rate is acceptable.
+   for would-have-rejected events. Logins are neither delayed nor refused.
+   Tune policy server thresholds until false-positive rate is acceptable.
 2. **Soft enforce** (week 2) — flip `auth_policy_log_only: false`, keep
    `auth_policy_reject_on_fail: false` (fail-open). A policy server outage
    does not affect logins.

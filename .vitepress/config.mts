@@ -288,6 +288,7 @@ export default defineConfig({
           { text: 'OAuth2', link: '/auth/oauth2' },
           { text: 'SCRAM', link: '/auth/scram' },
           { text: 'Auth Policy', link: '/auth/policy' },
+          { text: 'wforce Integration', link: '/auth/wforce' },
           { text: 'Master Users', link: '/auth/master_users' },
           { text: 'Auth Penalty', link: '/auth/penalty' }
         ]

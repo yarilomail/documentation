@@ -1477,9 +1477,13 @@ auth.policy.auth_policy_log_only:
   default: false
   aliases: [log_only]
   helm: components.auth.policy.log_only
+  changed:
+    - version: 2.4.5
+      text: A tarpit, and a refusal from `auth_policy_reject_on_fail`, are no longer applied in log-only mode.
   description: |
     Ask the policy server and log its verdicts without enforcing them, to roll
-    out a new policy in shadow mode.
+    out a new policy in shadow mode: no tarpit, no refusal, and no refusal
+    from `auth_policy_reject_on_fail` when the server fails.
 
 auth.policy.auth_policy_check_before_auth:
   type: boolean
