@@ -15,16 +15,7 @@ See [Services configuration](/architecture/services) for listener-level settings
 
 Protocol-level behaviour, shared across both IMAP listeners.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `imap_idle_notify_interval` | `120` | Seconds between unsolicited EXISTS/RECENT responses during IDLE (RFC 2177 keepalive). `0` = disabled. |
-| `imap_max_line_length` | `65536` | Max IMAP command line length in bytes (64 KB = the reference default). `0` = unlimited. |
-| `imap_id_send` | `name *` | Space-separated key-value pairs sent in the ID response (RFC 2971). `*` = server-default values. Empty string = ID extension disabled. |
-| `login_greeting` | `""` | Replaces `IMAP server ready` in the **backend's** greeting. Clients behind a login proxy see `yarilo-imap-login`'s own greeting, `Yarilo Login ready`, which this key does not change. Empty = default. |
-| `imap_logout_format` | `""` | Format string logged at session end. Empty = no stats line. Variables listed below. |
-| `imap_quota` | `true` | Advertise and serve the QUOTA extension (RFC 9208). Independent of quota enforcement. |
-| `imap_special_use_defaults` | — | Map of folder name (case-sensitive) to its RFC 6154 attribute, e.g. `Sent: "\\Sent"`. A user's own `CREATE (USE …)` wins. |
-| `imap_client_workarounds` | — | Compatibility shims: `tb-extra-mailbox-sep`, `tb-lsub-flags`. Also accepted as `client_workarounds`. |
+<!-- @settings protocol.imap -->
 
 ### `imap_logout_format` variables
 

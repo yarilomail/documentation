@@ -1860,3 +1860,270 @@ protocol.submission.relay.submission_relay_command_timeout:
   helm: protocol.submission.relay.command_timeout
   description: |
     Per-command timeout.
+
+protocol.imap.imap_idle_notify_interval:
+  type: integer
+  unit: seconds
+  default: 120
+  helm: protocol.imap.imap_idle_notify_interval
+  description: |
+    Interval between unsolicited EXISTS/RECENT responses during IDLE
+    (RFC 2177 keepalive). `0` disables them.
+
+protocol.imap.imap_max_line_length:
+  type: integer
+  unit: bytes
+  default: 65536
+  helm: protocol.imap.imap_max_line_length
+  description: |
+    Maximum IMAP command line length. `0` is unlimited.
+
+protocol.imap.imap_id_send:
+  type: string
+  default: name *
+  helm: protocol.imap.imap_id_send
+  description: |
+    Space-separated key-value pairs sent in the ID response (RFC 2971). `*`
+    means the server's own value. An empty string turns the ID extension off
+    after login.
+
+protocol.imap.login_greeting:
+  type: string
+  default: ""
+  helm: protocol.imap.login_greeting
+  description: |
+    Replaces `IMAP server ready` in the **backend's** greeting. Clients
+    behind a login proxy see `yarilo-imap-login`'s own greeting, `Yarilo
+    Login ready`, which this key does not change. Empty keeps the default.
+
+protocol.imap.imap_logout_format:
+  type: string
+  default: ""
+  helm: protocol.imap.imap_logout_format
+  description: |
+    Format of the line logged at session end; the variables are listed
+    below. Empty logs no stats line.
+
+protocol.imap.imap_quota:
+  type: boolean
+  default: true
+  helm: protocol.imap.imap_quota
+  description: |
+    Advertise and serve the QUOTA extension (RFC 9208). Independent of quota
+    enforcement.
+
+protocol.imap.imap_special_use_defaults:
+  type: map
+  default:
+    Archive: \Archive
+    Drafts: \Drafts
+    Junk: \Junk
+    Sent: \Sent
+    Trash: \Trash
+  helm: protocol.imap.imap_special_use_defaults
+  description: |
+    Folder name (case-sensitive) to its RFC 6154 attribute, e.g.
+    `Sent: "\\Sent"`. A user's own `CREATE (USE …)` wins.
+
+protocol.imap.imap_client_workarounds:
+  type: list
+  default: []
+  values: [tb-extra-mailbox-sep, tb-lsub-flags]
+  aliases: [client_workarounds]
+  helm: protocol.imap.client_workarounds
+  description: |
+    Compatibility shims for clients that break the protocol.
+
+protocol.pop3.pop3_no_flag_updates:
+  type: boolean
+  default: false
+  helm: protocol.pop3.pop3_no_flag_updates
+  description: |
+    `false` sets `\Seen` on retrieved messages at QUIT. `true` changes no
+    flags on retrieval.
+
+protocol.pop3.pop3_reuse_xuidl:
+  type: boolean
+  default: false
+  helm: protocol.pop3.pop3_reuse_xuidl
+  description: |
+    Use the `X-UIDL` message header as the UIDL value. Lets mail migrated
+    from Courier, qmail or cPanel keep its UIDLs.
+
+protocol.pop3.pop3_uidl_format:
+  type: string
+  default: "%u.%v"
+  helm: protocol.pop3.pop3_uidl_format
+  description: |
+    UIDL format string; the variables are listed below.
+
+protocol.pop3.pop3_uidl_duplicates:
+  type: string
+  default: rename
+  values: [allow, rename]
+  helm: protocol.pop3.pop3_uidl_duplicates
+  description: |
+    `allow` sends duplicate UIDLs as they are. `rename` appends a `-N`
+    suffix so every UIDL is unique.
+
+protocol.pop3.pop3_enable_last:
+  type: boolean
+  default: false
+  helm: protocol.pop3.pop3_enable_last
+  description: |
+    Advertise and handle the `LAST` command (RFC 1460).
+
+protocol.pop3.pop3_delete_type:
+  type: string
+  default: expunge
+  values: [expunge, flag]
+  helm: protocol.pop3.pop3_delete_type
+  see_also: [protocol.pop3.pop3_deleted_flag]
+  description: |
+    `expunge` removes a deleted message from disk at QUIT. `flag` sets
+    `pop3_deleted_flag` instead, so the message stays visible over IMAP.
+
+protocol.pop3.pop3_deleted_flag:
+  type: string
+  default: ""
+  helm: protocol.pop3.pop3_deleted_flag
+  description: |
+    IMAP flag set when `pop3_delete_type` is `flag`, for example
+    `$POP3Deleted`.
+
+protocol.pop3.pop3_save_uidl:
+  type: boolean
+  default: false
+  helm: protocol.pop3.pop3_save_uidl
+  description: |
+    Persist computed UIDLs to a `pop3.uidl` file next to the folder's index.
+    Later sessions load them, so UIDLs stay the same across index rebuilds
+    and backend changes.
+
+protocol.pop3.pop3_lock_session:
+  type: boolean
+  default: false
+  helm: protocol.pop3.pop3_lock_session
+  description: |
+    Create a dotlock at `$HOME/yarilo-pop3-session.lock` after login, so
+    another replica on the same PVC cannot serve the user at the same time.
+    Locks older than 10 minutes are stolen.
+
+protocol.jmap.jmap_base_url:
+  type: string
+  default: ""
+  helm: protocol.jmap.jmap_base_url
+  description: |
+    Public origin clients reach this deployment on. Prefixes every URL in the
+    session resource, so it must be the externally visible name, not a pod
+    address.
+
+protocol.jmap.jmap_max_concurrent_requests:
+  type: integer
+  default: 10
+  helm: protocol.jmap.jmap_max_concurrent_requests
+  description: |
+    Simultaneous API calls per session.
+
+protocol.jmap.jmap_max_calls_in_request:
+  type: integer
+  default: 16
+  helm: protocol.jmap.jmap_max_calls_in_request
+  description: |
+    Method calls in one batch.
+
+protocol.jmap.jmap_max_objects_in_get:
+  type: integer
+  default: 500
+  helm: protocol.jmap.jmap_max_objects_in_get
+  description: |
+    Objects per `Foo/get`.
+
+protocol.jmap.jmap_max_objects_in_set:
+  type: integer
+  default: 500
+  helm: protocol.jmap.jmap_max_objects_in_set
+  description: |
+    Objects per `Foo/set`.
+
+protocol.jmap.jmap_max_size_upload:
+  type: string
+  default: 40M
+  helm: protocol.jmap.jmap_max_size_upload
+  description: |
+    One blob upload.
+
+protocol.jmap.jmap_max_size_request:
+  type: string
+  default: 10M
+  helm: protocol.jmap.jmap_max_size_request
+  description: |
+    One API request body.
+
+protocol.jmap.jmap_max_body_value_bytes:
+  type: string
+  default: 256K
+  helm: protocol.jmap.jmap_max_body_value_bytes
+  description: |
+    Server ceiling on one returned `Email` body value. A smaller client
+    `maxBodyValueBytes` wins; truncated values are marked `isTruncated`.
+
+protocol.jmap.jmap_query_max_limit:
+  type: integer
+  default: 256
+  helm: protocol.jmap.jmap_query_max_limit
+  description: |
+    Server ceiling on ids returned by one query. A smaller client `limit`
+    wins; the response reports the limit applied.
+
+protocol.jmap.jmap_max_query_folders:
+  type: integer
+  default: 64
+  helm: protocol.jmap.jmap_max_query_folders
+  description: |
+    Mailboxes one full-text `Email/query` may search. A query over more is
+    refused, never answered from part of them.
+
+protocol.jmap.jmap_snippet_max_chars:
+  type: integer
+  default: 256
+  helm: protocol.jmap.jmap_snippet_max_chars
+  description: |
+    Visible characters in a `SearchSnippet` preview. Markup and HTML escapes
+    are not counted; the subject is never cut.
+
+protocol.jmap.jmap_upload_ttl:
+  type: integer
+  unit: seconds
+  default: 3600
+  helm: protocol.jmap.jmap_upload_ttl
+  description: |
+    How long an uploaded blob is kept for `Email/import` or `Email/set`.
+    Uploading the same bytes again starts the clock again. `0` is refused at
+    load.
+
+protocol.jmap.jmap_submission_ttl_seconds:
+  type: integer
+  unit: seconds
+  default: 86400
+  helm: protocol.jmap.jmap_submission_ttl_seconds
+  description: |
+    How long a record of sent mail is kept for `EmailSubmission/get` and
+    `/query`. `0` keeps none; mail is still sent. See [Records](#records).
+
+protocol.jmap.jmap_push_poll:
+  type: integer
+  unit: seconds
+  default: 60
+  helm: protocol.jmap.jmap_push_poll
+  description: |
+    Interval between a push stream's looks for changes; `0` turns push off.
+    See [Push](#push).
+
+protocol.jmap.jmap_cors_allow_origins:
+  type: list
+  default: []
+  helm: protocol.jmap.jmap_cors_allow_origins
+  description: |
+    Browser origins allowed to call the endpoint. Empty denies every
+    cross-origin request. Exact match, scheme included.
