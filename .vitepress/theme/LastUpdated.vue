@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useData } from 'vitepress'
 
 // Replaces the default theme's VPDocFooterLastUpdated (aliased in config.mts).
@@ -13,11 +13,13 @@ const date = computed(() => new Date(page.value.lastUpdated!))
 const isoDatetime = computed(() => date.value.toISOString())
 const datetime = ref('')
 
-// On mount: the server does not know the reader's time zone.
+// Formatted after mount, since the server does not know the reader's time
+// zone, and again on every page change: the footer stays mounted across
+// client-side navigation.
 onMounted(() => {
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? ''
-  const locale = US_ZONES.test(zone) ? 'en-US' : 'en-GB'
-  datetime.value = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(date.value)
+  const format = new Intl.DateTimeFormat(US_ZONES.test(zone) ? 'en-US' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })
+  watchEffect(() => { datetime.value = format.format(date.value) })
 })
 </script>
 
