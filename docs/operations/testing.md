@@ -23,7 +23,7 @@ looks at one listener.
 It needs a seeded account, and both the seeding and the invocation are in
 **[End-to-end smoke test](/operations/smoke)**, which is also where the step-by-step table lives.
 
-IMAP conformance is covered separately by [dovecot/imaptest](https://github.com/dovecot/imaptest).
+IMAP conformance is exercised separately on the stand with an external conformance tester.
 
 ### Run via GitHub Actions
 
