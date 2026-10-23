@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { parse } from 'yaml'
 
 interface Setting {
-  type: 'string' | 'boolean' | 'integer' | 'list' | 'map'
+  type: 'string' | 'boolean' | 'integer' | 'number' | 'list' | 'map'
   unit?: string
   default?: unknown
   default_text?: string
@@ -24,7 +24,7 @@ interface Setting {
 
 const FIELDS = new Set(['type', 'unit', 'default', 'default_text', 'values', 'aliases', 'helm',
   'see_also', 'added', 'changed', 'advanced', 'source', 'description'])
-const TYPES = new Set(['string', 'boolean', 'integer', 'list', 'map'])
+const TYPES = new Set(['string', 'boolean', 'integer', 'number', 'list', 'map'])
 const PLACE = /^<!-- @settings ([^>]+?) -->$/gm
 const INDEX = /^<!-- @settings-index -->$/m
 

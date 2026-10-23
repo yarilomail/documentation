@@ -31,87 +31,21 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 `mboxmetadata` / `servermetadata` (RFC 5490 §4) expose IMAP METADATA (RFC 5464) annotations to scripts: `metadata "<mailbox>" "<entry>" "<value>"` / `metadataexists "<mailbox>" "<entry>"...` read per-mailbox annotations, and `servermetadata "<entry>" "<value>"` / `servermetadataexists "<entry>"...` read server-scoped ones. Entry names are the wire-format `/private/…` or `/shared/…` paths; values come from the same dict the IMAP `GETMETADATA`/`SETMETADATA` commands use, so a script sees exactly what a client set. Delivery-time lookups are scoped to the recipient's personal namespace. `extlists` is **not** advertised yet — its backing data source is not wired.
 
+::: note Helm
+The chart's default [`sieve_extensions`](#sieve.sieve_extensions) list leaves several of these out, among them `include`, `ihave`, `enotify` and `imapsieve`; a script that requires one is refused until you add it.
+:::
+
 ## Configuration
 
-### Settings in yarilo.yaml
+Settings live under `sieve:` and keep the `sieve_` prefix there, matching the config keys. The chart's values use the same names under `sieve:`.
 
-| Key | Type | Default | Description |
-|:----|:-----|:--------|:------------|
-| `sieve_enabled` | bool | `false` | Activate Sieve execution on LMTP delivery |
-| `sieve_max_script_size` | int | `65536` | Maximum compiled script size in bytes. One limit for delivery and ManageSieve alike — the pre-beta duplicate `protocol.managesieve.max_script_size` is accepted as an alias of this key, and the two set to different values refuse startup. |
-| `sieve_max_redirects` | int | `32` | Maximum `redirect` actions per message (RFC 5228 §6.2) |
-| `sieve_max_num_scripts` | int | `0` | Maximum scripts one user may store. `0` = unlimited. See [ManageSieve](#managesieve) |
-| `sieve_max_storage` | int | `0` | Maximum bytes of one user's stored scripts. `0` = unlimited |
-| `sieve_max_actions` | int | `32` | Maximum total actions per script (`fileinto`/`redirect`/`keep`/...). `0` = unlimited. Guards runaway scripts |
-| `sieve_global` | string | `""` | Directory of the scripts `include :global` names, `<name>.sieve` each. Users cannot write it. Empty: none |
-| `sieve_vacation_enabled` | bool | `true` | Permit the `vacation` extension (RFC 5230) |
-| `sieve_vacation_min_period` | int | `86400` | Shortest reply interval in seconds; a shorter `:days`/`:seconds` is raised to it. `0` = no minimum |
-| `sieve_vacation_max_period` | int | `5184000` | Longest reply interval in seconds (60 days); a longer one is lowered to it. `0` = no maximum |
-| `sieve_vacation_default_period` | int | `604800` | Interval when the script gives none (7 days). It is kept within the minimum too, so `0` replies to every message only with `sieve_vacation_min_period: 0` |
-| `sieve_vacation_default_subject` | string | `""` | Subject of a reply to a message without one, when the script gives none. Empty = `Automated reply` |
-| `sieve_vacation_default_subject_template` | string | `""` | Subject of a reply when the script gives none, with `%{subject}` for the message's subject. Empty = `Auto: %{subject}` |
-| `sieve_vacation_use_original_recipient` | bool | `false` | Count the LMTP original recipient (ORCPT) as the user's address. Only a relay that sends ORCPT gives one; see [LMTP](/protocols/lmtp#original-recipient-orcpt) |
-| `sieve_vacation_check_recipient` | bool | `true` | Reply only to a message that names the user in `To`, `Cc`, `Bcc` or `Resent-*` |
-| `sieve_vacation_send_from_recipient` | bool | `false` | Send the reply with the recipient as envelope sender instead of `<>` |
-| `sieve_vacation_to_header_ignore_envelope` | bool | `false` | Address the reply to the first address in `Sender`, `Resent-From` or `From`, even when it is not the envelope sender |
-| `sieve_spamtest_status_header` | string | `""` | Header carrying the spam score for `spamtest` (RFC 5235), e.g. `X-Spam-Score`. Empty = test reports "not scanned" |
-| `sieve_spamtest_max_value` | float | `10` | Raw header value mapped to the top of the 0..10 (0..100 with `:percent`) scale |
-| `sieve_virustest_status_header` | string | `""` | Header carrying the virus verdict for `virustest` (RFC 5235). Empty = "not scanned" |
-| `sieve_virustest_max_value` | float | `5` | Raw header value mapped to the top of the 0..5 virus scale |
-| `sieve_submission_host` | string | `""` | Upstream MTA for outbound mail (`host[:port]`, default port 25). Empty = redirect and vacation are silently dropped |
-| `sieve_submission_ssl` | string | `"no"` | Transport security: `no` \| `smtps` \| `starttls` |
-| `sieve_submission_timeout` | int | `30` | Connect and command timeout in seconds |
-| `sieve_submission_auth_secret` | string | `""` | Name of a Kubernetes Secret containing `user` and `password` keys for SMTP AUTH. Leave empty for unauthenticated relay |
-| `sieve_default_name` | string | `"yarilo"` | Name of the per-user default script, seeded as `<name>.sieve` on first delivery |
-| `sieve_extensions` | list | `[]` | Extensions users may `require`. Empty allows all; a non-empty list is enforced at `PUTSCRIPT` and at delivery |
-| `sieve_global_extensions` | list | `[]` | Extensions only the administrator's scripts may use, on top of `sieve_extensions`. A user's script never gets them, even when `sieve_extensions` lists them. See [Whose script gets which extensions](#whose-script-gets-which-extensions) |
-| `sieve_scripts_driver` | string | `""` (= `fs`) | Where scripts are stored: `fs` = files in the user's home; `redis` = the dict named by `sieve_scripts_dict` |
-| `sieve_scripts_dict` | string | `""` | Name of the dict in `dicts:` used when `sieve_scripts_driver: redis`. Ignored for `fs` |
-
-All keys keep the `sieve_` prefix even under the `sieve:` section, matching the config koanf tags.
-
-### Settings in the Helm chart
-
-The `values.yaml` keys are identical to the `yarilo.yaml` keys above (same `sieve_` prefix):
-
-| Key | Default | Description |
-|:----|:--------|:------------|
-| `sieve.sieve_enabled` | `false` | Enable Sieve |
-| `sieve.sieve_max_script_size` | `65536` | Max script size (bytes) |
-| `sieve.sieve_max_redirects` | `32` | Max redirect actions per message |
-| `sieve.sieve_max_num_scripts` | `0` | Max scripts per user (`0` = unlimited) |
-| `sieve.sieve_max_storage` | `0` | Max script bytes per user (`0` = unlimited) |
-| `sieve.sieve_max_actions` | `32` | Max total actions per script (`0` = unlimited) |
-| `sieve.sieve_global` | `""` | Directory of the `include :global` scripts |
-| `sieve.sieve_global_scripts` | `{}` | Global scripts by name; a ConfigMap mounted at `sieve_global` in lmtp and imap |
-| `sieve.sieve_global_extensions` | `[]` | Extensions only the administrator's scripts may use |
-| `sieve.sieve_vacation_enabled` | `true` | Enable vacation extension |
-| `sieve.sieve_vacation_min_period` | `86400` | Shortest reply interval, seconds (`0` = none) |
-| `sieve.sieve_vacation_max_period` | `5184000` | Longest reply interval, seconds (`0` = none) |
-| `sieve.sieve_vacation_default_period` | `604800` | Interval when the script gives none |
-| `sieve.sieve_vacation_default_subject` | `""` | Subject for a message without one |
-| `sieve.sieve_vacation_default_subject_template` | `""` | Subject template with `%{subject}` |
-| `sieve.sieve_vacation_use_original_recipient` | `false` | The ORCPT counts as the user's address (see [LMTP](/protocols/lmtp#original-recipient-orcpt)) |
-| `sieve.sieve_vacation_check_recipient` | `true` | Reply only when the user is a header recipient |
-| `sieve.sieve_vacation_send_from_recipient` | `false` | Envelope sender of the reply is the recipient |
-| `sieve.sieve_vacation_to_header_ignore_envelope` | `false` | Reply `To` from the sender headers alone |
-| `sieve.sieve_spamtest_status_header` | `""` | Spam-score header for `spamtest` (empty = unbacked) |
-| `sieve.sieve_spamtest_max_value` | `10` | Top of the spam-score scale |
-| `sieve.sieve_virustest_status_header` | `""` | Virus-verdict header for `virustest` (empty = unbacked) |
-| `sieve.sieve_virustest_max_value` | `5` | Top of the virus-score scale |
-| `sieve.sieve_submission_host` | `""` | Upstream MTA address (`host[:port]`) |
-| `sieve.sieve_submission_ssl` | `"no"` | TLS mode: `no` / `smtps` / `starttls` |
-| `sieve.sieve_submission_timeout` | `30` | Timeout in seconds |
-| `sieve.sieve_submission_auth_secret` | `""` | Name of a Kubernetes Secret with `user` and `password` keys for SMTP AUTH. Leave empty for unauthenticated relay |
+<!-- @settings sieve.sieve_enabled sieve.sieve_max_script_size sieve.sieve_max_redirects sieve.sieve_max_num_scripts sieve.sieve_max_storage sieve.sieve_max_actions sieve.sieve_global sieve.sieve_global_scripts sieve.sieve_vacation_enabled sieve.sieve_vacation_min_period sieve.sieve_vacation_max_period sieve.sieve_vacation_default_period sieve.sieve_vacation_default_subject sieve.sieve_vacation_default_subject_template sieve.sieve_vacation_use_original_recipient sieve.sieve_vacation_check_recipient sieve.sieve_vacation_send_from_recipient sieve.sieve_vacation_to_header_ignore_envelope sieve.sieve_spamtest_status_header sieve.sieve_spamtest_max_value sieve.sieve_virustest_status_header sieve.sieve_virustest_max_value sieve.sieve_submission_host sieve.sieve_submission_ssl sieve.sieve_submission_timeout sieve.sieve_submission_auth_secret sieve.sieve_default_name sieve.sieve_extensions sieve.sieve_global_extensions sieve.sieve_scripts_driver sieve.sieve_scripts_dict -->
 
 ## ManageSieve
 
 `protocol.managesieve` holds the protocol's own limits; the script size is `sieve.sieve_max_script_size` above.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `max_invalid_commands` | `3` | Unknown commands before authentication after which the server says `BYE` and closes. |
-| `managesieve_max_line_length` | `65536` | Bytes in a command line or a literal, a script's body aside. A larger literal is refused before it is read: `NO "Literal size too large."`, and when the client is already sending it (`{N+}`), `BYE` and close. Before authentication the bound is 8192 bytes. |
+<!-- @settings protocol.managesieve.max_invalid_commands protocol.managesieve.managesieve_max_line_length -->
 
 A script body over `sieve_max_script_size` gets `NO (QUOTA/MAXSIZE)` before it is read, closing the connection the same way.
 
@@ -385,12 +319,7 @@ World-writable executables are refused.
 
 **Configuration** (`yarilo.yaml` / `values.yaml`):
 
-| Key | Default | Description |
-|:----|:--------|:------------|
-| `sieve_pipe_bin_dir` | `/usr/lib/yarilo/sieve-pipe` | Directory of allowed pipe executables |
-| `sieve_pipe_socket_dir` | `sieve-pipe` | Directory of allowed pipe sockets (searched first) |
-| `sieve_pipe_exec_timeout` | `10` | Subprocess timeout in seconds |
-| `sieve_pipe_input_eol` | `crlf` | Line endings written to stdin: `crlf` or `lf` |
+<!-- @settings sieve.sieve_pipe_bin_dir sieve.sieve_pipe_socket_dir sieve.sieve_pipe_exec_timeout sieve.sieve_pipe_input_eol -->
 
 ---
 
@@ -409,12 +338,7 @@ The `filter` action returns `true` if the program exited 0 and produced output. 
 
 **Configuration** (`yarilo.yaml` / `values.yaml`):
 
-| Key | Default | Description |
-|:----|:--------|:------------|
-| `sieve_filter_bin_dir` | `/usr/lib/yarilo/sieve-filter` | Directory of allowed filter executables |
-| `sieve_filter_socket_dir` | `sieve-filter` | Directory of allowed filter sockets (searched first) |
-| `sieve_filter_exec_timeout` | `10` | Subprocess timeout in seconds |
-| `sieve_filter_input_eol` | `crlf` | Line endings written to stdin: `crlf` or `lf` |
+<!-- @settings sieve.sieve_filter_bin_dir sieve.sieve_filter_socket_dir sieve.sieve_filter_exec_timeout sieve.sieve_filter_input_eol -->
 
 ---
 
@@ -437,12 +361,7 @@ The same program resolution and environment variable rules as `vnd.yarilo.pipe` 
 
 **Configuration** (`yarilo.yaml` / `values.yaml`):
 
-| Key | Default | Description |
-|:----|:--------|:------------|
-| `sieve_execute_bin_dir` | `/usr/lib/yarilo/sieve-execute` | Directory of allowed execute programs |
-| `sieve_execute_socket_dir` | `sieve-execute` | Directory of allowed execute sockets (searched first) |
-| `sieve_execute_exec_timeout` | `10` | Subprocess timeout in seconds |
-| `sieve_execute_input_eol` | `crlf` | Line endings written to stdin: `crlf` or `lf` |
+<!-- @settings sieve.sieve_execute_bin_dir sieve.sieve_execute_socket_dir sieve.sieve_execute_exec_timeout sieve.sieve_execute_input_eol -->
 
 ### `vnd.yarilo.report`
 
@@ -458,9 +377,7 @@ The `feedback-type` is an RFC 5965 registry token (`abuse`, `fraud`, `not-spam`,
 
 **Configuration** (`yarilo.yaml` / `values.yaml`):
 
-| Key | Default | Description |
-|:----|:--------|:------------|
-| `sieve_report_user_agent` | `yarilo` | `User-Agent` field written into the `message/feedback-report` part |
+<!-- @settings sieve.sieve_report_user_agent -->
 
 ---
 

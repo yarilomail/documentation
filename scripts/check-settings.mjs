@@ -13,7 +13,7 @@ const kindOf = v => Array.isArray(v) ? 'list' : v === null ? 'map' : typeof v ==
 const section = key => key.includes('.') ? key.slice(0, key.lastIndexOf('.')) : ''
 
 // A default left out, null, "" and an empty list all mean "nothing set".
-const ZERO = { string: '', integer: 0, boolean: false, list: [], map: {} }
+const ZERO = { string: '', integer: 0, number: 0, boolean: false, list: [], map: {} }
 const norm = (v, type) => v === undefined || v === null ? ZERO[type] : v
 
 const errors = []
@@ -37,7 +37,8 @@ for (const [key, s] of Object.entries(data)) {
     errors.push(`${key}: not in the code`)
     continue
   }
-  if (c.kind !== s.type) errors.push(`${key}: type ${s.type}, the code has ${c.kind} (${c.type})`)
+  const kind = /^float/.test(c.kind) ? 'number' : c.kind
+  if (kind !== s.type) errors.push(`${key}: type ${s.type}, the code has ${c.kind} (${c.type})`)
   // default_text stands for a value computed at start; only the key and type are compared.
   if (s.default_text === undefined) {
     const want = JSON.stringify(norm(s.default, s.type))
@@ -45,7 +46,8 @@ for (const [key, s] of Object.entries(data)) {
     if (want !== got) errors.push(`${key}: default ${want}, the code has ${got}`)
   }
   for (const alias of s.aliases ?? []) {
-    const full = section(key) ? `${section(key)}.${alias}` : alias
+    // An alias with a dot is a full key elsewhere; a bare one sits beside the key.
+    const full = alias.includes('.') ? alias : section(key) ? `${section(key)}.${alias}` : alias
     if (!code.has(full)) errors.push(`${key}: alias ${alias} is not a key of the code (${full})`)
   }
 }
