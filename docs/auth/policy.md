@@ -126,22 +126,100 @@ auth:
       attrs/local: "%{local_ip}"
 ```
 
-Templates take these variables; `%%` is a literal `%`:
+A key `a/b/c` nests as deep as it names: `c` inside `b` inside `a`. A key
+cannot be both a value and an object.
+
+### Templates
+
+A template is text with `%{...}` expressions. An expression names a variable,
+then filters joined with `|`:
+
+```yaml
+auth:
+  policy:
+    auth_policy_request_attributes:
+      attrs/domain: "%{user | domain}"
+      attrs/client: "%{real_remote_ip}:%{real_remote_port}"
+      attrs/tenant: "%{passdb:tenant | default('none')}"
+```
+
+- `%%{` is a literal `%{`. A `%` before anything else, `%%` included, is
+  sent as it is.
+- Filters take positional and named arguments, as in
+  `%{user | substr(0, 4)}` and `%{user | hash('sha256', rounds=2)}`. An
+  argument can name a variable.
+- The language has arithmetic (`%{remote_port + 1}`), comparisons with `if`
+  and `switch`, `regexp`, hashes, `base64` and `hex`, `encrypt` and `decrypt`,
+  and dates. `default` gives a value when the expression before it has none
+  or fails.
+- `regexp` and the `~` comparison use RE2 syntax: no backreferences, no
+  lookaround.
+- `encrypt` and `decrypt` take AES-128, AES-192 or AES-256 in CBC or ECB mode.
+- A value is JSON-escaped before it goes into the body. `safe` sends it
+  unescaped, so a value marked `safe` must already be valid inside a JSON
+  string.
+
+A template naming an unknown variable or filter stops `yarilo-auth` at start
+with the key and the reason, rather than sending an empty value.
+
+### Variables
 
 | Variable | Value |
 |:---|:---|
-| `%{requested_username}`, `%{user}` | the login name |
-| `%{username}`, `%{domain}` | its local part and domain |
+| `%{requested_username}` | the login name as the client sent it |
+| `%{user}`, `%{owner_user}` | the user; after the login, as the passdb resolved it |
+| `%{original_user}`, `%{auth_user}` | the login name, as `requested_username` |
+| `%{domain_first}`, `%{domain_last}` | the part after the first or the last `@` |
+| `%{password}` | the password in plain text |
 | `%{hashed_password}` | the `pwhash` below |
-| `%{protocol}`, `%{service}` | `imap`, `pop3`, `submission`, `sieve`, `lmtp`, `jmap` |
-| `%{remote_ip}`, `%{rip}` | the client's address |
-| `%{local_ip}`, `%{lip}` | the address the client connected to |
-| `%{session}` | the login's session ID |
+| `%{protocol}` | `imap`, `pop3`, `submission`, `sieve`, `lmtp`, `jmap` |
+| `%{mechanism}` | the SASL mechanism, as `PLAIN` or `SCRAM-SHA-256` |
+| `%{secured}` | `TLS` when the client's connection is TLS, else empty |
+| `%{remote_ip}`, `%{remote_port}` | the client's address and port |
+| `%{local_ip}`, `%{local_port}` | the address and port the client connected to |
+| `%{real_remote_ip}`, `%{real_remote_port}` | the peer's own address and port |
+| `%{real_local_ip}`, `%{real_local_port}` | the local end of that connection |
+| `%{local_name}` | the TLS server name (SNI) the client asked for |
+| `%{ssl_ja3_hash}` | the JA3 hash of the client's TLS hello |
 | `%{client_id}` | the client's IMAP `ID`, see [Client fields](#client-fields) |
-| `%{fail_type}` | why a login failed, see below |
+| `%{session}` | the login's session ID |
+| `%{client_pid}` | the process ID of the login process |
+| `%{id}` | after the login, the position of the passdb that answered, from 1 |
+| `%{fail_type}` | why a login failed, see [below](#fail-type) |
+| `%{cert}`, `%{ssl_client_cert_fp}`, `%{ssl_client_cert_pubkey_fp}` | always empty |
+| `%{login_user}`, `%{master_user}`, `%{session_pid}`, `%{home}` | always empty |
 
-Any other variable, and filters such as `%{user | lower}`, stop `yarilo-auth`
-at start with the key and the reason, rather than sending an empty value.
+- Behind a PROXY header or a trusted proxy (XCLIENT, or the IMAP `ID` of a
+  login in `general.xclient.trusted_nets`), `remote_ip` is the client the
+  proxy names and `real_remote_ip` is the proxy itself. Without one, the
+  `real_` variables equal the plain ones.
+- A port the login did not learn is `0`.
+- `%{password}` sends the password itself to the policy server. Use
+  `%{hashed_password}` unless the server must see the password.
+- The login pods do not ask for a client certificate, so the certificate
+  variables are empty.
+- Master logins skip the policy server, and the check runs before any
+  session exists, so the other four are empty.
+
+### Providers
+
+A variable `prefix:name` is read from a provider:
+
+| Provider | Value |
+|:---|:---|
+| `%{passdb:name}` | a field the passdb returned, empty when it returned none |
+| `%{userdb:name}` | a `userdb_` field the passdb returned, without the prefix |
+| `%{date:name}` | the date: `year`, `month`, `day` |
+| `%{time:name}` | the time: `hour`, `min`, `sec`, `us`, `unix` |
+| `%{generate:name}` | a new `guid`, `guid128` or `uuid` |
+
+The passdb fields exist only after the login; in the check before it they are
+empty.
+
+`env:`, `process:` and `system:` read `yarilo-auth`'s own environment and
+host. They are refused in the request body: a template naming one stops
+`yarilo-auth` at start, so a secret of its own never reaches the policy
+server. `event:` is not available.
 
 ### Client fields
 

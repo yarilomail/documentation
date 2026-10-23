@@ -1524,8 +1524,8 @@ auth.policy.auth_policy_request_attributes:
     The request body: a body key to its value template. A key `name/sub` puts
     `sub` inside the object `name`. See [Request body](/auth/policy#request-body)
     for the variables. An entry adds or replaces one key; a default key cannot
-    be removed. A template naming an unknown variable stops `yarilo-auth` at
-    start.
+    be removed. A template naming an unknown variable or filter, or the `env:`,
+    `process:` or `system:` provider, stops `yarilo-auth` at start.
 
 protocol.lmtp.login_greeting:
   type: string
