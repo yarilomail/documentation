@@ -239,12 +239,7 @@ message file in it would parse.
 Three parity knobs tune when a new `m.<N>` is rolled and how it is allocated (all
 under `storage:`, mdbox only):
 
-| Key | Default | Effect |
-|:---|:---|:---|
-| `mdbox_rotate_size` | `10M` | Max size of an `m.<N>` before the next save rolls to a fresh file: a size (`"10M"`, `"1G"`) or a byte count. Left out, it is 10 MiB; `0` or an empty value is refused at startup. |
-| `mdbox_rotate_interval` | `0` (disabled) | Roll the append file once it is older than this, regardless of size: a duration (`"30s"`, `"5m"`, `"1h"`) or a second count. |
-| `mdbox_preallocate_space` | `false` | `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a no-op elsewhere). |
-| `mdbox_map_format` | `v2` | On-disk format of the per-user map index; see [mdbox map index format](#mdbox-map-index-format). |
+<!-- @settings storage.mdbox_rotate_size storage.mdbox_rotate_interval storage.mdbox_preallocate_space storage.mdbox_map_format -->
 
 The age check reads a **persisted per-file create-time** stored in the map header (not a
 filesystem `btime`, which is unreliable over NFS), so it survives restarts. Unlike the reference
@@ -363,11 +358,7 @@ into the base file when it gets big enough or old enough. Three settings decide
 when, and each works on its own — set one and the other two keep their built-in
 values.
 
-| setting | built-in | meaning |
-|:---|:---|:---|
-| `mail_index_log_rotate_min_size` | 32 KiB | below this a log is never folded |
-| `mail_index_log_rotate_min_age` | 60 s | above the floor, fold once the log is this old |
-| `mail_index_log_rotate_max_size` | 1 MiB | fold regardless of age |
+<!-- @settings storage.mail_index_log_rotate_min_size storage.mail_index_log_rotate_min_age storage.mail_index_log_rotate_max_size -->
 
 The same three govern the mdbox map log, which grows more slowly and therefore
 folds less often. One policy, different rates.
@@ -448,14 +439,7 @@ doing eleven full storage scans to get the effect of eleven folds.
 
 All under `storage:`.
 
-| Key | Default | Effect |
-|:---|:---|:---|
-| `storage_lock_method` | `flock` | How a write to a shared file — an index, a uidlist — excludes another writer: `flock`, `fcntl` or `dotlock`. Pick what the mail volume supports; a dict of the `file` driver should use the same. |
-| `storage_lock_stale_timeout` | `180` | Seconds a dotlock may sit unchanged before a waiter takes it over; `0` never takes one over. Only `dotlock` has the question: `flock` and `fcntl` locks die with the process that held them. |
-| `mail_cache_purge_delete_percentage` | `20` | Purge a folder's cache file once this share of its records belongs to messages that are gone; `0` never purges on that ground. |
-| `mail_cache_purge_continued_percentage` | `200` | Purge it once its continued records reach this percentage of the live ones; `0` never purges on that ground. |
-| `mail_cache_purge_min_size` | `32k` | Below this size the cache file is never purged; `"0"` allows a purge at any size. |
-| `max_concurrent_writes` | `0` (unlimited) | Cap on message bodies being written to disk at once, per process, for every driver. A slow volume can be kept from being swamped by a burst; spinning disks suit a few dozen, SSDs a few hundred. |
+<!-- @settings storage.storage_lock_method storage.storage_lock_stale_timeout storage.mail_cache_purge_delete_percentage storage.mail_cache_purge_continued_percentage storage.mail_cache_purge_min_size storage.max_concurrent_writes -->
 
 ## Folder names on disk
 
@@ -463,14 +447,7 @@ A client chooses folder names, and the storage layout turns them into paths.
 These settings decide which names are refused, and how the rest are written.
 All under `storage:`.
 
-| Key | Default | Effect |
-|:---|:---|:---|
-| `mailbox_list_validate_fs_names` | `true` | Refuse names that are unsafe as paths: `.` and `..` segments, adjacent separators, a leading `/` or `~`, and the on-disk separator when the namespace speaks another one. Turn it off only for a driver that never builds a path from the name. |
-| `mailbox_list_reserved_segments` | `cur`, `new`, `tmp`, `dbox-Mails`, `fts-flatcurve` | Names a single hierarchy segment may not take, because the layout owns that directory. Only the names the layout in use actually owns are enforced (see the table below). Empty disables the check. It is retroactive: a user who already has such a folder loses access to it. |
-| `mailbox_list_refuse_layout_separator` | `false` | Refuse a name containing the on-disk separator when the namespace speaks a different one — with namespace `/` over Maildir++, `a.b` and `a/b` both land on `.a.b`. Retroactive against ordinary names such as `example.com`, so check that no mailbox holds one before turning it on. |
-| `mailbox_list_storage_escape_char` | empty | Store such names escaped instead of refusing them; see below. Not retroactive. |
-| `mailbox_list_normalize_names_to_nfc` | `true` | Normalise names to Unicode NFC before they are stored or compared, so differently composed spellings of one name are one folder. |
-| `mailbox_list_utf8` | `true` | Write names as UTF-8 on disk; `false` writes modified UTF-7, for a store that already uses it. |
+<!-- @settings storage.mailbox_list_validate_fs_names storage.mailbox_list_reserved_segments storage.mailbox_list_refuse_layout_separator storage.mailbox_list_storage_escape_char storage.mailbox_list_normalize_names_to_nfc storage.mailbox_list_utf8 -->
 
 ## Moving a user between mailbox formats
 

@@ -137,16 +137,7 @@ the SQL column; the last `*:storage=` rule wins.
 These are global `quota:` config (not per-user rules) and layer on top of the
 resolved per-user limits:
 
-| Key | Default | Effect |
-|:----|:--------|:-------|
-| `quota_storage_percentage` | `100` | Scale the storage limit: `limit·pct/100`. |
-| `quota_message_percentage` | `100` | Scale the message-count limit. |
-| `quota_storage_extra` | `` | Byte headroom added to the storage limit after scaling. |
-| `quota_storage_grace` | `10M` | Storage overshoot allowed on **inbound delivery (LMTP/LDA) only**, never on interactive IMAP. It lets the one delivery that crosses the limit through, as long as it lands within the grace. A mailbox already at or over its limit accepts no further delivery, however much grace is left. |
-| `quota_ignore_unlimited` | `false` | Omit the quota root from GETQUOTA/GETQUOTAROOT for unlimited users. |
-| `quota_mailbox_count` | `0` | Cap the number of mailboxes (folders). Enforced at CREATE — `NO [LIMIT] Maximum number of mailboxes reached`. `0` = unlimited. |
-| `quota_mailbox_message_count` | `0` | Cap on messages in a single mailbox. A mailbox holds up to this many; the save past it is refused with `NO [OVERQUOTA] Too many messages in the mailbox` (LMTP `552 5.2.2`, or `452 4.2.2` with `protocol.lmtp.quota_full_tempfail`). `0` = unlimited. |
-| `quota_hidden` | `false` | Omit the quota root from GETQUOTA/GETQUOTAROOT for **every** user (enforcement still applies). Broader than `quota_ignore_unlimited`. |
+<!-- @settings quota.quota_storage_percentage quota.quota_message_percentage quota.quota_storage_extra quota.quota_storage_grace quota.quota_ignore_unlimited quota.quota_mailbox_count quota.quota_mailbox_message_count quota.quota_hidden -->
 
 Effective storage limit = `rule_limit · quota_storage_percentage/100 + quota_storage_extra`.
 The scaled limit is what GETQUOTA reports and what every enforcement point checks. On LMTP
@@ -230,20 +221,9 @@ components:
 
 The service's other settings:
 
-| Key | Default | Meaning |
-|:---|:---|:---|
-| `listen` | `:12340` | Policy listener |
-| `recipient_delimiter` | `+` | Separates the detail that names the target folder (`alice+Spam@` → `Spam`) |
-| `default_quota_rules` | `[]` | Rules, in `quota_rule` format, for a recipient whose userdb entry carries none |
-| `alias_dict` | empty | A dict from `dicts:` that maps an alias to its mailbox; the recipient is resolved through it before the lookup, retrying without the detail part. Empty = no alias resolution |
-| `alias_max_hops` | `5` | Longest alias chain followed |
+<!-- @settings quota_status.listen quota_status.recipient_delimiter quota_status.default_quota_rules quota_status.alias_dict quota_status.alias_max_hops -->
 
-| Key | Default | Returned when |
-|:---|:---|:---|
-| `quota_status_success` | `OK` | The message fits: under the limit, or within the storage grace for the delivery that crosses it. Also for an ignored folder or a user without limits. |
-| `quota_status_overquota` | `554 5.2.2 %{error}` | The mailbox is full, with `%{error}` = `quota.quota_exceeded_message`. Also when INBOX already holds `quota_mailbox_message_count` messages, with `%{error}` = `Too many messages in the mailbox`. |
-| `quota_status_toolarge` | `""` | The message is larger than `quota.quota_mail_size`, or larger than the user's whole storage limit. Empty uses `quota_status_overquota`. |
-| `quota_status_nouser` | `REJECT Unknown user` | The recipient is unknown in userdb. Empty answers `DUNNO`, so a later Postfix restriction decides. |
+<!-- @settings quota_status.quota_status_success quota_status.quota_status_overquota quota_status.quota_status_toolarge quota_status.quota_status_nouser -->
 
 The default refusal `554 5.2.2` is permanent: the MTA bounces the message to the
 sender at once. To have the MTA keep it queued and retry instead, set for example
