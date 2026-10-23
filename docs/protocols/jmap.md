@@ -79,22 +79,7 @@ client before proxying, exactly as it does for the byte-pipe protocols.
 Every limit is advertised in the session resource as well as enforced, because
 clients batch against what is published.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `jmap_base_url` | — | Public origin clients reach this deployment on. Prefixes every URL in the session resource, so it must be the externally visible name, not a pod address. |
-| `jmap_max_concurrent_requests` | `10` | Simultaneous API calls per session. |
-| `jmap_max_calls_in_request` | `16` | Method calls in one batch. |
-| `jmap_max_objects_in_get` | `500` | Objects per `Foo/get`. |
-| `jmap_max_objects_in_set` | `500` | Objects per `Foo/set`. |
-| `jmap_max_size_upload` | `40M` | One blob upload. |
-| `jmap_max_size_request` | `10M` | One API request body. |
-| `jmap_max_body_value_bytes` | `256K` | Server ceiling on one returned `Email` body value. A smaller client `maxBodyValueBytes` wins; truncated values are marked `isTruncated`. |
-| `jmap_query_max_limit` | `256` | Server ceiling on ids returned by one query. A smaller client `limit` wins; the response reports the limit applied. |
-| `jmap_max_query_folders` | `64` | Mailboxes one full-text `Email/query` may search. A query over more is refused, never answered from part of them. |
-| `jmap_snippet_max_chars` | `256` | Visible characters in a `SearchSnippet` preview. Markup and HTML escapes are not counted; the subject is never cut. |
-| `jmap_upload_ttl` | `3600` | Seconds an uploaded blob is kept for `Email/import` or `Email/set`. Uploading the same bytes again starts the clock again. `0` is refused at load. |
-| `jmap_push_poll` | `60` | Seconds between a push stream's looks for changes; `0` turns push off. See [Push](#push). |
-| `jmap_cors_allow_origins` | `[]` | Browser origins allowed to call the endpoint. Empty denies every cross-origin request. Exact match, scheme included. |
+<!-- @settings protocol.jmap -->
 
 The session `state` string is derived from these values, so changing one
 invalidates a client's cached session and nothing else does.

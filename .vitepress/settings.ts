@@ -72,11 +72,20 @@ const code = (s: string) => `<code>${esc(s)}</code>`
 // Inline `code` inside card text, which is raw HTML and not markdown.
 const inline = (s: string) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>')
 
+// A list as its items, a map as key: value pairs.
+function shown(v: unknown): string {
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '[]'
+  if (v !== null && typeof v === 'object') {
+    const pairs = Object.entries(v).map(([k, x]) => `${k}: ${x}`)
+    return pairs.length ? pairs.join(', ') : '{}'
+  }
+  return String(v)
+}
+
 function defaultHtml(s: Setting): string {
   if (s.default_text) return inline(s.default_text)
   if (s.default === undefined || s.default === '') return 'none'
-  if (Array.isArray(s.default)) return code(s.default.length ? s.default.join(', ') : '[]')
-  return code(String(s.default))
+  return code(shown(s.default))
 }
 
 function card(key: string, s: Setting, base: string, plain: boolean): string {
@@ -123,7 +132,7 @@ function index(): string {
     `## ${title(section)}\n\n` + keys.map(k => {
       const s = settings[k]
       const dflt = s.default_text ? '' : s.default === undefined || s.default === '' ? '' :
-        `, default \`${Array.isArray(s.default) ? (s.default.join(', ') || '[]') : s.default}\``
+        `, default \`${shown(s.default)}\``
       return `- [\`${nameOf(k)}\`](${pageOf.get(k)}#${k}): ${s.type}${dflt}`
     }).join('\n') + '\n').join('\n')
 }
