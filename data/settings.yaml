@@ -1382,3 +1382,128 @@ director_service.ring_secret:
     Authenticates every join and every ring connection. Without it a director
     never joins and runs alone. The chart generates it into the Secret
     `<release>-director-ring-secret`.
+
+auth.policy.auth_policy_server_url:
+  type: string
+  default: ""
+  aliases: [url]
+  helm: components.auth.policy.url
+  description: |
+    The policy server. Empty disables the hook. A URL ending in `&` extends
+    its query string instead of starting a new one
+    (`https://w/?tenant=42&`).
+
+auth.policy.auth_policy_server_api_header:
+  type: string
+  default: ""
+  aliases: [api_header]
+  helm: components.auth.policy.api_header
+  see_also: [components.auth.policy.api_header_secret_ref]
+  description: |
+    `"Key: value"` sends a header of your own; `"value"` sends
+    `X-API-Key: value`. `${ENV}` is expanded.
+
+components.auth.policy.api_header_secret_ref:
+  source: chart
+  type: map
+  default: {name: "", key: api_header}
+  see_also: [auth.policy.auth_policy_server_api_header]
+  description: |
+    A Secret (`name`, `key`) holding the API header. The chart renders
+    `"${YARILO_AUTH_POLICY_API_HEADER}"` and sets the variable in the
+    yarilo-auth pod, so the value stays out of the ConfigMap. Setting it
+    together with `api_header` fails the render.
+
+auth.policy.auth_policy_hash_mech:
+  type: string
+  default: sha256
+  values: [sha256, sha512]
+  aliases: [hash_mech]
+  helm: components.auth.policy.hash_mech
+  description: |
+    Digest of `pwhash`. It must match the policy server's setting.
+
+auth.policy.auth_policy_hash_nonce:
+  type: string
+  default: ""
+  aliases: [hash_nonce]
+  helm: components.auth.policy.hash_nonce
+  see_also: [components.auth.policy.hash_nonce_secret_ref]
+  description: |
+    Salt mixed into `pwhash`, **required when a policy server is set**. Two
+    deployments with different nonces have different hash spaces. `${ENV}` is
+    expanded.
+
+components.auth.policy.hash_nonce_secret_ref:
+  source: chart
+  type: map
+  default: {name: "", key: hash_nonce}
+  see_also: [auth.policy.auth_policy_hash_nonce]
+  description: |
+    A Secret (`name`, `key`) holding the nonce. The chart renders
+    `"${YARILO_AUTH_POLICY_HASH_NONCE}"` and sets the variable in the
+    yarilo-auth pod. Setting it together with `hash_nonce` fails the render.
+
+auth.policy.auth_policy_hash_truncate:
+  type: integer
+  unit: bits
+  default: 12
+  aliases: [hash_truncate_bits]
+  helm: components.auth.policy.hash_truncate_bits
+  description: |
+    Top bits of the digest that are sent. `12` gives 4096 buckets, enough for
+    rate-limit patterns and useless for password recovery. `0` sends the full
+    digest.
+
+auth.policy.timeout_ms:
+  type: integer
+  unit: milliseconds
+  default: 5000
+  helm: components.auth.policy.timeout_ms
+  description: |
+    Cap on one round trip to the policy server.
+
+auth.policy.auth_policy_reject_on_fail:
+  type: boolean
+  default: false
+  aliases: [reject_on_fail]
+  helm: components.auth.policy.reject_on_fail
+  description: |
+    `true` rejects the login when the policy server is unreachable or answers
+    something malformed. `false` carries on without its guidance.
+
+auth.policy.auth_policy_log_only:
+  type: boolean
+  default: false
+  aliases: [log_only]
+  helm: components.auth.policy.log_only
+  description: |
+    Ask the policy server and log its verdicts without enforcing them, to roll
+    out a new policy in shadow mode.
+
+auth.policy.auth_policy_check_before_auth:
+  type: boolean
+  default: true
+  aliases: [check_before]
+  helm: components.auth.policy.check_before
+  description: |
+    Ask `?command=allow` before the passdb chain runs. A rejection skips the
+    passdb call entirely.
+
+auth.policy.auth_policy_check_after_auth:
+  type: boolean
+  default: true
+  aliases: [check_after]
+  helm: components.auth.policy.check_after
+  description: |
+    Ask `?command=allow` once the chain's result is known. A rejection turns a
+    successful login into a failure (account-takeover detection).
+
+auth.policy.auth_policy_report_after_auth:
+  type: boolean
+  default: true
+  aliases: [report_after]
+  helm: components.auth.policy.report_after
+  description: |
+    Send `?command=report` after every decision, without waiting for the
+    answer. It never delays the reply to the client.
