@@ -277,7 +277,7 @@ reference in `values-sandbox.yaml` stays the same.
 #### MySQL (default)
 
 `helm_values/mysql-sandbox.yaml` creates namespace `db`, a `mysql` Secret
-(DB `yarilo`, user `yarilo` / `sandbox-secret`), an init ConfigMap and a
+(DB `yarilo`, user `yarilo` / `HIDDEN`), an init ConfigMap and a
 MySQL 8.4 StatefulSet. The schema is the PostfixAdmin layout: `domain`,
 `alias` and `mailbox` tables.
 
@@ -295,7 +295,7 @@ from creating its own table.
 Seed a user — `domain` + `mailbox` + `alias` rows:
 
 ```sh
-kubectl -n db exec -i mysql-0 -- mysql -uyarilo -psandbox-secret yarilo <<'SQL'
+kubectl -n db exec -i mysql-0 -- mysql -uyarilo -pHIDDEN yarilo <<'SQL'
 INSERT IGNORE INTO domain (domain, transport, customer_id, active)
 VALUES ('mail.example.com', 'virtual', 'cust-0001', 1);
 
@@ -317,7 +317,7 @@ prefix it with `{BCRYPT}`.
 #### Postgres (alternative)
 
 `helm_values/postgres-sandbox.yaml` creates a `yarilo-postgres` StatefulSet
-(PG 16, user `yarilo` / `sandbox-secret`) with a single `users` table covering
+(PG 16, user `yarilo` / `HIDDEN`) with a single `users` table covering
 passdb (`username` / `password` / `active`) and userdb (`home` / `mail_path` /
 quota / `allow_nets` / `director_tag`).
 
