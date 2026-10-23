@@ -1507,3 +1507,198 @@ auth.policy.auth_policy_report_after_auth:
   description: |
     Send `?command=report` after every decision, without waiting for the
     answer. It never delays the reply to the client.
+
+protocol.lmtp.login_greeting:
+  type: string
+  default: Yarilo ready.
+  helm: protocol.lmtp.login_greeting
+  description: |
+    Text appended to the `220` banner.
+
+protocol.lmtp.lmtp_add_received_header:
+  type: boolean
+  default: true
+  aliases: [add_received_header]
+  helm: protocol.lmtp.add_received_header
+  description: |
+    Prepend a `Received:` header to every delivered message.
+
+protocol.lmtp.lmtp_add_message_id:
+  type: boolean
+  default: true
+  helm: protocol.lmtp.add_message_id
+  description: |
+    Synthesise a `Message-ID:` when a message arrives without one. An
+    existing header is never rewritten.
+
+protocol.lmtp.lmtp_save_to_detail_mailbox:
+  type: boolean
+  default: false
+  aliases: [save_to_detail_mailbox]
+  helm: protocol.lmtp.save_to_detail_mailbox
+  description: |
+    Deliver `user+folder@domain` to the `folder` mailbox instead of `INBOX`.
+
+protocol.lmtp.lda_mailbox_autocreate:
+  type: boolean
+  default: false
+  helm: protocol.lmtp.lda_mailbox_autocreate
+  see_also: [protocol.lmtp.lda_mailbox_autosubscribe]
+  description: |
+    A delivery to a folder that does not exist creates it. Off, the message
+    goes to the detail mailbox if that exists, otherwise to `INBOX`.
+
+protocol.lmtp.lda_mailbox_autosubscribe:
+  type: boolean
+  default: false
+  helm: protocol.lmtp.lda_mailbox_autosubscribe
+  see_also: [protocol.lmtp.lda_mailbox_autocreate]
+  description: |
+    Subscribe a folder that `lda_mailbox_autocreate` made. Without
+    `lda_mailbox_autocreate` it does nothing, and startup refuses it.
+
+protocol.lmtp.quota_full_tempfail:
+  type: boolean
+  default: false
+  helm: protocol.lmtp.quota_full_tempfail
+  description: |
+    Reply for a recipient whose mailbox is full: off, `552 5.2.2`, a
+    permanent failure the MTA bounces to the sender; on, `452 4.2.2`, a
+    temporary failure the MTA keeps queued and retries.
+
+protocol.lmtp.lmtp_hdr_delivery_address:
+  type: string
+  default: final
+  values: [none, final, original]
+  aliases: [hdr_delivery_address]
+  helm: protocol.lmtp.hdr_delivery_address
+  description: |
+    What the `Delivered-To:` header carries; the values are described below.
+
+protocol.lmtp.lmtp_verbose_replies:
+  type: boolean
+  default: false
+  aliases: [verbose_replies]
+  helm: protocol.lmtp.verbose_replies
+  description: |
+    Include diagnostic details in `4xx` and `5xx` replies. Useful for
+    debugging; leave it off in production.
+
+protocol.lmtp.lmtp_user_concurrency_limit:
+  type: integer
+  default: 10
+  aliases: [user_concurrency_limit]
+  helm: protocol.lmtp.user_concurrency_limit
+  description: |
+    Concurrent deliveries per user, counted across the cluster through
+    yarilo-warden and enforced by yarilo-lmtp-login at `RCPT TO`. Past it the
+    recipient gets `451 4.3.0` and the MTA retries. `-1` is unlimited; `0`
+    refuses startup. With warden unreachable a delivery is accepted without
+    the limit and a warning is logged.
+
+protocol.lmtp.lmtp_max_recipients:
+  type: integer
+  default: 0
+  helm: protocol.lmtp.lmtp_max_recipients
+  description: |
+    Recipients per transaction, on the backend and in yarilo-lmtp-login,
+    advertised as `LIMITS RCPTMAX=N`. The next `RCPT` gets `452 4.5.3`, and
+    the MTA sends the rest in another transaction. `0` is unlimited.
+
+protocol.lmtp.read_timeout:
+  type: integer
+  unit: seconds
+  default: 300
+  helm: protocol.lmtp.read_timeout
+  description: |
+    Read timeout per command.
+
+protocol.lmtp.write_timeout:
+  type: integer
+  unit: seconds
+  default: 300
+  helm: protocol.lmtp.write_timeout
+  description: |
+    Write timeout per command.
+
+protocol.lmtp.lmtp_client_workarounds:
+  type: list
+  default: []
+  aliases: [client_workarounds]
+  helm: protocol.lmtp.client_workarounds
+  description: |
+    Compatibility shims for MTA clients that break the protocol; the names
+    are described below. Unknown names are ignored.
+
+protocol.lmtp.rate_limit.rate_limit_enabled:
+  type: boolean
+  default: true
+  aliases: [enabled]
+  helm: protocol.lmtp.rate_limit.enabled
+  description: |
+    Gates the whole check.
+
+protocol.lmtp.rate_limit.rate_limit_per_recipient_burst:
+  type: integer
+  default: 100
+  aliases: [per_recipient_burst]
+  helm: protocol.lmtp.rate_limit.per_recipient_burst
+  see_also: [protocol.lmtp.rate_limit.rate_limit_per_recipient_window_seconds]
+  description: |
+    Messages allowed per sender IP and recipient inside one window.
+
+protocol.lmtp.rate_limit.rate_limit_per_recipient_window_seconds:
+  type: integer
+  unit: seconds
+  default: 60
+  aliases: [per_recipient_window_seconds]
+  helm: protocol.lmtp.rate_limit.per_recipient_window_seconds
+  see_also: [protocol.lmtp.rate_limit.rate_limit_per_recipient_burst]
+  description: |
+    Width of the window.
+
+protocol.lmtp.proxy.lmtp_proxy_timeout:
+  type: integer
+  unit: seconds
+  default: 125
+  aliases: [timeout]
+  helm: protocol.lmtp.proxy.lmtp_proxy_timeout
+  description: |
+    Cap on one backend delivery: the connect, the LMTP transaction and the
+    body together. Past it the recipient gets `451 4.2.0` and the MTA
+    retries. A recipient's userdb field `proxy_timeout` replaces it for that
+    recipient.
+
+lmtp_login_service.backend_addr:
+  type: string
+  default: ""
+  helm: components.lmtpLogin.backend_addr
+  see_also: [lmtp_login_service.director_addr]
+  description: |
+    Fixed address of the yarilo-lmtp backend, for standalone mode. When both
+    this and `director_addr` are set, this wins and a warning is logged at
+    start.
+
+lmtp_login_service.director_addr:
+  type: string
+  default: ""
+  helm: components.lmtpLogin.director_addr
+  see_also: [lmtp_login_service.backend_addr]
+  description: |
+    Address of yarilo-director (`:9102`) for the per-recipient `LOOKUP`.
+
+lmtp_login_service.director_tag:
+  type: string
+  default: ""
+  helm: components.lmtpLogin.director_tag
+  description: |
+    Tag pool for the `LOOKUP`. Empty selects the untagged pool; there is no
+    full-ring mode. A per-user `director_tag` from the userdb overrides it.
+
+lmtp_login_service.backend_port:
+  type: integer
+  default: 0
+  helm: components.lmtpLogin.backend_port
+  description: |
+    Port that replaces the one in the `LOOKUP` result. `0` uses the result
+    as it is.
