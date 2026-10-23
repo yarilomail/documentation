@@ -80,7 +80,7 @@ See [POP3](/protocols/pop3).
 
 ## Submission
 
-Served by `yarilo-submission`, through `yarilo-submission-login`, which answers `EHLO` until the client has authenticated. The client keeps that first answer for the session, so an extension the login layer does not list is unknown to the client even where `yarilo-submission` implements it.
+Served by `yarilo-submission`, through `yarilo-submission-login`, which answers `EHLO` until the client has authenticated. The client keeps that answer for the session, so it lists the extensions `yarilo-submission` serves, with the same limits.
 
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
@@ -90,11 +90,11 @@ Served by `yarilo-submission`, through `yarilo-submission-login`, which answers 
 | [8314](https://www.rfc-editor.org/rfc/rfc8314) | Implicit TLS | yes | port 465 |
 | [4954](https://www.rfc-editor.org/rfc/rfc4954) | AUTH | yes | |
 | [6152](https://www.rfc-editor.org/rfc/rfc6152) | 8BITMIME | yes | |
-| [1870](https://www.rfc-editor.org/rfc/rfc1870) | SIZE | partial | enforced, but not in the login layer's `EHLO`, so a client cannot learn the limit before sending |
-| [2920](https://www.rfc-editor.org/rfc/rfc2920) | PIPELINING | partial | served, not in the login layer's `EHLO` |
-| [2034](https://www.rfc-editor.org/rfc/rfc2034) | ENHANCEDSTATUSCODES | partial | replies carry enhanced codes; not in the login layer's `EHLO` |
-| [3030](https://www.rfc-editor.org/rfc/rfc3030) | CHUNKING | partial | served, not in the login layer's `EHLO` |
-| [9422](https://www.rfc-editor.org/rfc/rfc9422) | LIMITS | partial | `RCPTMAX` when `submission_max_recipients` is set; not in the login layer's `EHLO` |
+| [1870](https://www.rfc-editor.org/rfc/rfc1870) | SIZE | yes | the `submission_max_mail_size` limit |
+| [2920](https://www.rfc-editor.org/rfc/rfc2920) | PIPELINING | yes | |
+| [2034](https://www.rfc-editor.org/rfc/rfc2034) | ENHANCEDSTATUSCODES | yes | |
+| [3030](https://www.rfc-editor.org/rfc/rfc3030) | CHUNKING | yes | |
+| [9422](https://www.rfc-editor.org/rfc/rfc9422) | LIMITS | yes | `RCPTMAX` when `submission_max_recipients` is set |
 | [3461](https://www.rfc-editor.org/rfc/rfc3461) | DSN | no | |
 | [3030](https://www.rfc-editor.org/rfc/rfc3030) | BINARYMIME | no | |
 | [4468](https://www.rfc-editor.org/rfc/rfc4468) | BURL | no | |
