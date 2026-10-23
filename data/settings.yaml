@@ -1193,3 +1193,199 @@ sieve.sieve_report_user_agent:
   helm: sieve.sieve_report_user_agent
   description: |
     The `User-Agent` field written into the `message/feedback-report` part.
+
+director_service.listen:
+  type: string
+  default: ":9102"
+  helm: components.director.directorPort
+  description: |
+    Address for `LOOKUP` from the login pods and for the ring protocol between
+    directors. The chart takes a port number and renders `:<port>`.
+
+director_service.api.listen:
+  type: string
+  default: ":9103"
+  helm: components.director.api.port
+  see_also: [director_service.api.allowed_nets]
+  description: |
+    Address of the admin API; see [Director API](/architecture/director_api).
+    The chart takes a port number.
+
+director_service.api.allowed_nets:
+  type: list
+  default: []
+  helm: components.director.api.allowed_nets
+  description: |
+    CIDRs the admin API accepts requests from, on top of its token. Empty
+    allows all.
+
+telemetry.listen:
+  type: string
+  default: ":8080"
+  helm: telemetry.listen
+  description: |
+    Address of the Prometheus metrics and health endpoints.
+
+director_service.ping_interval:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: components.director.ping_interval
+  see_also: [director_service.ping_timeout]
+  description: |
+    Keepalive pings to login pods and ring peers.
+
+director_service.ping_timeout:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: components.director.ping_timeout
+  see_also: [director_service.ping_interval]
+  description: |
+    How long to wait for a `PONG` before the connection is closed.
+
+director_service.write_timeout:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: components.director.write_timeout
+  description: |
+    How long one push or reply write may take. `0` is no bound.
+
+director_service.shutdown.session_grace_period:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: components.director.shutdown.session_grace_period
+  description: |
+    How long the director waits after `SIGTERM` before it exits. It leaves the
+    ring gracefully in that time.
+
+director_service.peers:
+  type: list
+  default: []
+  helm: components.director.peers
+  description: |
+    Seeds for a one-time ring join. Empty with more than one replica, the
+    chart seeds from the headless `-director-ring` Service.
+
+director_service.backend_unreachable_reporters:
+  type: integer
+  default: 2
+  helm: components.director.backend_unreachable_reporters
+  see_also: [director_service.backend_unreachable_window]
+  description: |
+    Distinct login pods that must report a backend unreachable before it is
+    evicted early. A single-replica login fleet cannot give two, so set `1`
+    there; the lease stays the backstop.
+
+director_service.backend_unreachable_window:
+  type: integer
+  unit: seconds
+  default: 5
+  helm: components.director.backend_unreachable_window
+  see_also: [director_service.backend_unreachable_reporters]
+  description: |
+    The window those reports must arrive in.
+
+director_service.join_allowed_nets:
+  type: list
+  default: []
+  helm: components.director.join_allowed_nets
+  description: |
+    CIDRs a ring join is accepted from. Empty allows all.
+
+director_service.anti_entropy_interval:
+  type: integer
+  unit: seconds
+  default: 3
+  helm: components.director.anti_entropy_interval
+  description: |
+    Each director re-sends its member and tombstone list over every live ring
+    connection this often, repairing a view that has diverged. `0` turns it
+    off.
+
+director_service.tombstone_ttl:
+  type: integer
+  unit: seconds
+  default: 600
+  helm: components.director.tombstone_ttl
+  description: |
+    How long a dead member's tombstone is kept. `0` keeps it for good.
+
+director_service.mail_servers[].host:
+  type: string
+  default: ""
+  helm: components.director.backends[].host
+  description: |
+    Hostname of a static backend, typically a headless Service such as
+    `yarilo-imap.yarilo-backend.svc.cluster.local`. Every IP it resolves to
+    joins the ring.
+
+director_service.mail_servers[].port:
+  type: integer
+  default: 0
+  helm: components.director.backends[].port
+  description: |
+    Backend port the login pod dials.
+
+director_service.mail_servers[].tag:
+  type: string
+  default: ""
+  helm: components.director.backends[].tag
+  description: |
+    Pool label. Empty is the default pool.
+
+director_service.mail_servers[].vhosts:
+  type: integer
+  default_text: "`100`"
+  helm: components.director.backends[].vhosts
+  description: |
+    Ring weight, `1` to `100`. `0` routes no users to the backend; under
+    `assignment_policy: least_sessions` it drains.
+
+director_service.ring_tls_server_name:
+  type: string
+  default: ""
+  helm: components.director.internalTLS.ringTlsServerName
+  description: |
+    The name a ring dial verifies, since peers are dialled by pod IP. The
+    chart sets `<release>-director-ring`, and the director's certificate must
+    carry it as a SAN.
+
+director_service.seed_poll_interval:
+  type: integer
+  unit: seconds
+  default: 2
+  helm: components.director.seed_poll_interval
+  see_also: [director_service.seed_poll_idle_interval, director_service.min_members]
+  description: |
+    How often the seed is polled while the ring is below `min_members`. A
+    negative value polls once.
+
+director_service.seed_poll_idle_interval:
+  type: integer
+  unit: seconds
+  default: 2
+  helm: components.director.seed_poll_idle_interval
+  see_also: [director_service.seed_poll_interval]
+  description: |
+    The poll interval once the ring holds `min_members`. Raising it saves
+    polling, and a dead member is evicted more slowly.
+
+director_service.min_members:
+  type: integer
+  default: 3
+  helm: components.director.min_members
+  description: |
+    The ring size the seed polling aims for. Below it, the director polls at
+    `seed_poll_interval`.
+
+director_service.ring_secret:
+  type: string
+  default: ""
+  helm: components.director.ring_secret
+  description: |
+    Authenticates every join and every ring connection. Without it a director
+    never joins and runs alone. The chart generates it into the Secret
+    `<release>-director-ring-secret`.

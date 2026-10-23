@@ -29,33 +29,15 @@ backend pod (yarilo-imap, yarilo-pop3, …)
 
 The director listens on three ports:
 
-| Key | Default | Used by |
-|:---|:---|:---|
-| `director_service.listen` | `:9102` | Login pods (`LOOKUP`) and other directors (ring protocol). |
-| `director_service.api.listen` | `:9103` | The admin API; see [Director API](/architecture/director_api). |
-| `telemetry.listen` | `:8080` (chart) | Prometheus metrics. |
+<!-- @settings director_service.listen director_service.api.listen director_service.api.allowed_nets telemetry.listen -->
 
 Login pods reach the director through the ClusterIP `<release>-director` Service, set as each login component's `director_addr`. The headless `<release>-director-ring` Service is for the ring only.
 
 ## `director_service`
 
-These keys are the routing and lifecycle core. Ring, eviction and placement keys are described in the sections below.
+These keys are the routing and lifecycle core. `user_expire` and `backend_expire` are described in [Deployment](/installation/deployment#director_service.user_expire), with the other placement keys.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `listen` | `":9102"` | Address for `LOOKUP` and the ring protocol. |
-| `user_expire` | `900` | Seconds before an idle user→backend assignment expires. Each `LOOKUP` refreshes it. |
-| `ping_interval` | `30` | Seconds between keepalive pings to login pods and ring peers. |
-| `ping_timeout` | `10` | Seconds to wait for a `PONG` before closing the connection. |
-| `write_timeout` | `10` | Seconds a single push or reply write may take. `0` = no bound. |
-| `shutdown.session_grace_period` | `30` | Seconds to wait after `SIGTERM` before exiting. |
-| `peers` | `[]` | Seed list for a one-time ring join. Empty at `replicas > 1` derives the headless `-director-ring` Service. |
-| `backend_expire` | `30` | Seconds a self-registered backend may go without a heartbeat before it leaves the ring. |
-| `backend_unreachable_reporters` | `2` | Distinct login pods that must report a backend unreachable before it is evicted early. |
-| `backend_unreachable_window` | `5` | Seconds within which those reports must arrive. |
-| `join_allowed_nets` | `[]` | CIDRs a ring join is accepted from. Empty allows all. |
-| `anti_entropy_interval` | `3` | Seconds between re-broadcasts of the member and tombstone list over every ring connection. `0` turns it off. |
-| `tombstone_ttl` | `600` | Seconds a dead member's tombstone is kept. `0` keeps it for good. |
+<!-- @settings director_service.ping_interval director_service.ping_timeout director_service.write_timeout director_service.shutdown.session_grace_period director_service.peers director_service.backend_unreachable_reporters director_service.backend_unreachable_window director_service.join_allowed_nets director_service.anti_entropy_interval director_service.tombstone_ttl -->
 
 The chart also renders `shutdown.kill_timeout`, but the director does not read it.
 
@@ -63,18 +45,12 @@ Backend eviction:
 
 - A static backend from `mail_servers`, or one added through the admin API, never heartbeats and never expires.
 - The last backend of a tag is never evicted, by either the lease or the reports; the director logs it instead.
-- A single-replica login fleet cannot produce two distinct reports, so set `backend_unreachable_reporters: 1` there. The lease stays the backstop.
 
 ## `director_service.mail_servers`
 
 This is the static backend list loaded at startup. Each `host` resolves to one or more pod IPs through DNS; a headless Service returns one A record per pod, and every IP joins the ring.
 
-| Key | Description |
-|:---|:---|
-| `host` | Hostname, typically a headless Service such as `yarilo-imap.yarilo-backend.svc.cluster.local`. |
-| `port` | Backend port the login pod dials. |
-| `tag` | Pool label. Empty is the default pool. |
-| `vhosts` | Ring weight, `1`–`100`. Omit for the default (`100`). `0` routes no users to it (under `assignment_policy: least_sessions` it drains). |
+<!-- @settings director_service.mail_servers[] -->
 
 Configure two static backends:
 
@@ -95,6 +71,8 @@ With `internal_tls.enabled: true`, the `director_service.listen` port requires a
 
 Ring peers are dialled by pod IP, so the dial verifies a fixed server name, `ring_tls_server_name`, which defaults to `<release>-director-ring`. That name must be a SAN in the director's certificate.
 
+<!-- @settings director_service.ring_tls_server_name -->
+
 The certificate the chart makes for the `director` role carries it, along with `<release>-director` and the role SAN `director.role.yarilo.internal`. With cert-manager, `components.director.internalTLS.certificate.enabled: true` renders the same names; a Secret of your own in `components.director.internalTLS.secretName` must carry them too. The director port also checks the role per command: ring commands only from `director`, registration only from `backend-reg` ([Peer roles](/installation/deployment#peer-roles)).
 
 ::: warning
@@ -103,19 +81,7 @@ With internal TLS on and no ring name in the certificate, peers cannot verify ea
 
 ## Helm values
 
-All director settings live under `components.director` in `helm/values.yaml`. The keys are the config keys in snake_case:
-
-| Helm value | Config key |
-|:---|:---|
-| `components.director.directorPort` | `director_service.listen` |
-| `components.director.api.port` | `director_service.api.listen` |
-| `components.director.api.allowed_nets` | `director_service.api.allowed_nets` |
-| `components.director.backends[]` | `director_service.mail_servers[]` |
-| `components.director.peers` | `director_service.peers` |
-| `components.director.internalTLS.ringTlsServerName` | `director_service.ring_tls_server_name` |
-| `components.director.<key>` | `director_service.<key>`, for every other key on this page |
-
-`shutdown.session_grace_period` and `shutdown.kill_timeout` are fixed in the chart at `30` and `5` and have no Helm value.
+All director settings live under `components.director` in `helm/values.yaml`, and each card on this page names its chart value. Most keep the config key's name; the listen addresses take a port number (`directorPort`, `api.port`), and the static backends are `backends[]`.
 
 Run three replicas with one static backend:
 
@@ -140,15 +106,9 @@ This setup:
 
 These keys are described in [Deployment](/installation/deployment):
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `assignment_policy` | `hash` | How a new user gets a backend: `hash`, `least_sessions` or `domain`. See [placement policy](/installation/deployment#initial-placement-policy). |
-| `director_domain_expire` | `900` | Seconds a domain keeps its backend with no session on it, under `domain`. |
-| `director_domain_rebalance_percent` | `0` (chart: `20`) | How far the busiest backend of a tag may rise above the quietest before one domain moves. `0` never moves one. |
-| `director_domain_rebalance_interval` | `60` | Seconds between rebalance checks. |
-| `director_domain_rebalance_cooldown` | `600` | Seconds a moved domain is left alone. |
-| `user_kick_delay` | `2` | Seconds an admin-initiated kick waits. `0` kicks immediately. See [kick pacing](/installation/deployment#kick-pacing). |
-| `max_parallel_kicks` | `100` | Sessions kicked per batch when a backend goes down. `0` kicks all at once. |
+- [`assignment_policy`](/installation/deployment#director_service.assignment_policy): how a new user gets a backend;
+- [`director_domain_expire`](/installation/deployment#director_service.director_domain_expire) and the [domain rebalance](/installation/deployment#director_service.director_domain_rebalance_percent) settings, under `assignment_policy: domain`;
+- [`user_kick_delay`](/installation/deployment#director_service.user_kick_delay), [`max_parallel_kicks`](/installation/deployment#director_service.max_parallel_kicks) and [`max_parallel_moves`](/installation/deployment#director_service.max_parallel_moves): kick pacing.
 
 ## Session routing & sticky assignments
 
@@ -201,6 +161,8 @@ Left empty with more than one replica, the seed is the headless `<release>-direc
 The seed is polled every `seed_poll_interval` seconds (default `2`; a negative value polls once). Once the ring holds `min_members` directors (default `3`), the interval becomes `seed_poll_idle_interval` (default `2`). Raising it saves polling, and a dead member is evicted more slowly.
 
 `components.director.ring_secret` (generated into the Secret `<release>-director-ring-secret`) authenticates every join and every ring connection. Without it a director never joins and runs alone. When `join_allowed_nets` is set, only those addresses may join. Every director must run a release that speaks the same join proof, so a ring being upgraded re-forms once the rollout completes.
+
+<!-- @settings director_service.seed_poll_interval director_service.seed_poll_idle_interval director_service.min_members director_service.ring_secret -->
 
 ### Keeping the view consistent
 
