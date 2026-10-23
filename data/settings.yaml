@@ -1038,15 +1038,8 @@ sieve.sieve_extensions:
   helm: sieve.sieve_extensions
   see_also: [sieve.sieve_global_extensions]
   description: |
-    Extensions users may `require`. Empty allows all; a non-empty list is
-    enforced at `PUTSCRIPT` and at delivery.
-
-    The chart sets a list, so under Helm these are refused until you add them:
-    `editheader`, `enclose`, `enotify`, `extracttext`, `fcc`, `foreverypart`,
-    `ihave`, `imapsieve`, `include`, `mailboxid`, `mboxmetadata`, `mime`,
-    `regex`, `replace`, `servermetadata`, `spamtest`, `spamtestplus`,
-    `special-use`, `vacation-seconds`, `virustest`, `vnd.yarilo.execute` and
-    `vnd.yarilo.report`.
+    Extensions users may `require`. Empty allows every extension the engine
+    declares; a non-empty list is enforced at `PUTSCRIPT` and at delivery.
 
 sieve.sieve_global_extensions:
   type: list
