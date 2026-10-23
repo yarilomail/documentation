@@ -783,3 +783,24 @@ auth.cache.auth_cache_negative_ttl:
     How long a failed answer is kept. Each entry carries a digest of the
     password that produced it, so a cached failure answers only that password
     again and cannot lock out the right one.
+
+threading.threading_enabled:
+  type: boolean
+  default: true
+  helm: components.backend.threading.enabled
+  see_also: [threading.threading_cache_idle]
+  description: |
+    Record conversations at delivery time. Turning it off leaves the existing
+    sidecars on disk, and turning it back on picks them up again; mail
+    delivered in between stays one conversation per message until
+    `--thread-backfill --force` runs for the account.
+
+threading.threading_cache_idle:
+  type: integer
+  unit: seconds
+  default: 300
+  helm: components.backend.threading.cache_idle
+  see_also: [threading.threading_enabled]
+  description: |
+    How long a process keeps an account's folded sidecar after its last
+    delivery. `0` never caches, and every delivery then pays the fold.

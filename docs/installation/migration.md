@@ -137,15 +137,9 @@ only.
 Threading is on by default since **2.3.246**. New mail threads immediately;
 existing mail does not, until you say so.
 
-| Key | Default | Meaning |
-|:---|:---|:---|
-| `threading.threading_enabled` | `true` | Record conversations at delivery time. Chart: `components.backend.threading.enabled` |
-| `threading.threading_cache_idle` | `300` | Seconds a process keeps an account's folded sidecar after its last delivery; `0` = never cache. Chart: `components.backend.threading.cache_idle` |
+<!-- @settings threading -->
 
-Turning threading off leaves the existing sidecars on disk, and turning it
-back on picks them up again — but mail delivered in between was never
-recorded and stays one conversation per message until
-`--thread-backfill --force` runs for the account.
+Thread the existing mail one account at a time:
 
 ```sh
 # 1. See what it would do, for one account first.
