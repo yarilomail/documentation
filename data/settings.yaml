@@ -1750,6 +1750,7 @@ protocol.submission.submission_client_workarounds:
   default: []
   values: [whitespace-before-path, mailbox-for-path]
   aliases: [client_workarounds]
+  helm: protocol.submission.client_workarounds
   see_also: [protocol.lmtp.lmtp_client_workarounds]
   description: |
     Compatibility shims for clients that break the protocol. They do the same
