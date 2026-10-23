@@ -41,40 +41,12 @@ auth:
     auth_policy_report_after_auth: true
 ```
 
-| Setting | Default | Notes |
-|---|---|---|
-| `auth_policy_server_url` | `""` | `""` disables the hook. URL may end with `&` to extend an existing query string instead of starting a new one (e.g. `https://w/?tenant=42&`) |
-| `auth_policy_server_api_header` | `""` | `"Key: value"` → custom header. `"value"` → `X-API-Key: value` |
-| `auth_policy_hash_mech` | `sha256` | `sha256` or `sha512`. Must match the policy server's hash setting |
-| `auth_policy_hash_nonce` | `""` | **Required when `auth_policy_server_url` is set.** Salt mixed into `pwhash`. Two deployments with different nonces have different hash spaces |
-| `auth_policy_hash_truncate` | `12` | Top N bits of the digest kept. 12 → 4096 buckets — enough for rate-limit patterns, useless for password recovery. `0` disables truncation (sends the full digest) |
-| `timeout_ms` | `5000` | HTTP round-trip cap |
-| `auth_policy_reject_on_fail` | `false` | `true` → reject auth when policy server is unreachable / malformed. `false` (default) → continue without policy guidance |
-| `auth_policy_log_only` | `false` | `true` → the client still POSTs and logs decisions, but the verdict is NOT enforced. Use this to roll out a new policy in shadow-mode before flipping `false` |
-| `auth_policy_check_before_auth` | `true` | POST `?command=allow` BEFORE the chain runs. Reject blocks the passdb call entirely |
-| `auth_policy_check_after_auth` | `true` | POST `?command=allow` AFTER the chain result is known. Reject downgrades a successful auth (account-takeover detection) |
-| `auth_policy_report_after_auth` | `true` | POST `?command=report` fire-and-forget after every decision. Telemetry pipeline; never blocks the wire reply |
+<!-- @settings auth.policy -->
 
 ### Helm
 
 The chart builds `auth.policy` from `components.auth.policy`, with shorter
-names:
-
-| `components.auth.policy` | `auth.policy` |
-|:---|:---|
-| `url` | `auth_policy_server_url` |
-| `api_header` | `auth_policy_server_api_header` |
-| `api_header_secret_ref` | `auth_policy_server_api_header` from a Secret |
-| `hash_mech` | `auth_policy_hash_mech` |
-| `hash_nonce` | `auth_policy_hash_nonce` |
-| `hash_nonce_secret_ref` | `auth_policy_hash_nonce` from a Secret |
-| `hash_truncate_bits` | `auth_policy_hash_truncate` |
-| `timeout_ms` | `timeout_ms` |
-| `reject_on_fail` | `auth_policy_reject_on_fail` |
-| `log_only` | `auth_policy_log_only` |
-| `check_before` | `auth_policy_check_before_auth` |
-| `check_after` | `auth_policy_check_after_auth` |
-| `report_after` | `auth_policy_report_after_auth` |
+names; each card above names its chart value.
 
 From 2.4.2 a key under its `auth.policy` name fails the render and names the
 chart's, and `check_before`, `check_after` and `report_after` set to `false`
@@ -104,6 +76,8 @@ The chart renders `"${YARILO_AUTH_POLICY_API_HEADER}"` and
 `"${YARILO_AUTH_POLICY_HASH_NONCE}"` and sets both variables in the
 `yarilo-auth` pod from the Secret. Setting a value and its `*_secret_ref`
 together fails the render.
+
+<!-- @settings components.auth.policy -->
 
 ## Wire shape
 
