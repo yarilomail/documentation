@@ -31,10 +31,6 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 `mboxmetadata` / `servermetadata` (RFC 5490 §4) expose IMAP METADATA (RFC 5464) annotations to scripts: `metadata "<mailbox>" "<entry>" "<value>"` / `metadataexists "<mailbox>" "<entry>"...` read per-mailbox annotations, and `servermetadata "<entry>" "<value>"` / `servermetadataexists "<entry>"...` read server-scoped ones. Entry names are the wire-format `/private/…` or `/shared/…` paths; values come from the same dict the IMAP `GETMETADATA`/`SETMETADATA` commands use, so a script sees exactly what a client set. Delivery-time lookups are scoped to the recipient's personal namespace. `extlists` is **not** advertised yet — its backing data source is not wired.
 
-::: note Helm
-The chart's default [`sieve_extensions`](#sieve.sieve_extensions) list leaves several of these out, among them `include`, `ihave`, `enotify` and `imapsieve`; a script that requires one is refused until you add it.
-:::
-
 ## Configuration
 
 Settings live under `sieve:` and keep the `sieve_` prefix there, matching the config keys. The chart's values use the same names under `sieve:`.
