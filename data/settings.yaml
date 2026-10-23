@@ -1702,3 +1702,160 @@ lmtp_login_service.backend_port:
   description: |
     Port that replaces the one in the `LOOKUP` result. `0` uses the result
     as it is.
+
+protocol.submission.hostname:
+  type: string
+  default_text: the top-level `hostname`
+  helm: protocol.submission.hostname
+  description: |
+    EHLO/HELO banner and `Message-ID` domain **for submission only**. Unset
+    means the installation's name; see [General](/installation/general).
+    Setting it here does not rename the LMTP banner, the `Received:` header
+    or a delivered message's `Message-ID`.
+
+protocol.submission.submission_max_mail_size:
+  type: string
+  default: 40M
+  aliases: [max_message_size]
+  helm: protocol.submission.max_message_size
+  description: |
+    Maximum accepted message size. Takes a size with a unit (`40M`) or bytes.
+
+protocol.submission.max_line_length:
+  type: integer
+  unit: bytes
+  default: 4096
+  helm: protocol.submission.max_line_length
+  description: |
+    Maximum SMTP command or DATA line length.
+
+protocol.submission.submission_max_recipients:
+  type: integer
+  default: 0
+  aliases: [max_recipients]
+  helm: protocol.submission.max_recipients
+  description: |
+    Maximum recipients per message. `0` is unlimited.
+
+protocol.submission.recipient_delimiter:
+  type: string
+  default: "+"
+  helm: protocol.submission.recipient_delimiter
+  description: |
+    Subaddress separator: `user+tag@domain` → `user@domain`. Empty disables
+    it.
+
+protocol.submission.submission_client_workarounds:
+  type: list
+  default: []
+  values: [whitespace-before-path, mailbox-for-path]
+  aliases: [client_workarounds]
+  see_also: [protocol.lmtp.lmtp_client_workarounds]
+  description: |
+    Compatibility shims for clients that break the protocol. They do the same
+    as the [LMTP workarounds](/protocols/lmtp#protocol.lmtp.lmtp_client_workarounds)
+    of the same name.
+
+protocol.submission.submission_add_received_header:
+  type: boolean
+  default: true
+  helm: protocol.submission.add_received_header
+  description: |
+    Prepend a `Received:` trace header to messages before forwarding. Set it
+    to `false` to keep the sender's address out of the message.
+
+protocol.submission.relay.submission_relay_host:
+  type: string
+  default: ""
+  aliases: [host]
+  helm: protocol.submission.relay.host
+  description: |
+    Upstream MTA hostname or IP. Empty disables the relay, and submission
+    answers `451`.
+
+protocol.submission.relay.submission_relay_port:
+  type: integer
+  default: 25
+  aliases: [port]
+  helm: protocol.submission.relay.port
+  description: |
+    Upstream MTA port.
+
+protocol.submission.relay.submission_relay_user:
+  type: string
+  default: ""
+  aliases: [user]
+  helm: protocol.submission.relay.user
+  description: |
+    SASL PLAIN username sent to the upstream; `%u` (or `%{user}`) is the
+    session's user. Empty, with no master, sends no AUTH.
+
+protocol.submission.relay.submission_relay_master_user:
+  type: string
+  default: ""
+  helm: protocol.submission.relay.master_user
+  description: |
+    Log in as this master acting for `submission_relay_user` (the SASL
+    authzid), or for the session's user when that is empty.
+
+protocol.submission.relay.submission_relay_password:
+  type: string
+  default: ""
+  aliases: [password]
+  helm: protocol.submission.relay.password
+  description: |
+    SASL PLAIN password, the master's when one is set. Supports
+    `${ENV_VAR}`. In the chart, `relay.password_secret_ref` takes it from a
+    Secret instead.
+
+protocol.submission.relay.submission_relay_ssl:
+  type: string
+  default: "no"
+  values: ["no", starttls, smtps]
+  aliases: [ssl]
+  helm: protocol.submission.relay.ssl
+  description: |
+    Transport security to the upstream.
+
+protocol.submission.relay.submission_relay_ssl_verify:
+  type: boolean
+  default: true
+  aliases: [ssl_verify]
+  helm: protocol.submission.relay.ssl_verify
+  description: |
+    Verify the upstream's TLS certificate.
+
+protocol.submission.relay.submission_relay_ssl_ca:
+  type: string
+  default: ""
+  helm: protocol.submission.relay.ssl_ca
+  description: |
+    PEM file the upstream certificate is verified against. Empty means the
+    system roots.
+
+protocol.submission.relay.submission_relay_trusted:
+  type: boolean
+  default: false
+  aliases: [trusted]
+  helm: protocol.submission.relay.trusted
+  description: |
+    Send XCLIENT to the upstream with the client's real IP. The upstream
+    must advertise XCLIENT.
+
+protocol.submission.relay.submission_relay_connect_timeout:
+  type: integer
+  unit: seconds
+  default: 30
+  aliases: [connect_timeout]
+  helm: protocol.submission.relay.connect_timeout
+  description: |
+    TCP connect timeout.
+
+protocol.submission.relay.submission_relay_command_timeout:
+  type: integer
+  unit: seconds
+  default: 300
+  aliases: [command_timeout]
+  helm: protocol.submission.relay.command_timeout
+  description: |
+    Per-command timeout.
