@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sieve from './sieve.tmLanguage.json'
 import { expandSettings, hasSettings } from './settings'
+import { isFollowed } from './links.mjs'
 
 const SITE = 'https://doc.yarilomail.org'
 
@@ -212,6 +213,12 @@ export default defineConfig({
       const code = md.renderer.rules.code_inline!
       md.renderer.rules.code_inline = (...args) => code(...args)
         .replace(/>([^<]*)<\/code>$/, (_, t: string) => `>${t.replace(/([/._])(?=.)/g, '$1<wbr>')}</code>`)
+      // Runs after VitePress's own link rule, which sets rel="noreferrer".
+      const link = md.renderer.rules.link_open!
+      md.renderer.rules.link_open = (tokens, idx, ...rest) => {
+        const html = link(tokens, idx, ...rest)
+        return isFollowed(tokens[idx].attrGet('href') ?? '') ? html : html.replace(/ rel="([^"]*)"/, ' rel="$1 nofollow"')
+      }
     },
   },
   head: [
