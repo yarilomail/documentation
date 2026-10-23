@@ -99,3 +99,9 @@
   background: var(--vp-c-danger-soft);
   color: var(--vp-c-text-1);
 }
+
+/* Last updated sits on the right; without the edit link it would move left. */
+.VPDoc .VPDocFooter .edit-info {
+  justify-content: flex-end;
+  text-align: right;
+}

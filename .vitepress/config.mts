@@ -1,6 +1,7 @@
 import { defineConfig, type DefaultTheme, type PageData } from 'vitepress'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import sieve from './sieve.tmLanguage.json'
 import { expandSettings, hasSettings } from './settings'
 
@@ -193,6 +194,14 @@ export default defineConfig({
   base: BASE,
   sitemap: { hostname: `${SITE}${BASE}` },
   lastUpdated: true,
+  vite: {
+    resolve: {
+      alias: [{
+        find: /^.*\/VPDocFooterLastUpdated\.vue$/,
+        replacement: fileURLToPath(new URL('./theme/LastUpdated.vue', import.meta.url)),
+      }],
+    },
+  },
   // Shiki ships no Sieve grammar.
   markdown: {
     languages: [sieve as any],
