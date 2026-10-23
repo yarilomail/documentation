@@ -41,24 +41,9 @@ Four validation modes:
 
 ### Common fields (apply across modes)
 
-| Field | Default | Notes |
-|:---|:---|:---|
-| `oauth2_issuers` | `[]` | Allow-list of `iss` claim values. Empty disables the check. In `discovery` mode the document's `issuer` is auto-added for `local` mode. |
-| `oauth2_audience` | `""` | Required `aud` claim value. Empty disables. JWT spec allows `aud` to be a string array — match against any entry passes. |
-| `oauth2_scope` | `[]` | Scopes every token MUST carry (intersection check). |
-| `oauth2_username_attribute` | `email` | Claim name resolving to the mail user. |
-| `oauth2_username_validation_format` | `%{user}` | Template applied to the SASL authzid before comparison. Supports `%u`, `%{user}`, `%Lu`, `%n`, `%Ln`, `%d`, `%Ld`. |
-| `oauth2_active_attribute` | `""` | Optional claim name that must be present. Disables check when empty. |
-| `oauth2_active_value` | `""` | When non-empty, the claim's value must equal this string. |
-| `oauth2_fields` | `[]` | Claim names whose values are projected onto the auth response as `userdb_<claim>` fields. |
-| `oauth2_token_expire_grace_seconds` | `60` | Clock-skew tolerance after the token's `exp`. |
-| `oauth2_http_timeout_ms` | `5000` | Round-trip cap for introspection / tokeninfo / discovery / JWKS refresh. |
-| `oauth2_prefer_introspection` | `false` | `discovery` mode only: when the document advertises both, validate through the introspection endpoint instead of the JWKS. |
-| `oauth2_jwks_unknown_kid_interval_seconds` | `300` | A token whose `kid` the cached JWKS lacks refreshes the JWKS at most this often; `0` never refreshes for one (the hourly refresh still runs). Chart: `jwks_unknown_kid_interval_seconds`. |
-| `oauth2_tls_ca` | `""` | PEM file of the CAs this entry's HTTPS calls (JWKS, introspection, tokeninfo, discovery, grant) trust, **instead of** the system roots. Empty uses the system roots. A missing or certificate-less file stops `yarilo-auth` at startup. |
-| `oauth2_grant_url` | `""` | Token endpoint for the [password grant](#password-grant). Must be `https`; needs `oauth2_client_id`. |
-| `oauth2_force_introspection` | `false` | See [forced introspection](#forced-introspection). |
-| `oauth2_local_keys` | `[]` | `local` mode only: see [local keys](#local-keys). |
+<!-- @settings auth.oauth2[].oauth2_issuers auth.oauth2[].oauth2_audience auth.oauth2[].oauth2_scope auth.oauth2[].oauth2_username_attribute auth.oauth2[].oauth2_username_validation_format auth.oauth2[].oauth2_active_attribute auth.oauth2[].oauth2_active_value auth.oauth2[].oauth2_fields auth.oauth2[].oauth2_token_expire_grace_seconds auth.oauth2[].oauth2_http_timeout_ms auth.oauth2[].oauth2_prefer_introspection auth.oauth2[].oauth2_jwks_unknown_kid_interval_seconds auth.oauth2[].oauth2_tls_ca auth.oauth2[].oauth2_grant_url auth.oauth2[].oauth2_force_introspection -->
+
+`oauth2_local_keys` (`local` mode only) lists keys the operator provides; see [local keys](#local-keys).
 
 ### Password grant
 
@@ -85,12 +70,7 @@ at all. Each key is picked by the token's `azp` claim, its `alg` header and
 its `kid` header; a token without `azp` or `kid` matches the key whose
 `oauth2_local_key_azp` / `oauth2_local_key_kid` is empty (or `default`).
 
-| Field | Notes |
-|:---|:---|
-| `oauth2_local_key_alg` | `HS256`/`HS384`/`HS512` (shared secret), `RS256`/`RS384`/`RS512`, `PS256`/`PS384`/`PS512`, `ES256`/`ES384`/`ES512`, `EdDSA` |
-| `oauth2_local_key_azp` | Client the key belongs to; empty = `default` |
-| `oauth2_local_key_kid` | Key id; empty = `default` |
-| `oauth2_local_key_file` | For HS*: the shared secret, base64 (standard or URL-safe). Otherwise a PEM `PUBLIC KEY`. |
+<!-- @settings auth.oauth2[].oauth2_local_keys[] -->
 
 - `HS*` means a **shared secret**: whoever holds the file can mint tokens.
   An HS token is checked only against these files, never against the JWKS.

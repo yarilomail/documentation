@@ -2475,3 +2475,248 @@ namespaces[].mailboxes.*.special_use:
     The RFC 6154 attribute LIST and JMAP roles report for this name: `\Sent`,
     `\Drafts`, `\Trash`, `\Junk`, `\Archive`, `\All`, `\Flagged` or
     `\Important`. Personal namespace only.
+
+services.*.enabled:
+  type: boolean
+  default: false
+  description: |
+    Start this listener on startup.
+
+services.*.port:
+  type: integer
+  default: 0
+  description: |
+    TCP port to bind. Required: there is no default, and an unset port binds
+    port `0`, a random one. The table below gives the conventional ports.
+
+services.*.ssl_mode:
+  type: string
+  default: ""
+  values: [ssl, starttls, "no"]
+  description: |
+    TLS mode: `ssl` is implicit TLS; `starttls` is plain with a STARTTLS
+    upgrade; `no` is plain only.
+
+services.*.haproxy_protocol:
+  type: boolean
+  default: false
+  see_also: [general.haproxy.timeout]
+  description: |
+    Extract the real client IP from the HAProxy PROXY header. Uses
+    `general.haproxy` for the timeout and trusted nets.
+
+services.*.xclient_protocol:
+  type: boolean
+  default: false
+  description: |
+    Accept the XCLIENT command from trusted relays. Uses
+    `general.xclient.trusted_nets`, empty by default; only peers in it see
+    XCLIENT advertised.
+
+services.*.auth_allow_cleartext:
+  type: boolean
+  default_text: "`true`"
+  description: |
+    When `false`, PLAIN and LOGIN are hidden and refused on a connection
+    that is not TLS, not behind HAProxy and not local: IMAP
+    `LOGIN`/`AUTHENTICATE` get `NO [PRIVACYREQUIRED]`, POP3
+    `USER`/`PASS`/`AUTH` `-ERR [AUTH]`, SMTP `AUTH` `523 5.7.10`,
+    ManageSieve `AUTHENTICATE` `NO "Cleartext authentication disallowed on
+    non-secure (SSL/TLS) connections."`. After STARTTLS they work as usual.
+
+auth.oauth2[].oauth2_issuers:
+  type: list
+  default: []
+  aliases: [issuers]
+  helm: components.auth.oauth2[].issuers
+  description: |
+    Allow-list of `iss` claim values. Empty disables the check. In
+    `discovery` mode the document's `issuer` is added for `local` mode.
+
+auth.oauth2[].oauth2_audience:
+  type: string
+  default: ""
+  aliases: [audience]
+  helm: components.auth.oauth2[].audience
+  description: |
+    Required `aud` claim value. Empty disables the check. `aud` may be a
+    string array; matching any entry passes.
+
+auth.oauth2[].oauth2_scope:
+  type: list
+  default: []
+  aliases: [scopes]
+  helm: components.auth.oauth2[].scopes
+  description: |
+    Scopes every token must carry (intersection check).
+
+auth.oauth2[].oauth2_username_attribute:
+  type: string
+  default_text: "`email`"
+  aliases: [username_attribute]
+  helm: components.auth.oauth2[].username_attribute
+  description: |
+    Claim name resolving to the mail user.
+
+auth.oauth2[].oauth2_username_validation_format:
+  type: string
+  default_text: "`%{user}`"
+  aliases: [username_validation_format]
+  helm: components.auth.oauth2[].username_validation_format
+  description: |
+    Template applied to the SASL authzid before comparison. Supports `%u`,
+    `%{user}`, `%Lu`, `%n`, `%Ln`, `%d`, `%Ld`.
+
+auth.oauth2[].oauth2_active_attribute:
+  type: string
+  default: ""
+  aliases: [active_attribute]
+  helm: components.auth.oauth2[].active_attribute
+  description: |
+    Claim name that must be present. Empty disables the check.
+
+auth.oauth2[].oauth2_active_value:
+  type: string
+  default: ""
+  aliases: [active_value]
+  helm: components.auth.oauth2[].active_value
+  description: |
+    When non-empty, the claim's value must equal this string.
+
+auth.oauth2[].oauth2_fields:
+  type: list
+  default: []
+  aliases: [extra_fields]
+  helm: components.auth.oauth2[].extra_fields
+  description: |
+    Claim names whose values are projected onto the auth response as
+    `userdb_<claim>` fields.
+
+auth.oauth2[].oauth2_token_expire_grace_seconds:
+  type: integer
+  unit: seconds
+  default_text: "`60`"
+  aliases: [token_expire_grace_seconds]
+  helm: components.auth.oauth2[].token_expire_grace_seconds
+  description: |
+    Clock-skew tolerance after the token's `exp`.
+
+auth.oauth2[].oauth2_http_timeout_ms:
+  type: integer
+  unit: milliseconds
+  default_text: "`5000`"
+  aliases: [http_timeout_ms]
+  helm: components.auth.oauth2[].http_timeout_ms
+  description: |
+    Round-trip cap for introspection, tokeninfo, discovery and JWKS refresh.
+
+auth.oauth2[].oauth2_prefer_introspection:
+  type: boolean
+  default: false
+  aliases: [prefer_introspection]
+  helm: components.auth.oauth2[].prefer_introspection
+  description: |
+    `discovery` mode only: when the document advertises both, validate
+    through the introspection endpoint instead of the JWKS.
+
+auth.oauth2[].oauth2_jwks_unknown_kid_interval_seconds:
+  type: integer
+  unit: seconds
+  default_text: "`300`"
+  helm: components.auth.oauth2[].jwks_unknown_kid_interval_seconds
+  description: |
+    A token whose `kid` the cached JWKS lacks refreshes the JWKS at most
+    this often; `0` never refreshes for one (the hourly refresh still runs).
+
+auth.oauth2[].oauth2_tls_ca:
+  type: string
+  default: ""
+  helm: components.auth.oauth2[].tls_ca
+  description: |
+    PEM file of the CAs this entry's HTTPS calls (JWKS, introspection,
+    tokeninfo, discovery, grant) trust, **instead of** the system roots.
+    Empty uses the system roots. A missing or certificate-less file stops
+    `yarilo-auth` at startup.
+
+auth.oauth2[].oauth2_grant_url:
+  type: string
+  default: ""
+  helm: components.auth.oauth2[].grant_url
+  description: |
+    Token endpoint for the [password grant](#password-grant). Must be
+    `https`; needs `oauth2_client_id`.
+
+auth.oauth2[].oauth2_force_introspection:
+  type: boolean
+  default: false
+  helm: components.auth.oauth2[].force_introspection
+  description: |
+    See [forced introspection](#forced-introspection).
+
+auth.oauth2[].oauth2_local_keys[].oauth2_local_key_alg:
+  type: string
+  default: ""
+  values: [HS256, HS384, HS512, RS256, RS384, RS512, PS256, PS384, PS512, ES256, ES384, ES512, EdDSA]
+  helm: components.auth.oauth2[].local_keys[].alg
+  description: |
+    Signature algorithm; `HS*` is a shared secret.
+
+auth.oauth2[].oauth2_local_keys[].oauth2_local_key_azp:
+  type: string
+  default: ""
+  helm: components.auth.oauth2[].local_keys[].azp
+  description: |
+    Client the key belongs to; empty means `default`.
+
+auth.oauth2[].oauth2_local_keys[].oauth2_local_key_kid:
+  type: string
+  default: ""
+  helm: components.auth.oauth2[].local_keys[].kid
+  description: |
+    Key id; empty means `default`.
+
+auth.oauth2[].oauth2_local_keys[].oauth2_local_key_file:
+  type: string
+  default: ""
+  description: |
+    For `HS*`: the shared secret, base64 (standard or URL-safe). Otherwise a
+    PEM `PUBLIC KEY`.
+
+auth.penalty.enabled:
+  type: boolean
+  default: false
+  helm: components.auth.penalty.enabled
+  description: |
+    Opt-in. While `false`, every login skips both Lookup and Update (zero
+    overhead). Turn it on once `yarilo-warden` is provisioned.
+
+auth.master_users.enabled:
+  type: boolean
+  default: false
+  helm: components.auth.master_users.enabled
+  description: |
+    Master switch. Off refuses every impersonation attempt before the chain
+    runs.
+
+auth.master_users.auth_master_user_separator:
+  type: string
+  default: "*"
+  aliases: [separator]
+  helm: components.auth.master_users.separator
+  description: |
+    Separator for the legacy login form below. Empty disables that form; the
+    SASL form keeps working.
+
+components.director.api.port:
+  source: chart
+  type: integer
+  default: 9103
+  description: |
+    API listen port.
+
+components.director.api.allowed_nets:
+  source: chart
+  type: list
+  default: []
+  description: |
+    Allowed client CIDRs. Empty allows every address.

@@ -420,7 +420,4 @@ All errors return JSON with an `error` field and appropriate HTTP status code.
 
 ## Helm values
 
-| Value | Default | Description |
-|:---|:---|:---|
-| `components.director.api.port` | `9103` | API listen port |
-| `components.director.api.allowed_nets` | `[]` | Allowed client CIDRs. Empty allows every address. |
+<!-- @settings components.director.api -->

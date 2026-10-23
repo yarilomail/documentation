@@ -36,9 +36,7 @@ auth:
 The penalty store reuses the configured `warden_service.listen`
 address; no separate connection knob.
 
-| Setting | Default | Notes |
-|---|---|---|
-| `enabled` | `false` | Opt-in. While `false`, every login skips both Lookup and Update (zero overhead). Flip to `true` once `yarilo-warden` is provisioned |
+<!-- @settings auth.penalty -->
 
 ## Behaviour
 
