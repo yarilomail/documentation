@@ -1,0 +1,65 @@
+/* YariloMail's look, shared with yarilomail.org: its orange, its ink and
+   IBM Plex. The orange itself (#e0701a) is too light for text on white, so
+   links and buttons use darker steps of it; the pure orange is kept for
+   rules and accents. */
+:root {
+  --yarilo-orange: #e0701a;
+  --vp-c-brand-1: #b8560f;
+  --vp-c-brand-2: #a14b0d;
+  --vp-c-brand-3: #b8560f;
+  --vp-c-brand-soft: rgba(224, 112, 26, 0.14);
+  /* Inline code in the ink, not the accent: pages here are dense with it. */
+  --vp-code-color: var(--vp-c-text-1);
+  --vp-font-family-base: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* The ink is the light theme's text; the dark theme keeps its own. */
+:root:not(.dark) {
+  --vp-c-text-1: #1f2933;
+}
+.dark {
+  --vp-c-brand-1: #f0954a;
+  --vp-c-brand-2: #f5a462;
+  --vp-c-brand-3: #b8560f;
+  --vp-c-brand-soft: rgba(240, 149, 74, 0.16);
+}
+
+/* An orange rule along the top of the page. */
+.VPNav {
+  border-top: 3px solid var(--yarilo-orange);
+}
+
+/* Section headings without the default rule above them; the weight carries
+   the hierarchy instead. */
+.vp-doc h1 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.vp-doc h2 {
+  margin-top: 56px;
+  padding-top: 0;
+  border-top: none;
+  font-weight: 600;
+}
+
+/* The current page in the sidebar is marked by a bar, not only by colour. */
+.VPSidebarItem.is-active > .item {
+  box-shadow: inset 2px 0 0 var(--yarilo-orange);
+  padding-left: 10px;
+}
+
+/* Notes and warnings as a bar on the left rather than a filled box. */
+.vp-doc .custom-block {
+  border-width: 0 0 0 4px;
+  border-style: solid;
+  border-radius: 4px;
+}
+.vp-doc .custom-block.tip { border-color: var(--vp-c-brand-1); }
+.vp-doc .custom-block.info { border-color: var(--vp-c-text-3); }
+.vp-doc .custom-block.warning { border-color: var(--vp-c-warning-1); }
+.vp-doc .custom-block.danger { border-color: var(--vp-c-danger-1); }
+
+/* Settings cards carry the accent on their top edge. */
+.vp-doc .setting-card {
+  border-top: 2px solid var(--yarilo-orange);
+}
