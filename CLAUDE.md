@@ -147,12 +147,12 @@ Fields of an entry:
 
 | Field | Meaning |
 |:---|:---|
-| `type` | `string`, `boolean`, `integer`, `list` or `map` (required) |
+| `type` | `string`, `boolean`, `integer`, `number`, `list` or `map` (required) |
 | `unit` | e.g. `seconds`, shown beside the type |
 | `default` | the binary's default; leave out or `""` for none |
 | `default_text` | prose instead of `default`, when it is computed at start |
 | `values` | the accepted values of an enumeration |
-| `aliases` | other names the loader accepts |
+| `aliases` | other names the loader accepts: a bare name sits beside the key, a dotted one is a full key elsewhere |
 | `helm` | the chart value that sets it |
 | `see_also` | full keys of related settings |
 | `added`, `changed` | version, and for `changed` a `text` |

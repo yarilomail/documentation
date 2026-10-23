@@ -804,3 +804,392 @@ threading.threading_cache_idle:
   description: |
     How long a process keeps an account's folded sidecar after its last
     delivery. `0` never caches, and every delivery then pays the fold.
+
+sieve.sieve_enabled:
+  type: boolean
+  default: false
+  helm: sieve.sieve_enabled
+  description: |
+    Run Sieve on LMTP delivery.
+
+sieve.sieve_max_script_size:
+  type: integer
+  unit: bytes
+  default: 65536
+  aliases: [protocol.managesieve.max_script_size]
+  helm: sieve.sieve_max_script_size
+  description: |
+    Largest compiled script, one limit for delivery and ManageSieve alike. The
+    alias and this key set to different values refuse startup.
+
+sieve.sieve_max_redirects:
+  type: integer
+  default: 32
+  helm: sieve.sieve_max_redirects
+  description: |
+    `redirect` actions per message (RFC 5228 §6.2).
+
+sieve.sieve_max_num_scripts:
+  type: integer
+  default: 0
+  helm: sieve.sieve_max_num_scripts
+  see_also: [sieve.sieve_max_storage]
+  description: |
+    Scripts one user may store. `0` is unlimited. See [ManageSieve](#managesieve).
+
+sieve.sieve_max_storage:
+  type: integer
+  unit: bytes
+  default: 0
+  helm: sieve.sieve_max_storage
+  see_also: [sieve.sieve_max_num_scripts]
+  description: |
+    Total size of one user's stored scripts. `0` is unlimited.
+
+sieve.sieve_max_actions:
+  type: integer
+  default: 32
+  helm: sieve.sieve_max_actions
+  description: |
+    Actions one script may take in all (`fileinto`, `redirect`, `keep`, …),
+    a guard against runaway scripts. `0` is unlimited.
+
+sieve.sieve_global:
+  type: string
+  default: ""
+  helm: sieve.sieve_global
+  see_also: [sieve.sieve_global_scripts]
+  description: |
+    Directory of the scripts `include :global` names, one `<name>.sieve` each.
+    Users cannot write it. Empty: none.
+
+sieve.sieve_global_scripts:
+  source: chart
+  type: map
+  default: {}
+  see_also: [sieve.sieve_global]
+  description: |
+    Global scripts by name. The chart puts them in a ConfigMap mounted at
+    `sieve_global` in the lmtp and imap containers.
+
+sieve.sieve_vacation_enabled:
+  type: boolean
+  default: true
+  helm: sieve.sieve_vacation_enabled
+  description: |
+    Permit the `vacation` extension (RFC 5230).
+
+sieve.sieve_vacation_min_period:
+  type: integer
+  unit: seconds
+  default: 86400
+  helm: sieve.sieve_vacation_min_period
+  see_also: [sieve.sieve_vacation_max_period, sieve.sieve_vacation_default_period]
+  description: |
+    Shortest reply interval; a shorter `:days` or `:seconds` is raised to it.
+    `0` is no minimum.
+
+sieve.sieve_vacation_max_period:
+  type: integer
+  unit: seconds
+  default: 5184000
+  helm: sieve.sieve_vacation_max_period
+  see_also: [sieve.sieve_vacation_min_period]
+  description: |
+    Longest reply interval (60 days); a longer one is lowered to it. `0` is no
+    maximum.
+
+sieve.sieve_vacation_default_period:
+  type: integer
+  unit: seconds
+  default: 604800
+  helm: sieve.sieve_vacation_default_period
+  see_also: [sieve.sieve_vacation_min_period]
+  description: |
+    Interval when the script gives none (7 days). It is kept within the
+    minimum too, so `0` replies to every message only with
+    `sieve_vacation_min_period: 0`.
+
+sieve.sieve_vacation_default_subject:
+  type: string
+  default: ""
+  helm: sieve.sieve_vacation_default_subject
+  description: |
+    Subject of a reply to a message without one, when the script gives none.
+    Empty is `Automated reply`.
+
+sieve.sieve_vacation_default_subject_template:
+  type: string
+  default: ""
+  helm: sieve.sieve_vacation_default_subject_template
+  description: |
+    Subject of a reply when the script gives none, with `%{subject}` for the
+    message's subject. Empty is `Auto: %{subject}`.
+
+sieve.sieve_vacation_use_original_recipient:
+  type: boolean
+  default: false
+  helm: sieve.sieve_vacation_use_original_recipient
+  description: |
+    Count the LMTP original recipient (ORCPT) as the user's address. Only a
+    relay that sends ORCPT gives one; see [LMTP](/protocols/lmtp#original-recipient-orcpt).
+
+sieve.sieve_vacation_check_recipient:
+  type: boolean
+  default: true
+  helm: sieve.sieve_vacation_check_recipient
+  description: |
+    Reply only to a message that names the user in `To`, `Cc`, `Bcc` or
+    `Resent-*`.
+
+sieve.sieve_vacation_send_from_recipient:
+  type: boolean
+  default: false
+  helm: sieve.sieve_vacation_send_from_recipient
+  description: |
+    Send the reply with the recipient as envelope sender instead of `<>`.
+
+sieve.sieve_vacation_to_header_ignore_envelope:
+  type: boolean
+  default: false
+  helm: sieve.sieve_vacation_to_header_ignore_envelope
+  description: |
+    Address the reply to the first address in `Sender`, `Resent-From` or
+    `From`, even when it is not the envelope sender.
+
+sieve.sieve_spamtest_status_header:
+  type: string
+  default: ""
+  helm: sieve.sieve_spamtest_status_header
+  see_also: [sieve.sieve_spamtest_max_value]
+  description: |
+    Header carrying the spam score for `spamtest` (RFC 5235), such as
+    `X-Spam-Score`. Empty: the test reports "not scanned".
+
+sieve.sieve_spamtest_max_value:
+  type: number
+  default: 10
+  helm: sieve.sieve_spamtest_max_value
+  see_also: [sieve.sieve_spamtest_status_header]
+  description: |
+    The raw header value mapped to the top of the 0..10 scale (0..100 with
+    `:percent`).
+
+sieve.sieve_virustest_status_header:
+  type: string
+  default: ""
+  helm: sieve.sieve_virustest_status_header
+  see_also: [sieve.sieve_virustest_max_value]
+  description: |
+    Header carrying the virus verdict for `virustest` (RFC 5235). Empty: "not
+    scanned".
+
+sieve.sieve_virustest_max_value:
+  type: number
+  default: 5
+  helm: sieve.sieve_virustest_max_value
+  see_also: [sieve.sieve_virustest_status_header]
+  description: |
+    The raw header value mapped to the top of the 0..5 virus scale.
+
+sieve.sieve_submission_host:
+  type: string
+  default: ""
+  helm: sieve.sieve_submission_host
+  description: |
+    The MTA outbound mail goes through (`host[:port]`, port 25 by default).
+    Empty: `redirect` and vacation replies are dropped without a word.
+
+sieve.sieve_submission_ssl:
+  type: string
+  default: "no"
+  values: ["no", smtps, starttls]
+  helm: sieve.sieve_submission_ssl
+  description: |
+    Transport security towards that MTA.
+
+sieve.sieve_submission_timeout:
+  type: integer
+  unit: seconds
+  default: 30
+  helm: sieve.sieve_submission_timeout
+  description: |
+    Connect and command timeout towards that MTA.
+
+sieve.sieve_submission_auth_secret:
+  type: string
+  default: ""
+  helm: sieve.sieve_submission_auth_secret
+  description: |
+    Name of a Kubernetes Secret with `user` and `password` keys for SMTP AUTH.
+    Empty relays without authentication.
+
+sieve.sieve_default_name:
+  type: string
+  default: yarilo
+  helm: sieve.sieve_default_name
+  description: |
+    Name of the per-user default script, seeded as `<name>.sieve` on first
+    delivery.
+
+sieve.sieve_extensions:
+  type: list
+  default: []
+  helm: sieve.sieve_extensions
+  see_also: [sieve.sieve_global_extensions]
+  description: |
+    Extensions users may `require`. Empty allows all; a non-empty list is
+    enforced at `PUTSCRIPT` and at delivery.
+
+    The chart sets a list, so under Helm these are refused until you add them:
+    `editheader`, `enclose`, `enotify`, `extracttext`, `fcc`, `foreverypart`,
+    `ihave`, `imapsieve`, `include`, `mailboxid`, `mboxmetadata`, `mime`,
+    `regex`, `replace`, `servermetadata`, `spamtest`, `spamtestplus`,
+    `special-use`, `vacation-seconds`, `virustest`, `vnd.yarilo.execute` and
+    `vnd.yarilo.report`.
+
+sieve.sieve_global_extensions:
+  type: list
+  default: []
+  helm: sieve.sieve_global_extensions
+  see_also: [sieve.sieve_extensions]
+  description: |
+    Extensions only the administrator's scripts may use, on top of
+    `sieve_extensions`. A user's script never gets them, even when
+    `sieve_extensions` lists them. See
+    [Whose script gets which extensions](#whose-script-gets-which-extensions).
+
+sieve.sieve_scripts_driver:
+  type: string
+  default_text: "`fs`"
+  values: [fs, redis]
+  helm: sieve.sieve_scripts_driver
+  see_also: [sieve.sieve_scripts_dict]
+  description: |
+    Where scripts are stored: `fs` keeps them as files in the user's home,
+    `redis` in the dict that `sieve_scripts_dict` names.
+
+sieve.sieve_scripts_dict:
+  type: string
+  default: ""
+  helm: sieve.sieve_scripts_dict
+  see_also: [sieve.sieve_scripts_driver]
+  description: |
+    Name of the dict in `dicts:` used with `sieve_scripts_driver: redis`.
+    Ignored for `fs`.
+
+protocol.managesieve.max_invalid_commands:
+  type: integer
+  default: 3
+  helm: protocol.managesieve.max_invalid_commands
+  description: |
+    Unknown commands before authentication after which the server says `BYE`
+    and closes.
+
+protocol.managesieve.managesieve_max_line_length:
+  type: integer
+  unit: bytes
+  default: 65536
+  helm: protocol.managesieve.managesieve_max_line_length
+  description: |
+    A command line or a literal, a script's body aside. A larger literal is
+    refused before it is read with `NO "Literal size too large."`, and when
+    the client is already sending it (`{N+}`), with `BYE` and close. Before
+    authentication the bound is 8192 bytes.
+
+sieve.sieve_pipe_bin_dir:
+  type: string
+  default: /usr/lib/yarilo/sieve-pipe
+  helm: sieve.sieve_pipe_bin_dir
+  description: |
+    Directory of the programs `vnd.yarilo.pipe` may run.
+
+sieve.sieve_pipe_socket_dir:
+  type: string
+  default: sieve-pipe
+  helm: sieve.sieve_pipe_socket_dir
+  description: |
+    Directory of the sockets `vnd.yarilo.pipe` may use, searched first.
+
+sieve.sieve_pipe_exec_timeout:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: sieve.sieve_pipe_exec_timeout
+  description: |
+    How long one `vnd.yarilo.pipe` program may run.
+
+sieve.sieve_pipe_input_eol:
+  type: string
+  default: crlf
+  values: [crlf, lf]
+  helm: sieve.sieve_pipe_input_eol
+  description: |
+    Line endings written to the program's standard input.
+
+sieve.sieve_filter_bin_dir:
+  type: string
+  default: /usr/lib/yarilo/sieve-filter
+  helm: sieve.sieve_filter_bin_dir
+  description: |
+    Directory of the programs `vnd.yarilo.filter` may run.
+
+sieve.sieve_filter_socket_dir:
+  type: string
+  default: sieve-filter
+  helm: sieve.sieve_filter_socket_dir
+  description: |
+    Directory of the sockets `vnd.yarilo.filter` may use, searched first.
+
+sieve.sieve_filter_exec_timeout:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: sieve.sieve_filter_exec_timeout
+  description: |
+    How long one `vnd.yarilo.filter` program may run.
+
+sieve.sieve_filter_input_eol:
+  type: string
+  default: crlf
+  values: [crlf, lf]
+  helm: sieve.sieve_filter_input_eol
+  description: |
+    Line endings written to the program's standard input.
+
+sieve.sieve_execute_bin_dir:
+  type: string
+  default: /usr/lib/yarilo/sieve-execute
+  helm: sieve.sieve_execute_bin_dir
+  description: |
+    Directory of the programs `vnd.yarilo.execute` may run.
+
+sieve.sieve_execute_socket_dir:
+  type: string
+  default: sieve-execute
+  helm: sieve.sieve_execute_socket_dir
+  description: |
+    Directory of the sockets `vnd.yarilo.execute` may use, searched first.
+
+sieve.sieve_execute_exec_timeout:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: sieve.sieve_execute_exec_timeout
+  description: |
+    How long one `vnd.yarilo.execute` program may run.
+
+sieve.sieve_execute_input_eol:
+  type: string
+  default: crlf
+  values: [crlf, lf]
+  helm: sieve.sieve_execute_input_eol
+  description: |
+    Line endings written to the program's standard input.
+
+sieve.sieve_report_user_agent:
+  type: string
+  default: yarilo
+  helm: sieve.sieve_report_user_agent
+  description: |
+    The `User-Agent` field written into the `message/feedback-report` part.
