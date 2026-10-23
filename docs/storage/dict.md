@@ -56,11 +56,7 @@ dict_service:
   dict_max_conns: 8
 ```
 
-| Key | Read by | Default | Meaning |
-|:---|:---|:---|:---|
-| `dict_listen` | `yarilo-dict` | — | Listen address. Required: the service exits at startup without it |
-| `dict_addr` | session processes | — | `host:port` of `yarilo-dict`. Required as soon as a `redis` or `sql` dict is configured; empty with only `file` dicts is fine |
-| `dict_max_conns` | session processes | `8` | Connections one process keeps to one named dict. An iteration holds its connection until it ends, so `1` makes every other operation on that dict wait behind it |
+<!-- @settings dict_service -->
 
 The chart renders all three from `components.dict` (`enabled`, `listen`,
 default `:9107`, `max_conns`, default `8`) and derives `dict_addr` from the

@@ -2127,3 +2127,351 @@ protocol.jmap.jmap_cors_allow_origins:
   description: |
     Browser origins allowed to call the endpoint. Empty denies every
     cross-origin request. Exact match, scheme included.
+
+storage.mdbox_rotate_size:
+  type: string
+  default: 10M
+  helm: storage.mdbox_rotate_size
+  description: |
+    Maximum size of an `m.<N>` before the next save rolls to a fresh file: a
+    size (`"10M"`, `"1G"`) or a byte count. `0` or an empty value is refused
+    at startup.
+
+storage.mdbox_rotate_interval:
+  type: string
+  default: ""
+  helm: storage.mdbox_rotate_interval
+  description: |
+    Roll the append file once it is older than this, regardless of size: a
+    duration (`"30s"`, `"5m"`, `"1h"`) or a second count. Empty or `0`
+    never rolls on age.
+
+storage.mdbox_preallocate_space:
+  type: boolean
+  default: false
+  helm: storage.mdbox_preallocate_space
+  description: |
+    `fallocate()` the new file to `mdbox_rotate_size` up front (Linux only; a
+    no-op elsewhere).
+
+storage.mdbox_map_format:
+  type: string
+  default_text: "`v2`"
+  values: [v2, v1]
+  helm: storage.mdbox_map_format
+  description: |
+    On-disk format of the per-user map index; see
+    [mdbox map index format](#mdbox-map-index-format).
+
+storage.mail_index_log_rotate_min_size:
+  type: string
+  default: 32k
+  helm: storage.mail_index_log_rotate_min_size
+  description: |
+    Below this size a log is never folded.
+
+storage.mail_index_log_rotate_min_age:
+  type: integer
+  unit: seconds
+  default: 60
+  helm: storage.mail_index_log_rotate_min_age
+  description: |
+    Above the floor, fold once the log is this old.
+
+storage.mail_index_log_rotate_max_size:
+  type: string
+  default: 1M
+  helm: storage.mail_index_log_rotate_max_size
+  description: |
+    Fold regardless of age.
+
+storage.storage_lock_method:
+  type: string
+  default_text: "`flock`"
+  values: [flock, fcntl, dotlock]
+  helm: storage.storage_lock_method
+  description: |
+    How a write to a shared file — an index, a uidlist — excludes another
+    writer. Pick what the mail volume supports; a dict of the `file` driver
+    should use the same.
+
+storage.storage_lock_stale_timeout:
+  type: integer
+  unit: seconds
+  default: 180
+  helm: storage.storage_lock_stale_timeout
+  description: |
+    How long a dotlock may sit unchanged before a waiter takes it over; `0`
+    never takes one over. Only `dotlock` has the question: `flock` and
+    `fcntl` locks die with the process that held them.
+
+storage.mail_cache_purge_delete_percentage:
+  type: integer
+  default: 20
+  helm: storage.mail_cache_purge_delete_percentage
+  description: |
+    Purge a folder's cache file once this share of its records belongs to
+    messages that are gone; `0` never purges on that ground.
+
+storage.mail_cache_purge_continued_percentage:
+  type: integer
+  default: 200
+  helm: storage.mail_cache_purge_continued_percentage
+  description: |
+    Purge it once its continued records reach this percentage of the live
+    ones; `0` never purges on that ground.
+
+storage.mail_cache_purge_min_size:
+  type: string
+  default_text: "`32k`"
+  helm: storage.mail_cache_purge_min_size
+  description: |
+    Below this size the cache file is never purged; `"0"` allows a purge at
+    any size.
+
+storage.max_concurrent_writes:
+  type: integer
+  default: 0
+  helm: storage.max_concurrent_writes
+  description: |
+    Cap on message bodies being written to disk at once, per process, for
+    every driver; `0` is unlimited. A slow volume can be kept from being
+    swamped by a burst; spinning disks suit a few dozen, SSDs a few hundred.
+
+storage.mailbox_list_validate_fs_names:
+  type: boolean
+  default: true
+  helm: storage.mailbox_list_validate_fs_names
+  description: |
+    Refuse names that are unsafe as paths: `.` and `..` segments, adjacent
+    separators, a leading `/` or `~`, and the on-disk separator when the
+    namespace speaks another one. Turn it off only for a driver that never
+    builds a path from the name.
+
+storage.mailbox_list_reserved_segments:
+  type: list
+  default: [cur, new, tmp, dbox-Mails, fts-flatcurve]
+  helm: storage.mailbox_list_reserved_segments
+  description: |
+    Names a single hierarchy segment may not take, because the layout owns
+    that directory. Only the names the layout in use actually owns are
+    enforced (see the table below). Empty disables the check. It is
+    retroactive: a user who already has such a folder loses access to it.
+
+storage.mailbox_list_refuse_layout_separator:
+  type: boolean
+  default: false
+  helm: storage.mailbox_list_refuse_layout_separator
+  description: |
+    Refuse a name containing the on-disk separator when the namespace speaks
+    a different one — with namespace `/` over Maildir++, `a.b` and `a/b`
+    both land on `.a.b`. Retroactive against ordinary names such as
+    `example.com`, so check that no mailbox holds one before turning it on.
+
+storage.mailbox_list_storage_escape_char:
+  type: string
+  default: ""
+  helm: storage.mailbox_list_storage_escape_char
+  description: |
+    Store such names escaped instead of refusing them; see below. Not
+    retroactive.
+
+storage.mailbox_list_normalize_names_to_nfc:
+  type: boolean
+  default: true
+  aliases: [mailbox_list_normalize_to_nfc]
+  helm: storage.mailbox_list_normalize_names_to_nfc
+  description: |
+    Normalise names to Unicode NFC before they are stored or compared, so
+    differently composed spellings of one name are one folder.
+
+storage.mailbox_list_utf8:
+  type: boolean
+  default: true
+  helm: storage.mailbox_list_utf8
+  description: |
+    Write names as UTF-8 on disk; `false` writes modified UTF-7, for a store
+    that already uses it.
+
+dict_service.dict_listen:
+  type: string
+  default: ""
+  helm: components.dict.listen
+  description: |
+    Listen address of `yarilo-dict`. Required: the service exits at startup
+    without it.
+
+dict_service.dict_addr:
+  type: string
+  default: ""
+  description: |
+    `host:port` of `yarilo-dict`, read by session processes. Required as
+    soon as a `redis` or `sql` dict is configured; empty with only `file`
+    dicts is fine. The chart derives it from the release's `yarilo-dict`
+    Service.
+
+dict_service.dict_max_conns:
+  type: integer
+  default: 8
+  helm: components.dict.max_conns
+  description: |
+    Connections one session process keeps to one named dict. An iteration
+    holds its connection until it ends, so `1` makes every other operation
+    on that dict wait behind it.
+
+quota.quota_storage_percentage:
+  type: integer
+  default: 100
+  helm: quota.quota_storage_percentage
+  description: |
+    Scale the storage limit: `limit·pct/100`.
+
+quota.quota_message_percentage:
+  type: integer
+  default: 100
+  helm: quota.quota_message_percentage
+  description: |
+    Scale the message-count limit.
+
+quota.quota_storage_extra:
+  type: string
+  default: ""
+  helm: quota.quota_storage_extra
+  description: |
+    Byte headroom added to the storage limit after scaling.
+
+quota.quota_storage_grace:
+  type: string
+  default: 10M
+  helm: quota.quota_grace
+  description: |
+    Storage overshoot allowed on **inbound delivery (LMTP/LDA) only**, never
+    on interactive IMAP. It lets the one delivery that crosses the limit
+    through, as long as it lands within the grace. A mailbox already at or
+    over its limit accepts no further delivery, however much grace is left.
+
+quota.quota_ignore_unlimited:
+  type: boolean
+  default: false
+  helm: quota.quota_ignore_unlimited
+  description: |
+    Omit the quota root from GETQUOTA/GETQUOTAROOT for unlimited users.
+
+quota.quota_mailbox_count:
+  type: integer
+  default: 0
+  helm: quota.quota_mailbox_count
+  description: |
+    Cap the number of mailboxes (folders). Enforced at CREATE — `NO [LIMIT]
+    Maximum number of mailboxes reached`. `0` is unlimited.
+
+quota.quota_mailbox_message_count:
+  type: integer
+  default: 0
+  helm: quota.quota_mailbox_message_count
+  description: |
+    Cap on messages in a single mailbox. A mailbox holds up to this many;
+    the save past it is refused with `NO [OVERQUOTA] Too many messages in
+    the mailbox` (LMTP `552 5.2.2`, or `452 4.2.2` with
+    `protocol.lmtp.quota_full_tempfail`). `0` is unlimited.
+
+quota.quota_hidden:
+  type: boolean
+  default: false
+  helm: quota.quota_hidden
+  description: |
+    Omit the quota root from GETQUOTA/GETQUOTAROOT for **every** user
+    (enforcement still applies). Broader than `quota_ignore_unlimited`.
+
+quota_status.listen:
+  type: string
+  default: ":12340"
+  description: |
+    Policy listener. The chart sets it from
+    `components.quotaStatus.containerPort`.
+
+quota_status.recipient_delimiter:
+  type: string
+  default: "+"
+  helm: components.quotaStatus.recipient_delimiter
+  description: |
+    Separates the detail that names the target folder (`alice+Spam@` →
+    `Spam`).
+
+quota_status.default_quota_rules:
+  type: list
+  default: []
+  helm: components.quotaStatus.default_quota_rules
+  description: |
+    Rules, in `quota_rule` format, for a recipient whose userdb entry
+    carries none.
+
+quota_status.alias_dict:
+  type: string
+  default: ""
+  helm: components.quotaStatus.alias_dict
+  description: |
+    A dict from `dicts:` that maps an alias to its mailbox; the recipient is
+    resolved through it before the lookup, retrying without the detail
+    part. Empty means no alias resolution.
+
+quota_status.alias_max_hops:
+  type: integer
+  default: 5
+  helm: components.quotaStatus.alias_max_hops
+  description: |
+    Longest alias chain followed.
+
+quota_status.quota_status_success:
+  type: string
+  default: OK
+  helm: components.quotaStatus.quota_status_success
+  description: |
+    Returned when the message fits: under the limit, or within the storage
+    grace for the delivery that crosses it. Also for an ignored folder or a
+    user without limits.
+
+quota_status.quota_status_overquota:
+  type: string
+  default: "554 5.2.2 %{error}"
+  helm: components.quotaStatus.quota_status_overquota
+  description: |
+    Returned when the mailbox is full, with `%{error}` =
+    `quota.quota_exceeded_message`. Also when INBOX already holds
+    `quota_mailbox_message_count` messages, with `%{error}` = `Too many
+    messages in the mailbox`.
+
+quota_status.quota_status_toolarge:
+  type: string
+  default: ""
+  helm: components.quotaStatus.quota_status_toolarge
+  description: |
+    Returned when the message is larger than `quota.quota_mail_size`, or
+    larger than the user's whole storage limit. Empty uses
+    `quota_status_overquota`.
+
+quota_status.quota_status_nouser:
+  type: string
+  default: REJECT Unknown user
+  helm: components.quotaStatus.quota_status_nouser
+  description: |
+    Returned when the recipient is unknown in userdb. Empty answers `DUNNO`,
+    so a later Postfix restriction decides.
+
+namespaces[].mailboxes.*.auto:
+  type: string
+  default_text: "`no`"
+  values: ["no", create, subscribe]
+  helm: namespaces[].mailboxes.*.auto
+  description: |
+    `create` makes the mailbox the first time any server opens or lists the
+    namespace. `subscribe` does the same and subscribes it once.
+
+namespaces[].mailboxes.*.special_use:
+  type: string
+  default: ""
+  helm: namespaces[].mailboxes.*.special_use
+  description: |
+    The RFC 6154 attribute LIST and JMAP roles report for this name: `\Sent`,
+    `\Drafts`, `\Trash`, `\Junk`, `\Archive`, `\All`, `\Flagged` or
+    `\Important`. Personal namespace only.

@@ -103,10 +103,7 @@ namespaces:
       Junk:   { auto: create,    special_use: "\\Junk" }
 ```
 
-| Key | Values | Meaning |
-|:---|:---|:---|
-| `auto` | `no` (default), `create`, `subscribe` | `create` makes the mailbox the first time any server opens or lists the namespace. `subscribe` does the same and subscribes it once. |
-| `special_use` | an RFC 6154 attribute (`\Sent`, `\Drafts`, `\Trash`, `\Junk`, `\Archive`, `\All`, `\Flagged`, `\Important`) | The attribute LIST and JMAP roles report for this name. Personal namespace only. |
+<!-- @settings namespaces[].mailboxes.* -->
 
 **When a mailbox is made.** The storage layer makes it the first time a mailbox
 is opened or listed for the user, whichever server does it: IMAP `LIST`,
