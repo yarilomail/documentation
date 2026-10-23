@@ -581,10 +581,11 @@ event carries `{"interval":N}`.
 ### Resuming after a disconnect
 
 A `state` event carries the types whose state moved, with their new state
-strings, and an `id`. The id is the account's change counter.
+strings, and an `id`. The id is a sequence of the pod that serves the stream;
+it means nothing on another pod.
 
-To resume, reconnect with `Last-Event-ID` set to the last id received. The
-current state of every requested type is sent at once, so nothing is missed
+To resume, reconnect with `Last-Event-ID` set to the last id received. Whatever
+its value, the current state of every requested type is sent at once, so nothing is missed
 while the client was away, even if the account moved to another backend
 meanwhile.
 
@@ -593,16 +594,27 @@ only later changes.
 
 ### What moves a type
 
-Every write that changes a type's state raises the account's counter, whatever
-the protocol made it: a flag set over IMAP, a delivery over LMTP, a
-subscription, a role, an ACL change, a Sieve script, a sent message.
+Every write announces itself through `yarilo-locks`, whatever the protocol
+made it, and every pod with an open stream for the account hears it at once.
+A stream recomputes only the types the write can move and sends those whose
+state changed:
 
-Each pod with an open stream for an account reads the counter every
-`jmap_push_poll` seconds, so a change arrives within one interval. With
+| Write | Types |
+|:---|:---|
+| a message or its flags: delivery, `APPEND`, `STORE`, copy, move, expunge | `Email`, `Thread`, `Mailbox`, `Quota` |
+| a folder created, renamed or deleted; a subscription; a special-use role; an ACL change | `Mailbox` |
+| a Sieve script, including the vacation script | `SieveScript`, `VacationResponse` |
+| a new conversation in the threading state | `Thread` |
+| an `EmailSubmission` record kept or dropped | `EmailSubmission` |
+
+`jmap_push_poll` is a safety net under the events: every that many seconds a
+stream recomputes all its types, which catches a write made while the pod had
+lost its channel to `yarilo-locks`. A lost channel is asked for again every
+two seconds, and once it is back every type is recomputed. With
 `jmap_push_poll: 0` the endpoint answers `204`.
 
 `Identity` is read from userdb and has no write path in Yarilo. It moves only
-when userdb does, which the counter does not see.
+when userdb does, which no event announces; the recompute picks it up.
 
 ### Kicks
 
