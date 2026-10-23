@@ -15,15 +15,7 @@ See [Services configuration](/architecture/services) for listener-level settings
 
 Protocol-level behaviour shared across both submission listeners.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `hostname` | the top-level `hostname` | EHLO/HELO banner and `Message-ID` domain **for submission only**. Unset means the installation's name; see [General](/installation/general). Setting it here does not rename the LMTP banner, the `Received:` header or a delivered message's `Message-ID`. |
-| `submission_max_mail_size` | `40M` | Maximum accepted message size. Takes a size with a unit (`40M`) or bytes. Also accepted as `max_message_size`. |
-| `max_line_length` | `4096` | Maximum SMTP command or DATA line length in bytes. |
-| `submission_max_recipients` | `0` | Maximum recipients per message. `0` = unlimited. Also accepted as `max_recipients`. |
-| `recipient_delimiter` | `+` | Subaddress separator: `user+tag@domain` → `user@domain`. Empty = disabled. |
-| `submission_client_workarounds` | — | Compatibility shims for non-conformant clients: `whitespace-before-path`, `mailbox-for-path` (see [LMTP](/protocols/lmtp#protocol.lmtp.lmtp_client_workarounds) for what each does). Also accepted as `client_workarounds`. |
-| `submission_add_received_header` | `true` | Prepend a `Received:` trace header to messages before forwarding. Set to `false` to suppress (the reference parity — protects sender identity). |
+<!-- @settings protocol.submission -->
 
 ```yaml
 protocol:
@@ -54,19 +46,7 @@ A proxy or relay that passes the client's address with XCLIENT needs `xclient_pr
 
 Configures the upstream MTA for submission. One TCP connection per message; any transport error returns `451 4.4.0` to the MUA.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `submission_relay_host` | — | Upstream MTA hostname or IP. Empty = relay disabled, submission returns 451. |
-| `submission_relay_port` | `25` | Upstream MTA port. |
-| `submission_relay_user` | — | SASL PLAIN username sent to upstream; `%u` (or `%{user}`) is the session's user. Empty and no master = no AUTH. |
-| `submission_relay_master_user` | — | Log in as this master acting for `submission_relay_user` (the SASL authzid), or for the session's user when that is empty. |
-| `submission_relay_password` | — | SASL PLAIN password, the master's when one is set. Supports `${ENV_VAR}`. |
-| `submission_relay_ssl` | `no` | Transport security to upstream: `no` \| `starttls` \| `smtps`. |
-| `submission_relay_ssl_verify` | `true` | Verify upstream TLS certificate. |
-| `submission_relay_ssl_ca` | — | PEM file the upstream certificate is verified against. Empty = the system roots. |
-| `submission_relay_trusted` | `false` | Send XCLIENT to upstream with the MUA's real IP (requires upstream to advertise XCLIENT). |
-| `submission_relay_connect_timeout` | `30` | TCP connect timeout in seconds. |
-| `submission_relay_command_timeout` | `300` | Per-command timeout in seconds. |
+<!-- @settings protocol.submission.relay -->
 
 ```yaml
 protocol:
