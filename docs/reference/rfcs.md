@@ -1,5 +1,5 @@
 ---
-description: "The RFCs yarilo implements, by service: IMAP, POP3, Submission, LMTP, JMAP, Sieve and ManageSieve, authentication and message format, each with its state."
+description: "The RFCs yarilo implements, by service: IMAP, POP3, Submission, LMTP, JMAP, Sieve and ManageSieve, authentication, message format and the policy server, each with its state."
 ---
 
 # RFC support
@@ -24,7 +24,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 | [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | |
 | [2177](https://www.rfc-editor.org/rfc/rfc2177) | IDLE | yes | |
 | [2342](https://www.rfc-editor.org/rfc/rfc2342) | NAMESPACE | yes | after login; see [Namespaces](/storage/namespace) |
-| [2971](https://www.rfc-editor.org/rfc/rfc2971) | ID | yes | before login always; after login while `imap_id_send` is non-empty |
+| [2971](https://www.rfc-editor.org/rfc/rfc2971) | ID | yes | before login always; after login while `imap_id_send` is non-empty; with `imap_id_retain`, the client's `ID` goes to the [policy server](/auth/policy) as `device_id` |
 | [3516](https://www.rfc-editor.org/rfc/rfc3516) | BINARY | yes | after login |
 | [3691](https://www.rfc-editor.org/rfc/rfc3691) | UNSELECT | yes | after login |
 | [4314](https://www.rfc-editor.org/rfc/rfc4314) | ACL | yes | after login, with `acl.enabled` (off by default) |
@@ -204,5 +204,19 @@ Also implemented: `LOGIN` (draft) and `XOAUTH2` (Google). See [SCRAM](/auth/scra
 | [2045](https://www.rfc-editor.org/rfc/rfc2045)–[2049](https://www.rfc-editor.org/rfc/rfc2049) | MIME | yes | |
 | [2231](https://www.rfc-editor.org/rfc/rfc2231) | MIME parameter continuations | yes | parameters keep their order and spelling |
 | [8446](https://www.rfc-editor.org/rfc/rfc8446) | TLS 1.3 | yes | TLS 1.2 is the default minimum |
+| [6066](https://www.rfc-editor.org/rfc/rfc6066) | TLS `server_name` (SNI) | partial | the name picks between `ssl_server_cert_file` and `ssl_server_alt_cert_file`, by the names each covers; there are no certificates per name. The policy server gets it as `%{local_name}` |
 
-Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`.
+Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`. Behind a PROXY header, the client it names is the connection's remote address, and the proxy itself is what the policy server gets as `%{real_remote_ip}` and `%{real_remote_port}`.
+
+## Policy server
+
+`yarilo-auth` calls an HTTP [policy server](/auth/policy) before and after each login.
+
+| RFC | Title | State | Notes |
+|:---|:---|:---|:---|
+| [9110](https://www.rfc-editor.org/rfc/rfc9110) | HTTP semantics | yes | `POST`, over HTTP/1.1 or, through TLS, HTTP/2 |
+| [8259](https://www.rfc-editor.org/rfc/rfc8259) | JSON | yes | the request body and the answer |
+| [7617](https://www.rfc-editor.org/rfc/rfc7617) | Basic authentication | partial | `auth_policy_server_api_header` is sent as written, so `Authorization: Basic …` works; yarilo does not encode it |
+| [9562](https://www.rfc-editor.org/rfc/rfc9562) | UUID | yes | version 4, from `%{generate:uuid}` in a request template |
+| [4648](https://www.rfc-editor.org/rfc/rfc4648) | Base64, base64url and base16 | yes | the `base64` and `unbase64` template filters, `url=1` for the URL alphabet and `pad=0` without padding; `hexlify` and `unhexlify` for base16 |
+
