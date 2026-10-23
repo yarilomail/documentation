@@ -220,10 +220,6 @@ export default defineConfig({
   themeConfig: {
     logo: '/icon.svg',
     search: { provider: 'local' },
-    editLink: {
-      pattern: 'https://github.com/yarilomail/documentation/edit/main/docs/:path',
-      text: 'Edit this page'
-    },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/yarilomail' }
     ],
