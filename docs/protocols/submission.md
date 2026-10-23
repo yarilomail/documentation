@@ -22,7 +22,7 @@ Protocol-level behaviour shared across both submission listeners.
 | `max_line_length` | `4096` | Maximum SMTP command or DATA line length in bytes. |
 | `submission_max_recipients` | `0` | Maximum recipients per message. `0` = unlimited. Also accepted as `max_recipients`. |
 | `recipient_delimiter` | `+` | Subaddress separator: `user+tag@domain` → `user@domain`. Empty = disabled. |
-| `submission_client_workarounds` | — | Compatibility shims for non-conformant clients: `whitespace-before-path`, `mailbox-for-path` (see [LMTP](/protocols/lmtp#lmtp-client-workarounds) for what each does). Also accepted as `client_workarounds`. |
+| `submission_client_workarounds` | — | Compatibility shims for non-conformant clients: `whitespace-before-path`, `mailbox-for-path` (see [LMTP](/protocols/lmtp#protocol.lmtp.lmtp_client_workarounds) for what each does). Also accepted as `client_workarounds`. |
 | `submission_add_received_header` | `true` | Prepend a `Received:` trace header to messages before forwarding. Set to `false` to suppress (the reference parity — protects sender identity). |
 
 ```yaml

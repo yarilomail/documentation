@@ -21,26 +21,7 @@ See [Services configuration](/architecture/services) for listener-level settings
 
 ## `protocol.lmtp`
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `login_greeting` | `Yarilo ready.` | Text appended to the `220` banner. |
-| `lmtp_add_received_header` | `true` | Prepend a `Received:` header to every delivered message. |
-| `lmtp_add_message_id` | `true` | Synthesise a `Message-ID:` when a message arrives without one. An existing header is never rewritten. |
-| `lmtp_save_to_detail_mailbox` | `false` | When `true`, `user+folder@domain` delivers to the `folder` mailbox instead of `INBOX`. |
-| `lda_mailbox_autocreate` | `false` | A delivery to a folder that does not exist makes it. When `false`, the message goes to the detail mailbox if that exists, otherwise to `INBOX`. |
-| `lda_mailbox_autosubscribe` | `false` | Subscribes a folder `lda_mailbox_autocreate` made. Without `lda_mailbox_autocreate` it does nothing, and startup refuses it. |
-| `quota_full_tempfail` | `false` | Reply for a recipient whose mailbox is full. `false`: `552 5.2.2`, a permanent failure the MTA bounces to the sender. `true`: `452 4.2.2`, a temporary failure the MTA keeps queued and retries. See [Message size and a full mailbox](#message-size-and-a-full-mailbox). |
-| `lmtp_hdr_delivery_address` | `final` | Controls the `Delivered-To:` header: `none` — omit; `final` — address after detail stripping; `original` — RCPT TO address as received. |
-| `lmtp_verbose_replies` | `false` | Include diagnostic details in 4xx/5xx error responses (useful for debugging; disable in production). |
-| `lmtp_user_concurrency_limit` | `10` | Concurrent deliveries per user, counted across the cluster through `yarilo-warden` and enforced by `yarilo-lmtp-login` at `RCPT TO`; past it the recipient gets `451 4.3.0` and the MTA retries. `-1` = unlimited; `0` refuses startup. With `yarilo-warden` unreachable a delivery is accepted without the limit and a warning is logged. |
-| `lmtp_max_recipients` | `0` | Recipients per transaction, on the backend and in `yarilo-lmtp-login`. Advertised as `LIMITS RCPTMAX=N`; the next RCPT gets `452 4.5.3` and the MTA sends the rest in another transaction. `0` = unlimited. |
-| `read_timeout` | `300` | Per-command read timeout in seconds. |
-| `write_timeout` | `300` | Per-command write timeout in seconds. |
-| `lmtp_client_workarounds` | — | List of client compatibility workarounds (see below). |
-
-The pre-beta short spellings — `add_received_header`, `save_to_detail_mailbox`,
-`hdr_delivery_address`, `verbose_replies`, `user_concurrency_limit` and
-`client_workarounds` — are still accepted for the `lmtp_` keys above.
+<!-- @settings protocol.lmtp.login_greeting protocol.lmtp.lmtp_add_received_header protocol.lmtp.lmtp_save_to_detail_mailbox protocol.lmtp.lda_mailbox_autocreate protocol.lmtp.lda_mailbox_autosubscribe protocol.lmtp.lmtp_verbose_replies protocol.lmtp.lmtp_user_concurrency_limit protocol.lmtp.lmtp_max_recipients protocol.lmtp.read_timeout protocol.lmtp.write_timeout -->
 
 The backend's listen address and port are listener settings (`services.lmtp`, see
 [Services](/architecture/services)); the port the login service dials is
@@ -62,7 +43,9 @@ a Sieve `fileinto`) may not exist yet:
 
 `fileinto :create` makes the folder regardless of these settings.
 
-### `lmtp_add_message_id`
+### Synthesised Message-ID
+
+<!-- @settings protocol.lmtp.lmtp_add_message_id -->
 
 A message stored without a `Message-ID` cannot be replied to and cannot be
 threaded, and that is permanent: the header is part of the stored bytes, so
@@ -135,6 +118,8 @@ Turn it on only when a full mailbox is expected to be emptied soon and a
 delayed message is better than a bounce. Otherwise the sender learns of the
 failure only when the MTA gives up, often days later.
 
+<!-- @settings protocol.lmtp.quota_full_tempfail -->
+
 ---
 
 ## Recipient rate limiting
@@ -150,11 +135,7 @@ does not get a fresh allowance by reaching a different backend pod. The key is
 the pair (sender IP, recipient mailbox), so one noisy sender cannot exhaust
 another's allowance, and one busy mailbox does not throttle its neighbours.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `rate_limit_enabled` | `true` | Gates the whole check. |
-| `rate_limit_per_recipient_burst` | `100` | Messages allowed per (sender IP, recipient) inside one window. |
-| `rate_limit_per_recipient_window_seconds` | `60` | Width of the window, in seconds. |
+<!-- @settings protocol.lmtp.rate_limit -->
 
 ```yaml
 protocol:
@@ -188,9 +169,11 @@ A relay may name a recipient's original address with the `ORCPT` parameter of `R
 Postfix adds `ORCPT` only for a server that announces DSN, and yarilo does not announce DSN: that would make it responsible for delivery notifications (RFC 3461), which it does not send. So with Postfix in front, no ORCPT arrives and `sieve_vacation_use_original_recipient` has no effect. It takes effect with a relay that sends ORCPT without DSN, such as another IMAP server's LMTP proxy placed in front of yarilo during a migration.
 :::
 
-## `lmtp_hdr_delivery_address`
+## Delivered-To header
 
-Controls the `Delivered-To:` header prepended before storing the message.
+<!-- @settings protocol.lmtp.lmtp_hdr_delivery_address -->
+
+The values:
 
 | Value | Behaviour |
 |:---|:---|
@@ -200,9 +183,11 @@ Controls the `Delivered-To:` header prepended before storing the message.
 
 ---
 
-## `lmtp_client_workarounds`
+## Client workarounds
 
-A list of compatibility shims for non-conformant MTA clients. Unknown entries are silently ignored (the reference behaviour).
+<!-- @settings protocol.lmtp.lmtp_client_workarounds -->
+
+The names:
 
 | Name | Effect |
 |:---|:---|
@@ -223,9 +208,7 @@ protocol:
 
 `yarilo-lmtp-login` reads this section. For each recipient it opens one connection to the backend that the director's LOOKUP names (or to `backend_addr` in standalone mode). Deliveries to different backends run in parallel, and the per-recipient status codes are merged before the reply to the MTA. The backend, `yarilo-lmtp`, ignores the section.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `lmtp_proxy_timeout` | `125` | Cap in seconds on one backend delivery: the connect, the LMTP transaction and the body together. Past it the recipient gets `451 4.2.0` and the MTA retries. |
+<!-- @settings protocol.lmtp.proxy -->
 
 ```yaml
 protocol:
@@ -233,8 +216,6 @@ protocol:
     proxy:
       lmtp_proxy_timeout: 60
 ```
-
-In the Helm chart the value is `protocol.lmtp.proxy.lmtp_proxy_timeout`.
 
 A recipient's userdb field `proxy_timeout` replaces it for that recipient; see [AUTH](/auth/) for the format. When that lookup fails the recipient gets `451 4.3.0 Temporary user lookup failure`; when the value cannot be read, `550 5.3.5 Internal user lookup failure`. A user the userdb does not know is delivered with the global value.
 
@@ -278,12 +259,7 @@ The backend listens only for preamble connections from `yarilo-lmtp-login`. MTAs
 
 Configuration for `yarilo-lmtp-login`. Set either `backend_addr` (standalone) or `director_addr` (director mode). When both are set, `backend_addr` wins and the service logs a warning at start.
 
-| Key | Default | Description |
-|:---|:---|:---|
-| `backend_addr` | — | Fixed address of `yarilo-lmtp` backend. Used in standalone mode. |
-| `director_addr` | — | Address of `yarilo-director` (`:9102`) for the per-recipient `LOOKUP`. |
-| `director_tag` | `""` | Tag pool for the `LOOKUP`. Empty selects the untagged pool — there is no full-ring mode. A per-user `director_tag` from userdb overrides it. |
-| `backend_port` | `0` | Override the port in the LOOKUP result. `0` = use the result address as-is. |
+<!-- @settings lmtp_login_service -->
 
 **Standalone mode:**
 
