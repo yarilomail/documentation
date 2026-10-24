@@ -108,7 +108,8 @@ matching PTR.
 
 | Record | Name | Purpose |
 |:---|:---|:---|
-| SRV | `_imaps._tcp`, `_submission._tcp` | Client autodiscovery (RFC 6186) |
+| SRV | `_imaps._tcp`, `_submissions._tcp`, `_submission._tcp` | Client autodiscovery (RFC 6186) |
+| SRV | `_autodiscover._tcp` | Outlook autodiscovery |
 | TXT | `_mta-sts.example.com` | MTA-STS policy for enforced inbound TLS |
 | TXT | `_smtp._tls.example.com` | TLS-RPT reporting address |
 | TLSA | `_25._tcp.mail.example.com` | DANE, only with a DNSSEC-signed zone |
@@ -118,12 +119,18 @@ served over HTTPS at `https://mta-sts.example.com/.well-known/mta-sts.txt`,
 so the record alone has no effect until that host is up.
 
 Autodiscovery lets mail clients find the IMAP and submission hosts from the
-address alone:
+address alone. Publish implicit TLS with the lower priority value, so clients
+prefer it over STARTTLS:
 
 ```
-_imaps._tcp.example.com.        3600  IN  SRV  0 1 993  mail.example.com.
-_submission._tcp.example.com.   3600  IN  SRV  0 1 587  mail.example.com.
+_imaps._tcp.example.com.         3600  IN  SRV  0 1 993  mail.example.com.
+_submissions._tcp.example.com.   3600  IN  SRV  0 1 465  mail.example.com.
+_submission._tcp.example.com.    3600  IN  SRV  10 1 587 mail.example.com.
 ```
+
+Thunderbird and Outlook need more than these records. See
+[Mail client autoconfiguration](/installation/autoconfig) for the service
+that answers them and the `_autodiscover._tcp` record.
 
 ## Nameserver redundancy
 
