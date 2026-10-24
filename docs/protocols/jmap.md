@@ -575,7 +575,7 @@ A renamed mailbox keeps its id and its access rights.
 | Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
 | Sieve — `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
 | Vacation — `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
-| Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured; identities read-only |
+| Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured |
 | Push over EventSource | RFC 8620 §7.3 | served; see [Push](#push) |
 | JMAP over WebSocket, with push | RFC 8887 | served; see [WebSocket](#websocket) |
 | Push subscriptions (Web Push) | RFC 8620 §7.2 | not implemented |
@@ -633,6 +633,7 @@ state changed:
 | a Sieve script, including the vacation script | `SieveScript`, `VacationResponse` |
 | a new conversation in the threading state | `Thread` |
 | an `EmailSubmission` record kept or dropped | `EmailSubmission` |
+| an identity created, changed or destroyed with `Identity/set` | `Identity` |
 
 `jmap_push_poll` is a safety net under the events: every that many seconds a
 stream recomputes all its types, which catches a write made while the pod had
@@ -640,8 +641,8 @@ lost its channel to `yarilo-locks`. A lost channel is asked for again every
 two seconds, and once it is back every type is recomputed. With
 `jmap_push_poll: 0` the endpoint answers `204`.
 
-`Identity` is read from userdb and has no write path in Yarilo. It moves only
-when userdb does, which no event announces; the recompute picks it up.
+`Identity` also moves when userdb changes the account's addresses, which no
+event announces; the recompute picks it up.
 
 ### Kicks
 
@@ -872,7 +873,19 @@ The one object's id is `singleton`. `create` and `destroy` answer `singleton` (�
 
 ### Identities
 
-The account's identities are its login, when it is an address, then the userdb field `identity_aliases`, each once whatever its case. They are read-only: `Identity/set` refuses every object with `forbidden`. An identity's `id` is fixed by its address, so a client may keep it.
+The account has one identity for its login, when it is an address, and one for each address in the userdb field `identity_aliases`, each once whatever its case. Their `id` is fixed by the address, so a client may keep it, and their `mayDelete` is `false`.
+
+`Identity/set` (RFC 8621 §6.3):
+
+- **create** adds an identity with `name`, `email`, `replyTo`, `bcc`, `textSignature` and `htmlSignature`. `email` is required and must be one of the account's addresses above, in any case; it is stored in the account's case. Another address is refused with `forbiddenFrom`. A created identity has `mayDelete: true`; the response carries its `id` and `mayDelete`, and its creation id can name it in the same request, as `"identityId": "#i"`.
+- **update** changes any property but `email`, on a created identity and on the account's own ones alike: a name, a signature, `replyTo`, `bcc`.
+- **destroy** removes a created identity. The account's own identities are refused with `forbidden`.
+
+`email`, `id` and `mayDelete` cannot be set by an update, and an unknown property is refused: each with `invalidProperties`. `ifInState`, `notFound` and `maxObjectsInSet` work as in every `/set`.
+
+A created identity whose address userdb no longer gives the account is not listed and cannot send; it returns if the address does. The account's own identities always show the address in the case userdb gives now, with the name and signatures set on them kept.
+
+Identities are stored per user in `jmap-identities.json` in the control directory, beside the subscriptions file. Without the file the account has only its own identities.
 
 ### Sending a draft
 
