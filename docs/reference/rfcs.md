@@ -129,7 +129,7 @@ Served by `yarilo-jmap`, through `yarilo-jmap-login`.
 |:---|:---|:---|:---|
 | [8620](https://www.rfc-editor.org/rfc/rfc8620) | JMAP core | yes | session, request envelope, back-references, blob upload and download |
 | [8620 §7.3](https://www.rfc-editor.org/rfc/rfc8620#section-7.3) | Push over EventSource | yes | a write on any pod reaches the stream as a `yarilo-locks` event; off with `jmap_push_poll: 0`, see [Push](/protocols/jmap#push) |
-| [8621](https://www.rfc-editor.org/rfc/rfc8621) | JMAP for Mail | yes | `Mailbox/queryChanges` and `Email/queryChanges` answer `cannotCalculateChanges`, which the RFC allows. `header:*` properties are set on `Email/set` create as §4.6 describes. `Email/get` answers a `header:*` form that §4.1.2 does not allow for the field instead of refusing it |
+| [8621](https://www.rfc-editor.org/rfc/rfc8621) | JMAP for Mail | yes | `Mailbox/queryChanges` and `Email/queryChanges` answer `cannotCalculateChanges`, which the RFC allows. `header:*` properties are set on `Email/set` create as §4.6 describes. `Email/get` answers a `header:*` property in whatever form the client asks for any field; the §4.1.2 refusal is not applied, by decision, because a current web client asks for `asText` on `List-*` fields and would show no messages |
 | [8621 §7](https://www.rfc-editor.org/rfc/rfc8621#section-7) | Submission | yes | when a relay is configured; identities are read-only |
 | [8621 §8](https://www.rfc-editor.org/rfc/rfc8621#section-8) | Vacation response | yes | with Sieve vacation on |
 | [9425](https://www.rfc-editor.org/rfc/rfc9425) | JMAP for Quotas | yes | read-only |
