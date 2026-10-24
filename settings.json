@@ -1,0 +1,5834 @@
+[
+  {
+    "key": "acl.acl_cache_ttl",
+    "section": "acl",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "acl.acl_globals_only",
+    "section": "acl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "acl.acl_shared_dict",
+    "section": "acl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "acl.acl_sharing_map",
+    "section": "acl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "acl.defaults_from_inbox",
+    "section": "acl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "acl.enabled",
+    "section": "acl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "acl.global[].entries[].identifier",
+    "section": "acl.global[].entries[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "acl.global[].entries[].rights",
+    "section": "acl.global[].entries[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "acl.global[].mailbox",
+    "section": "acl.global[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "acl.globals_only",
+    "section": "acl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.auth_failure_delay",
+    "section": "auth",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "auth.auth_max_attempts",
+    "section": "auth",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "auth.cache.auth_cache_negative_ttl",
+    "section": "auth.cache",
+    "type": "int",
+    "kind": "integer",
+    "default": 1800
+  },
+  {
+    "key": "auth.cache.auth_cache_size",
+    "section": "auth.cache",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.cache.auth_cache_ttl",
+    "section": "auth.cache",
+    "type": "int",
+    "kind": "integer",
+    "default": 1800
+  },
+  {
+    "key": "auth.cache.cache_size",
+    "section": "auth.cache",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.cache.negative_ttl_seconds",
+    "section": "auth.cache",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.cache.ttl_seconds",
+    "section": "auth.cache",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.failure_delay",
+    "section": "auth",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.internal_failure_delay_ms",
+    "section": "auth",
+    "type": "int",
+    "kind": "integer",
+    "default": 2000
+  },
+  {
+    "key": "auth.master_users.auth_master_user_separator",
+    "section": "auth.master_users",
+    "type": "string",
+    "kind": "string",
+    "default": "*"
+  },
+  {
+    "key": "auth.master_users.enabled",
+    "section": "auth.master_users",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.master_users.masterdb[].conn_max_idle_time",
+    "section": "auth.master_users.masterdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.master_users.masterdb[].conn_max_lifetime",
+    "section": "auth.master_users.masterdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.master_users.masterdb[].default_pass_scheme",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].driver",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].dsn",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].fields",
+    "section": "auth.master_users.masterdb[]",
+    "type": "map[string]string",
+    "kind": "map",
+    "default": null
+  },
+  {
+    "key": "auth.master_users.masterdb[].iterate_query",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].max_idle_conns",
+    "section": "auth.master_users.masterdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.master_users.masterdb[].max_open_conns",
+    "section": "auth.master_users.masterdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.master_users.masterdb[].nopassword",
+    "section": "auth.master_users.masterdb[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.master_users.masterdb[].passdb_default_password_scheme",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].passdb_sql_query",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].passwd_file",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].passwd_file_path",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].password_query",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].skip_schema",
+    "section": "auth.master_users.masterdb[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.master_users.masterdb[].static_password",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].user_query",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].userdb_sql_iterate_query",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].userdb_sql_query",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.masterdb[].userdb_static_allow_all_users",
+    "section": "auth.master_users.masterdb[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.master_users.masterdb[].username_filter",
+    "section": "auth.master_users.masterdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.master_users.separator",
+    "section": "auth.master_users",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.max_attempts",
+    "section": "auth",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.oauth2[].active_attribute",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].active_value",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].audience",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].client_id",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].client_secret",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].extra_fields",
+    "section": "auth.oauth2[]",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "auth.oauth2[].http_timeout_ms",
+    "section": "auth.oauth2[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.oauth2[].introspection_mode",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].introspection_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].issuer_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].issuers",
+    "section": "auth.oauth2[]",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "auth.oauth2[].jwks_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].mode",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_active_attribute",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_active_value",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_audience",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_client_id",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_client_secret",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_fields",
+    "section": "auth.oauth2[]",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "auth.oauth2[].oauth2_force_introspection",
+    "section": "auth.oauth2[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.oauth2[].oauth2_grant_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_http_timeout_ms",
+    "section": "auth.oauth2[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.oauth2[].oauth2_introspection_mode",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_introspection_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_issuer_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_issuers",
+    "section": "auth.oauth2[]",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "auth.oauth2[].oauth2_jwks_unknown_kid_interval_seconds",
+    "section": "auth.oauth2[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.oauth2[].oauth2_jwks_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_local_keys[].oauth2_local_key_alg",
+    "section": "auth.oauth2[].oauth2_local_keys[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_local_keys[].oauth2_local_key_azp",
+    "section": "auth.oauth2[].oauth2_local_keys[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_local_keys[].oauth2_local_key_file",
+    "section": "auth.oauth2[].oauth2_local_keys[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_local_keys[].oauth2_local_key_kid",
+    "section": "auth.oauth2[].oauth2_local_keys[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_mode",
+    "section": "auth.oauth2[]",
+    "type": "config.OAuth2Mode",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_prefer_introspection",
+    "section": "auth.oauth2[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.oauth2[].oauth2_scope",
+    "section": "auth.oauth2[]",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "auth.oauth2[].oauth2_tls_ca",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_token_expire_grace_seconds",
+    "section": "auth.oauth2[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.oauth2[].oauth2_tokeninfo_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_username_attribute",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].oauth2_username_validation_format",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].prefer_introspection",
+    "section": "auth.oauth2[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.oauth2[].scopes",
+    "section": "auth.oauth2[]",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "auth.oauth2[].token_expire_grace_seconds",
+    "section": "auth.oauth2[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.oauth2[].tokeninfo_url",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].username_attribute",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.oauth2[].username_validation_format",
+    "section": "auth.oauth2[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].conn_max_idle_time",
+    "section": "auth.passdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.passdb[].conn_max_lifetime",
+    "section": "auth.passdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.passdb[].default_pass_scheme",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].driver",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].dsn",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].fields",
+    "section": "auth.passdb[]",
+    "type": "map[string]string",
+    "kind": "map",
+    "default": null
+  },
+  {
+    "key": "auth.passdb[].iterate_query",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].max_idle_conns",
+    "section": "auth.passdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.passdb[].max_open_conns",
+    "section": "auth.passdb[]",
+    "type": "*int",
+    "kind": "integer",
+    "default": null
+  },
+  {
+    "key": "auth.passdb[].nopassword",
+    "section": "auth.passdb[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.passdb[].passdb_default_password_scheme",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].passdb_sql_query",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].passwd_file",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].passwd_file_path",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].password_query",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].skip_schema",
+    "section": "auth.passdb[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.passdb[].static_password",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].user_query",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].userdb_sql_iterate_query",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].userdb_sql_query",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.passdb[].userdb_static_allow_all_users",
+    "section": "auth.passdb[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.passdb[].username_filter",
+    "section": "auth.passdb[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.penalty.enabled",
+    "section": "auth.penalty",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.api_header",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.policy.auth_policy_check_after_auth",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "auth.policy.auth_policy_check_before_auth",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "auth.policy.auth_policy_hash_mech",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": "sha256"
+  },
+  {
+    "key": "auth.policy.auth_policy_hash_nonce",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.policy.auth_policy_hash_truncate",
+    "section": "auth.policy",
+    "type": "uint",
+    "kind": "integer",
+    "default": 12
+  },
+  {
+    "key": "auth.policy.auth_policy_log_only",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.auth_policy_reject_on_fail",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.auth_policy_report_after_auth",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "auth.policy.auth_policy_request_attributes",
+    "section": "auth.policy",
+    "type": "map[string]string",
+    "kind": "map",
+    "default": {
+      "device_id": "%{client_id}",
+      "fail_type": "%{fail_type}",
+      "login": "%{requested_username}",
+      "protocol": "%{protocol}",
+      "pwhash": "%{hashed_password}",
+      "remote": "%{remote_ip}",
+      "session_id": "%{session}"
+    }
+  },
+  {
+    "key": "auth.policy.auth_policy_server_api_header",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.policy.auth_policy_server_url",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.policy.check_after",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.check_before",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.hash_mech",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.policy.hash_nonce",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.policy.hash_truncate_bits",
+    "section": "auth.policy",
+    "type": "uint",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "auth.policy.log_only",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.reject_on_fail",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.report_after",
+    "section": "auth.policy",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "auth.policy.timeout_ms",
+    "section": "auth.policy",
+    "type": "int",
+    "kind": "integer",
+    "default": 5000
+  },
+  {
+    "key": "auth.policy.url",
+    "section": "auth.policy",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.token.backend",
+    "section": "auth.token",
+    "type": "string",
+    "kind": "string",
+    "default": "memory"
+  },
+  {
+    "key": "auth.token.key_prefix",
+    "section": "auth.token",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.token.redis_addr",
+    "section": "auth.token",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.token.redis_password",
+    "section": "auth.token",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth.token.ttl_seconds",
+    "section": "auth.token",
+    "type": "int",
+    "kind": "integer",
+    "default": 60
+  },
+  {
+    "key": "auth_client.auth_client_pool_idle_timeout",
+    "section": "auth_client",
+    "type": "int",
+    "kind": "integer",
+    "default": 300
+  },
+  {
+    "key": "auth_client.auth_client_pool_size",
+    "section": "auth_client",
+    "type": "int",
+    "kind": "integer",
+    "default": 4
+  },
+  {
+    "key": "auth_service.addr",
+    "section": "auth_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth_service.auth_startup_wait",
+    "section": "auth_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "auth_service.listen",
+    "section": "auth_service",
+    "type": "string",
+    "kind": "string",
+    "default": ":9100"
+  },
+  {
+    "key": "auth_service.master_addr",
+    "section": "auth_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth_service.master_listen",
+    "section": "auth_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "auth_service.shutdown.kill_timeout",
+    "section": "auth_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "auth_service.shutdown.session_grace_period",
+    "section": "auth_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "backend_api.allowed_nets",
+    "section": "backend_api",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "backend_api.auth_disabled",
+    "section": "backend_api",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "backend_api.auth_master_addr",
+    "section": "backend_api",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "backend_api.listen",
+    "section": "backend_api",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "backend_api.token",
+    "section": "backend_api",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "backend_register.director_addr",
+    "section": "backend_register",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "backend_register.readiness_dir",
+    "section": "backend_register",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "backend_register.readiness_protocols",
+    "section": "backend_register",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "backend_register.readiness_stale_after",
+    "section": "backend_register",
+    "type": "int",
+    "kind": "integer",
+    "default": 15
+  },
+  {
+    "key": "backend_register.readiness_touch_interval",
+    "section": "backend_register",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "backend_register.register_interval",
+    "section": "backend_register",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "backend_register.tag",
+    "section": "backend_register",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "backend_register.vhosts",
+    "section": "backend_register",
+    "type": "int",
+    "kind": "integer",
+    "default": 100
+  },
+  {
+    "key": "chart_version",
+    "section": "",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "config_schema_version",
+    "section": "",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "dict_service.dict_addr",
+    "section": "dict_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "dict_service.dict_listen",
+    "section": "dict_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "dict_service.dict_max_conns",
+    "section": "dict_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 8
+  },
+  {
+    "key": "dicts.*.driver",
+    "section": "dicts.*",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "dicts.*.expire_secs",
+    "section": "dicts.*",
+    "type": "uint32",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "dicts.*.home_dir",
+    "section": "dicts.*",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "dicts.*.settings",
+    "section": "dicts.*",
+    "type": "map[string]interface {}",
+    "kind": "map",
+    "default": null
+  },
+  {
+    "key": "dicts.*.username",
+    "section": "dicts.*",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.anti_entropy_interval",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "director_service.api.allowed_nets",
+    "section": "director_service.api",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "director_service.api.auth_disabled",
+    "section": "director_service.api",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "director_service.api.listen",
+    "section": "director_service.api",
+    "type": "string",
+    "kind": "string",
+    "default": ":9103"
+  },
+  {
+    "key": "director_service.api.token",
+    "section": "director_service.api",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.assignment_policy",
+    "section": "director_service",
+    "type": "string",
+    "kind": "string",
+    "default": "hash"
+  },
+  {
+    "key": "director_service.backend_expire",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "director_service.backend_unreachable_reporters",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "director_service.backend_unreachable_window",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "director_service.director_domain_expire",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 900
+  },
+  {
+    "key": "director_service.director_domain_rebalance_cooldown",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 600
+  },
+  {
+    "key": "director_service.director_domain_rebalance_interval",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 60
+  },
+  {
+    "key": "director_service.director_domain_rebalance_percent",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "director_service.flush_program",
+    "section": "director_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.flush_program_timeout",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "director_service.join_allowed_nets",
+    "section": "director_service",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "director_service.listen",
+    "section": "director_service",
+    "type": "string",
+    "kind": "string",
+    "default": ":9102"
+  },
+  {
+    "key": "director_service.mail_servers[].host",
+    "section": "director_service.mail_servers[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.mail_servers[].port",
+    "section": "director_service.mail_servers[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "director_service.mail_servers[].tag",
+    "section": "director_service.mail_servers[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.mail_servers[].vhosts",
+    "section": "director_service.mail_servers[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "director_service.max_parallel_kicks",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 100
+  },
+  {
+    "key": "director_service.max_parallel_moves",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "director_service.min_members",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "director_service.peers",
+    "section": "director_service",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "director_service.ping_interval",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "director_service.ping_timeout",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "director_service.ring_secret",
+    "section": "director_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.ring_tls_server_name",
+    "section": "director_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.seed_poll_idle_interval",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "director_service.seed_poll_interval",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "director_service.shutdown.kill_timeout",
+    "section": "director_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "director_service.shutdown.session_grace_period",
+    "section": "director_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "director_service.tombstone_ttl",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 600
+  },
+  {
+    "key": "director_service.user_expire",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 900
+  },
+  {
+    "key": "director_service.user_kick_delay",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "director_service.user_kill_confirm_grace",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 1
+  },
+  {
+    "key": "director_service.user_kill_timeout",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 15
+  },
+  {
+    "key": "director_service.username_hash",
+    "section": "director_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "director_service.username_hash_lowercase",
+    "section": "director_service",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "director_service.write_timeout",
+    "section": "director_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "fts.enabled",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_addr",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_auth_master_addr",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_autoindex",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_autoindex_exclude",
+    "section": "fts",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "fts.fts_autoindex_max_recent_msgs",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "fts.fts_commit_limit",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 500
+  },
+  {
+    "key": "fts.fts_decoder_driver",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "none"
+  },
+  {
+    "key": "fts.fts_decoder_max_attempts",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "fts.fts_decoder_max_size",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_decoder_script_addr",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_decoder_tika_url",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_decoder_timeout_secs",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "fts.fts_dedup_body_parts",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_detection_min_runes",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "fts.fts_detection_sample_bytes",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "1k"
+  },
+  {
+    "key": "fts.fts_engine",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_flatcurve_commit_limit",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 500
+  },
+  {
+    "key": "fts.fts_flatcurve_min_term_size",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 2
+  },
+  {
+    "key": "fts.fts_flatcurve_optimize_limit",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "fts.fts_flatcurve_prefix_search",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "yes"
+  },
+  {
+    "key": "fts.fts_flatcurve_rotate_count",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 5000
+  },
+  {
+    "key": "fts.fts_flatcurve_rotate_time",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 5000
+  },
+  {
+    "key": "fts.fts_flatcurve_substring_search",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_handle_idle_timeout",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 300
+  },
+  {
+    "key": "fts.fts_header_excludes",
+    "section": "fts",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "fts.fts_header_includes",
+    "section": "fts",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "fts.fts_index_root",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "posix:prefix=%h/fts/"
+  },
+  {
+    "key": "fts.fts_index_workers",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 1
+  },
+  {
+    "key": "fts.fts_language_filters_override",
+    "section": "fts",
+    "type": "map[string][]string",
+    "kind": "map",
+    "default": null
+  },
+  {
+    "key": "fts.fts_language_tokenizer_address_token_maxlen",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "fts.fts_language_tokenizer_generic_algorithm",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_language_tokenizer_generic_explicit_prefix",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_language_tokenizer_generic_token_maxlen",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "fts.fts_language_tokenizer_generic_wb5a",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_listen",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ":9106"
+  },
+  {
+    "key": "fts.fts_max_conns",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 4
+  },
+  {
+    "key": "fts.fts_message_max_size",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.fts_mode",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "remote"
+  },
+  {
+    "key": "fts.fts_prefetch_depth",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 1
+  },
+  {
+    "key": "fts.fts_prefetch_max_bytes",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "32M"
+  },
+  {
+    "key": "fts.fts_search",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "fts.fts_search_add_missing",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "body-search-only"
+  },
+  {
+    "key": "fts.fts_search_first_index_grace",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "fts.fts_search_read_fallback",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "fts.fts_search_strict",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.fts_search_timeout",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "fts.fts_search_timeout_secs",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "fts.fts_storage_type",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "fts.language_filters",
+    "section": "fts",
+    "type": "[]string",
+    "kind": "list",
+    "default": [
+      "lowercase",
+      "stopwords",
+      "snowball"
+    ]
+  },
+  {
+    "key": "fts.language_tokenizer_address_token_maxlen",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 250
+  },
+  {
+    "key": "fts.language_tokenizer_generic_algorithm",
+    "section": "fts",
+    "type": "string",
+    "kind": "string",
+    "default": "simple"
+  },
+  {
+    "key": "fts.language_tokenizer_generic_explicit_prefix",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.language_tokenizer_generic_token_maxlen",
+    "section": "fts",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "fts.language_tokenizer_generic_wb5a",
+    "section": "fts",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "fts.languages",
+    "section": "fts",
+    "type": "[]string",
+    "kind": "list",
+    "default": [
+      "en"
+    ]
+  },
+  {
+    "key": "general.haproxy.haproxy_trusted_networks",
+    "section": "general.haproxy",
+    "type": "[]string",
+    "kind": "list",
+    "default": [
+      "127.0.0.1/32",
+      "10.0.0.0/8"
+    ]
+  },
+  {
+    "key": "general.haproxy.timeout",
+    "section": "general.haproxy",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "general.haproxy.trusted_nets",
+    "section": "general.haproxy",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "general.limits.mail_max_userip_connections",
+    "section": "general.limits",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "general.ssl.prefer_server_ciphers",
+    "section": "general.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "general.ssl.ssl_min_protocol",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": "TLS1.2"
+  },
+  {
+    "key": "general.ssl.ssl_prefer_server_ciphers",
+    "section": "general.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "general.ssl.ssl_server_alt_cert_file",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.ssl_server_alt_key_file",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.ssl_server_cert_file",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.ssl_server_key_file",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.tls_alt_cert",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.tls_alt_key",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.tls_cert",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.tls_key",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.ssl.tls_min_version",
+    "section": "general.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "general.startup_dial_retries",
+    "section": "general",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "general.xclient.trusted_nets",
+    "section": "general.xclient",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "hostname",
+    "section": "",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "imap_login_service.backend_addr",
+    "section": "imap_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "imap_login_service.backend_port",
+    "section": "imap_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "imap_login_service.director_addr",
+    "section": "imap_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "imap_login_service.director_tag",
+    "section": "imap_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "internal_tls.ca",
+    "section": "internal_tls",
+    "type": "string",
+    "kind": "string",
+    "default": "/etc/yarilo/tls/ca.crt"
+  },
+  {
+    "key": "internal_tls.cert",
+    "section": "internal_tls",
+    "type": "string",
+    "kind": "string",
+    "default": "/etc/yarilo/tls/tls.crt"
+  },
+  {
+    "key": "internal_tls.enabled",
+    "section": "internal_tls",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "internal_tls.key",
+    "section": "internal_tls",
+    "type": "string",
+    "kind": "string",
+    "default": "/etc/yarilo/tls/tls.key"
+  },
+  {
+    "key": "internal_tls.server_name",
+    "section": "internal_tls",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "internal_tls.session_cache_size",
+    "section": "internal_tls",
+    "type": "int",
+    "kind": "integer",
+    "default": 64
+  },
+  {
+    "key": "internal_tls.session_cache_ttl",
+    "section": "internal_tls",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "jmap_login_service.backend_addr",
+    "section": "jmap_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "jmap_login_service.backend_port",
+    "section": "jmap_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "jmap_login_service.director_addr",
+    "section": "jmap_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "jmap_login_service.director_tag",
+    "section": "jmap_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "jmap_service.auth_master_addr",
+    "section": "jmap_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "lmtp_login_service.backend_addr",
+    "section": "lmtp_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "lmtp_login_service.backend_port",
+    "section": "lmtp_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "lmtp_login_service.director_addr",
+    "section": "lmtp_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "lmtp_login_service.director_tag",
+    "section": "lmtp_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_client.endpoints",
+    "section": "locks_client",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "locks_client.locks_client_startup_wait",
+    "section": "locks_client",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "locks_client.locks_client_wait_pool_size",
+    "section": "locks_client",
+    "type": "int",
+    "kind": "integer",
+    "default": 64
+  },
+  {
+    "key": "locks_client.mode",
+    "section": "locks_client",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_client.socket",
+    "section": "locks_client",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.channel_prefix",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.key_prefix",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.listen",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.mode",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.redis",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.redis_password",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "locks_service.shutdown.kill_timeout",
+    "section": "locks_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "locks_service.shutdown.session_grace_period",
+    "section": "locks_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "locks_service.socket",
+    "section": "locks_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "log.level",
+    "section": "log",
+    "type": "string",
+    "kind": "string",
+    "default": "info"
+  },
+  {
+    "key": "login.login_proxy_timeout",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "login.lookup_hold_backoff_ms",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 150
+  },
+  {
+    "key": "login.lookup_hold_max",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 20
+  },
+  {
+    "key": "login.session_grace_period",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "login.session_sync_interval",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "login.transient_relogin_cap",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "login.transient_retries",
+    "section": "login",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "managesieve_login_service.backend_addr",
+    "section": "managesieve_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "managesieve_login_service.backend_port",
+    "section": "managesieve_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "managesieve_login_service.director_addr",
+    "section": "managesieve_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "managesieve_login_service.director_tag",
+    "section": "managesieve_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "managesieve_login_service.haproxy_protocol",
+    "section": "managesieve_login_service",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "managesieve_login_service.haproxy_timeout",
+    "section": "managesieve_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "managesieve_login_service.haproxy_trusted_nets",
+    "section": "managesieve_login_service",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "mode",
+    "section": "",
+    "type": "string",
+    "kind": "string",
+    "default": "single"
+  },
+  {
+    "key": "namespaces[].acl_ignore",
+    "section": "namespaces[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "namespaces[].hidden",
+    "section": "namespaces[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "namespaces[].inbox",
+    "section": "namespaces[]",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "namespaces[].list",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].location",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].mail_driver",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].mail_index_path",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].mail_path",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].mailboxes.*.auto",
+    "section": "namespaces[].mailboxes.*",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].mailboxes.*.special_use",
+    "section": "namespaces[].mailboxes.*",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].prefix",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].separator",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "namespaces[].subscriptions",
+    "section": "namespaces[]",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "namespaces[].type",
+    "section": "namespaces[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "pop3_login_service.backend_addr",
+    "section": "pop3_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "pop3_login_service.backend_port",
+    "section": "pop3_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "pop3_login_service.director_addr",
+    "section": "pop3_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "pop3_login_service.director_tag",
+    "section": "pop3_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.imap.client_workarounds",
+    "section": "protocol.imap",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.imap.imap_client_workarounds",
+    "section": "protocol.imap",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.imap.imap_id_retain",
+    "section": "protocol.imap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.imap.imap_id_send",
+    "section": "protocol.imap",
+    "type": "string",
+    "kind": "string",
+    "default": "name *"
+  },
+  {
+    "key": "protocol.imap.imap_idle_notify_interval",
+    "section": "protocol.imap",
+    "type": "int",
+    "kind": "integer",
+    "default": 120
+  },
+  {
+    "key": "protocol.imap.imap_logout_format",
+    "section": "protocol.imap",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.imap.imap_max_line_length",
+    "section": "protocol.imap",
+    "type": "int",
+    "kind": "integer",
+    "default": 65536
+  },
+  {
+    "key": "protocol.imap.imap_quota",
+    "section": "protocol.imap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "protocol.imap.imap_special_use_defaults",
+    "section": "protocol.imap",
+    "type": "map[string]string",
+    "kind": "map",
+    "default": {
+      "Archive": "\\Archive",
+      "Drafts": "\\Drafts",
+      "Junk": "\\Junk",
+      "Sent": "\\Sent",
+      "Trash": "\\Trash"
+    }
+  },
+  {
+    "key": "protocol.imap.login_greeting",
+    "section": "protocol.imap",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.jmap.jmap_base_url",
+    "section": "protocol.jmap",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.jmap.jmap_cors_allow_origins",
+    "section": "protocol.jmap",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.jmap.jmap_max_body_value_bytes",
+    "section": "protocol.jmap",
+    "type": "string",
+    "kind": "string",
+    "default": "256K"
+  },
+  {
+    "key": "protocol.jmap.jmap_max_calls_in_request",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 16
+  },
+  {
+    "key": "protocol.jmap.jmap_max_concurrent_requests",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "protocol.jmap.jmap_max_objects_in_get",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 500
+  },
+  {
+    "key": "protocol.jmap.jmap_max_objects_in_set",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 500
+  },
+  {
+    "key": "protocol.jmap.jmap_max_query_folders",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 64
+  },
+  {
+    "key": "protocol.jmap.jmap_max_size_request",
+    "section": "protocol.jmap",
+    "type": "string",
+    "kind": "string",
+    "default": "10M"
+  },
+  {
+    "key": "protocol.jmap.jmap_max_size_upload",
+    "section": "protocol.jmap",
+    "type": "string",
+    "kind": "string",
+    "default": "40M"
+  },
+  {
+    "key": "protocol.jmap.jmap_push_poll",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 60
+  },
+  {
+    "key": "protocol.jmap.jmap_query_max_limit",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 256
+  },
+  {
+    "key": "protocol.jmap.jmap_snippet_max_chars",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 256
+  },
+  {
+    "key": "protocol.jmap.jmap_submission_ttl_seconds",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 86400
+  },
+  {
+    "key": "protocol.jmap.jmap_upload_ttl",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 3600
+  },
+  {
+    "key": "protocol.jmap.jmap_websocket_timeout",
+    "section": "protocol.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 1800
+  },
+  {
+    "key": "protocol.lmtp.add_received_header",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.client_workarounds",
+    "section": "protocol.lmtp",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.lmtp.hdr_delivery_address",
+    "section": "protocol.lmtp",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.lmtp.lda_mailbox_autocreate",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.lda_mailbox_autosubscribe",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.lmtp_add_message_id",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "protocol.lmtp.lmtp_add_received_header",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "protocol.lmtp.lmtp_client_workarounds",
+    "section": "protocol.lmtp",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.lmtp.lmtp_hdr_delivery_address",
+    "section": "protocol.lmtp",
+    "type": "string",
+    "kind": "string",
+    "default": "final"
+  },
+  {
+    "key": "protocol.lmtp.lmtp_max_recipients",
+    "section": "protocol.lmtp",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.lmtp.lmtp_save_to_detail_mailbox",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.lmtp_user_concurrency_limit",
+    "section": "protocol.lmtp",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "protocol.lmtp.lmtp_verbose_replies",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.login_greeting",
+    "section": "protocol.lmtp",
+    "type": "string",
+    "kind": "string",
+    "default": "Yarilo ready."
+  },
+  {
+    "key": "protocol.lmtp.proxy.lmtp_proxy_timeout",
+    "section": "protocol.lmtp.proxy",
+    "type": "int",
+    "kind": "integer",
+    "default": 125
+  },
+  {
+    "key": "protocol.lmtp.proxy.timeout",
+    "section": "protocol.lmtp.proxy",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.lmtp.quota_full_tempfail",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.rate_limit.enabled",
+    "section": "protocol.lmtp.rate_limit",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.rate_limit.per_recipient_burst",
+    "section": "protocol.lmtp.rate_limit",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.lmtp.rate_limit.per_recipient_window_seconds",
+    "section": "protocol.lmtp.rate_limit",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.lmtp.rate_limit.rate_limit_enabled",
+    "section": "protocol.lmtp.rate_limit",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "protocol.lmtp.rate_limit.rate_limit_per_recipient_burst",
+    "section": "protocol.lmtp.rate_limit",
+    "type": "int",
+    "kind": "integer",
+    "default": 100
+  },
+  {
+    "key": "protocol.lmtp.rate_limit.rate_limit_per_recipient_window_seconds",
+    "section": "protocol.lmtp.rate_limit",
+    "type": "int",
+    "kind": "integer",
+    "default": 60
+  },
+  {
+    "key": "protocol.lmtp.read_timeout",
+    "section": "protocol.lmtp",
+    "type": "int",
+    "kind": "integer",
+    "default": 300
+  },
+  {
+    "key": "protocol.lmtp.save_to_detail_mailbox",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.user_concurrency_limit",
+    "section": "protocol.lmtp",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.lmtp.verbose_replies",
+    "section": "protocol.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.lmtp.write_timeout",
+    "section": "protocol.lmtp",
+    "type": "int",
+    "kind": "integer",
+    "default": 300
+  },
+  {
+    "key": "protocol.managesieve.managesieve_max_line_length",
+    "section": "protocol.managesieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 65536
+  },
+  {
+    "key": "protocol.managesieve.max_invalid_commands",
+    "section": "protocol.managesieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "protocol.managesieve.max_script_size",
+    "section": "protocol.managesieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.pop3.pop3_delete_type",
+    "section": "protocol.pop3",
+    "type": "string",
+    "kind": "string",
+    "default": "expunge"
+  },
+  {
+    "key": "protocol.pop3.pop3_deleted_flag",
+    "section": "protocol.pop3",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.pop3.pop3_enable_last",
+    "section": "protocol.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.pop3.pop3_lock_session",
+    "section": "protocol.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.pop3.pop3_no_flag_updates",
+    "section": "protocol.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.pop3.pop3_reuse_xuidl",
+    "section": "protocol.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.pop3.pop3_save_uidl",
+    "section": "protocol.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.pop3.pop3_uidl_duplicates",
+    "section": "protocol.pop3",
+    "type": "string",
+    "kind": "string",
+    "default": "rename"
+  },
+  {
+    "key": "protocol.pop3.pop3_uidl_format",
+    "section": "protocol.pop3",
+    "type": "string",
+    "kind": "string",
+    "default": "%u.%v"
+  },
+  {
+    "key": "protocol.submission.client_workarounds",
+    "section": "protocol.submission",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.submission.hostname",
+    "section": "protocol.submission",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.max_line_length",
+    "section": "protocol.submission",
+    "type": "int",
+    "kind": "integer",
+    "default": 4096
+  },
+  {
+    "key": "protocol.submission.max_message_size",
+    "section": "protocol.submission",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.max_recipients",
+    "section": "protocol.submission",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.submission.recipient_delimiter",
+    "section": "protocol.submission",
+    "type": "string",
+    "kind": "string",
+    "default": "+"
+  },
+  {
+    "key": "protocol.submission.relay.command_timeout",
+    "section": "protocol.submission.relay",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.submission.relay.connect_timeout",
+    "section": "protocol.submission.relay",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.submission.relay.host",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.password",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.port",
+    "section": "protocol.submission.relay",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "protocol.submission.relay.ssl",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.ssl_verify",
+    "section": "protocol.submission.relay",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_command_timeout",
+    "section": "protocol.submission.relay",
+    "type": "int",
+    "kind": "integer",
+    "default": 300
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_connect_timeout",
+    "section": "protocol.submission.relay",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_host",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_master_user",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_password",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_port",
+    "section": "protocol.submission.relay",
+    "type": "int",
+    "kind": "integer",
+    "default": 25
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_ssl",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": "no"
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_ssl_ca",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_ssl_verify",
+    "section": "protocol.submission.relay",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_trusted",
+    "section": "protocol.submission.relay",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.submission.relay.submission_relay_user",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.relay.trusted",
+    "section": "protocol.submission.relay",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "protocol.submission.relay.user",
+    "section": "protocol.submission.relay",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "protocol.submission.submission_add_received_header",
+    "section": "protocol.submission",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "protocol.submission.submission_client_workarounds",
+    "section": "protocol.submission",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "protocol.submission.submission_max_mail_size",
+    "section": "protocol.submission",
+    "type": "string",
+    "kind": "string",
+    "default": "40M"
+  },
+  {
+    "key": "protocol.submission.submission_max_recipients",
+    "section": "protocol.submission",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "quota.enabled",
+    "section": "quota",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "quota.quota_clone_dicts",
+    "section": "quota",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "quota.quota_clone_flush_delay",
+    "section": "quota",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "quota.quota_exceeded_message",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": "Quota exceeded (mailbox for user is full)"
+  },
+  {
+    "key": "quota.quota_grace",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_hidden",
+    "section": "quota",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "quota.quota_ignore_unlimited",
+    "section": "quota",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "quota.quota_mail_size",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_mailbox_count",
+    "section": "quota",
+    "type": "int64",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "quota.quota_mailbox_message_count",
+    "section": "quota",
+    "type": "int64",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "quota.quota_message_percentage",
+    "section": "quota",
+    "type": "int",
+    "kind": "integer",
+    "default": 100
+  },
+  {
+    "key": "quota.quota_name",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": "User quota"
+  },
+  {
+    "key": "quota.quota_over_status_execute",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_over_status_lazy_check",
+    "section": "quota",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "quota.quota_over_status_mask",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_storage_extra",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_storage_grace",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": "10M"
+  },
+  {
+    "key": "quota.quota_storage_percentage",
+    "section": "quota",
+    "type": "int",
+    "kind": "integer",
+    "default": 100
+  },
+  {
+    "key": "quota.quota_warning_bin_dir",
+    "section": "quota",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_warning_exec_timeout",
+    "section": "quota",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "quota.quota_warnings[].quota_warning_execute",
+    "section": "quota.quota_warnings[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_warnings[].quota_warning_name",
+    "section": "quota.quota_warnings[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_warnings[].quota_warning_percentage",
+    "section": "quota.quota_warnings[]",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "quota.quota_warnings[].quota_warning_resource",
+    "section": "quota.quota_warnings[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota.quota_warnings[].quota_warning_threshold",
+    "section": "quota.quota_warnings[]",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota_status.alias_dict",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota_status.alias_max_hops",
+    "section": "quota_status",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "quota_status.auth_master_addr",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota_status.default_quota_rules",
+    "section": "quota_status",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "quota_status.listen",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": ":12340"
+  },
+  {
+    "key": "quota_status.quota_status_nouser",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": "REJECT Unknown user"
+  },
+  {
+    "key": "quota_status.quota_status_overquota",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": "554 5.2.2 %{error}"
+  },
+  {
+    "key": "quota_status.quota_status_success",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": "OK"
+  },
+  {
+    "key": "quota_status.quota_status_toolarge",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "quota_status.recipient_delimiter",
+    "section": "quota_status",
+    "type": "string",
+    "kind": "string",
+    "default": "+"
+  },
+  {
+    "key": "sasl_login.auth_addr",
+    "section": "sasl_login",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sasl_login.haproxy_protocol",
+    "section": "sasl_login",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sasl_login.haproxy_timeout",
+    "section": "sasl_login",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "sasl_login.haproxy_trusted_nets",
+    "section": "sasl_login",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sasl_login.listen",
+    "section": "sasl_login",
+    "type": "string",
+    "kind": "string",
+    "default": ":12345"
+  },
+  {
+    "key": "sasl_login.shutdown.kill_timeout",
+    "section": "sasl_login.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "sasl_login.shutdown.session_grace_period",
+    "section": "sasl_login.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "sasl_login.trusted_nets",
+    "section": "sasl_login",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "services.imap.auth_allow_cleartext",
+    "section": "services.imap",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.imap.disable_plaintext_auth",
+    "section": "services.imap",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.imap.enabled",
+    "section": "services.imap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imap.haproxy_protocol",
+    "section": "services.imap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imap.port",
+    "section": "services.imap",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.imap.ssl.prefer_server_ciphers",
+    "section": "services.imap.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imap.ssl.ssl_min_protocol",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.ssl_prefer_server_ciphers",
+    "section": "services.imap.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imap.ssl.ssl_server_alt_cert_file",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.ssl_server_alt_key_file",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.ssl_server_cert_file",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.ssl_server_key_file",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.tls_alt_cert",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.tls_alt_key",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.tls_cert",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.tls_key",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl.tls_min_version",
+    "section": "services.imap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.ssl_mode",
+    "section": "services.imap",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imap.xclient_protocol",
+    "section": "services.imap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imaps.auth_allow_cleartext",
+    "section": "services.imaps",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.imaps.disable_plaintext_auth",
+    "section": "services.imaps",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.imaps.enabled",
+    "section": "services.imaps",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imaps.haproxy_protocol",
+    "section": "services.imaps",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imaps.port",
+    "section": "services.imaps",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.imaps.ssl.prefer_server_ciphers",
+    "section": "services.imaps.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imaps.ssl.ssl_min_protocol",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.ssl_prefer_server_ciphers",
+    "section": "services.imaps.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.imaps.ssl.ssl_server_alt_cert_file",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.ssl_server_alt_key_file",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.ssl_server_cert_file",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.ssl_server_key_file",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.tls_alt_cert",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.tls_alt_key",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.tls_cert",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.tls_key",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl.tls_min_version",
+    "section": "services.imaps.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.ssl_mode",
+    "section": "services.imaps",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.imaps.xclient_protocol",
+    "section": "services.imaps",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap.auth_allow_cleartext",
+    "section": "services.jmap",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.jmap.disable_plaintext_auth",
+    "section": "services.jmap",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.jmap.enabled",
+    "section": "services.jmap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap.haproxy_protocol",
+    "section": "services.jmap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap.port",
+    "section": "services.jmap",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.jmap.ssl.prefer_server_ciphers",
+    "section": "services.jmap.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap.ssl.ssl_min_protocol",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.ssl_prefer_server_ciphers",
+    "section": "services.jmap.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap.ssl.ssl_server_alt_cert_file",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.ssl_server_alt_key_file",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.ssl_server_cert_file",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.ssl_server_key_file",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.tls_alt_cert",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.tls_alt_key",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.tls_cert",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.tls_key",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl.tls_min_version",
+    "section": "services.jmap.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.ssl_mode",
+    "section": "services.jmap",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap.xclient_protocol",
+    "section": "services.jmap",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap_be.auth_allow_cleartext",
+    "section": "services.jmap_be",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.jmap_be.disable_plaintext_auth",
+    "section": "services.jmap_be",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.jmap_be.enabled",
+    "section": "services.jmap_be",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap_be.haproxy_protocol",
+    "section": "services.jmap_be",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap_be.port",
+    "section": "services.jmap_be",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.jmap_be.ssl.prefer_server_ciphers",
+    "section": "services.jmap_be.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap_be.ssl.ssl_min_protocol",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.ssl_prefer_server_ciphers",
+    "section": "services.jmap_be.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.jmap_be.ssl.ssl_server_alt_cert_file",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.ssl_server_alt_key_file",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.ssl_server_cert_file",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.ssl_server_key_file",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.tls_alt_cert",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.tls_alt_key",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.tls_cert",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.tls_key",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl.tls_min_version",
+    "section": "services.jmap_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.ssl_mode",
+    "section": "services.jmap_be",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.jmap_be.xclient_protocol",
+    "section": "services.jmap_be",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.lmtp.auth_allow_cleartext",
+    "section": "services.lmtp",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.lmtp.disable_plaintext_auth",
+    "section": "services.lmtp",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.lmtp.enabled",
+    "section": "services.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.lmtp.haproxy_protocol",
+    "section": "services.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.lmtp.port",
+    "section": "services.lmtp",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.lmtp.ssl.prefer_server_ciphers",
+    "section": "services.lmtp.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.lmtp.ssl.ssl_min_protocol",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.ssl_prefer_server_ciphers",
+    "section": "services.lmtp.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.lmtp.ssl.ssl_server_alt_cert_file",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.ssl_server_alt_key_file",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.ssl_server_cert_file",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.ssl_server_key_file",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.tls_alt_cert",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.tls_alt_key",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.tls_cert",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.tls_key",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl.tls_min_version",
+    "section": "services.lmtp.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.ssl_mode",
+    "section": "services.lmtp",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.lmtp.xclient_protocol",
+    "section": "services.lmtp",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve.auth_allow_cleartext",
+    "section": "services.managesieve",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.managesieve.disable_plaintext_auth",
+    "section": "services.managesieve",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.managesieve.enabled",
+    "section": "services.managesieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve.haproxy_protocol",
+    "section": "services.managesieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve.port",
+    "section": "services.managesieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.managesieve.ssl.prefer_server_ciphers",
+    "section": "services.managesieve.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve.ssl.ssl_min_protocol",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.ssl_prefer_server_ciphers",
+    "section": "services.managesieve.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve.ssl.ssl_server_alt_cert_file",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.ssl_server_alt_key_file",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.ssl_server_cert_file",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.ssl_server_key_file",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.tls_alt_cert",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.tls_alt_key",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.tls_cert",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.tls_key",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl.tls_min_version",
+    "section": "services.managesieve.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.ssl_mode",
+    "section": "services.managesieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve.xclient_protocol",
+    "section": "services.managesieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve_be.auth_allow_cleartext",
+    "section": "services.managesieve_be",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.managesieve_be.disable_plaintext_auth",
+    "section": "services.managesieve_be",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.managesieve_be.enabled",
+    "section": "services.managesieve_be",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve_be.haproxy_protocol",
+    "section": "services.managesieve_be",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve_be.port",
+    "section": "services.managesieve_be",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.managesieve_be.ssl.prefer_server_ciphers",
+    "section": "services.managesieve_be.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve_be.ssl.ssl_min_protocol",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.ssl_prefer_server_ciphers",
+    "section": "services.managesieve_be.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.managesieve_be.ssl.ssl_server_alt_cert_file",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.ssl_server_alt_key_file",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.ssl_server_cert_file",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.ssl_server_key_file",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.tls_alt_cert",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.tls_alt_key",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.tls_cert",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.tls_key",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl.tls_min_version",
+    "section": "services.managesieve_be.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.ssl_mode",
+    "section": "services.managesieve_be",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.managesieve_be.xclient_protocol",
+    "section": "services.managesieve_be",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3.auth_allow_cleartext",
+    "section": "services.pop3",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.pop3.disable_plaintext_auth",
+    "section": "services.pop3",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.pop3.enabled",
+    "section": "services.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3.haproxy_protocol",
+    "section": "services.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3.port",
+    "section": "services.pop3",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.pop3.ssl.prefer_server_ciphers",
+    "section": "services.pop3.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3.ssl.ssl_min_protocol",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.ssl_prefer_server_ciphers",
+    "section": "services.pop3.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3.ssl.ssl_server_alt_cert_file",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.ssl_server_alt_key_file",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.ssl_server_cert_file",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.ssl_server_key_file",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.tls_alt_cert",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.tls_alt_key",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.tls_cert",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.tls_key",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl.tls_min_version",
+    "section": "services.pop3.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.ssl_mode",
+    "section": "services.pop3",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3.xclient_protocol",
+    "section": "services.pop3",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3s.auth_allow_cleartext",
+    "section": "services.pop3s",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.pop3s.disable_plaintext_auth",
+    "section": "services.pop3s",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.pop3s.enabled",
+    "section": "services.pop3s",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3s.haproxy_protocol",
+    "section": "services.pop3s",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3s.port",
+    "section": "services.pop3s",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.pop3s.ssl.prefer_server_ciphers",
+    "section": "services.pop3s.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3s.ssl.ssl_min_protocol",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.ssl_prefer_server_ciphers",
+    "section": "services.pop3s.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.pop3s.ssl.ssl_server_alt_cert_file",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.ssl_server_alt_key_file",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.ssl_server_cert_file",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.ssl_server_key_file",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.tls_alt_cert",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.tls_alt_key",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.tls_cert",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.tls_key",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl.tls_min_version",
+    "section": "services.pop3s.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.ssl_mode",
+    "section": "services.pop3s",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.pop3s.xclient_protocol",
+    "section": "services.pop3s",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submission.auth_allow_cleartext",
+    "section": "services.submission",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.submission.disable_plaintext_auth",
+    "section": "services.submission",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.submission.enabled",
+    "section": "services.submission",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submission.haproxy_protocol",
+    "section": "services.submission",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submission.port",
+    "section": "services.submission",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.submission.ssl.prefer_server_ciphers",
+    "section": "services.submission.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submission.ssl.ssl_min_protocol",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.ssl_prefer_server_ciphers",
+    "section": "services.submission.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submission.ssl.ssl_server_alt_cert_file",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.ssl_server_alt_key_file",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.ssl_server_cert_file",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.ssl_server_key_file",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.tls_alt_cert",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.tls_alt_key",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.tls_cert",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.tls_key",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl.tls_min_version",
+    "section": "services.submission.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.ssl_mode",
+    "section": "services.submission",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submission.xclient_protocol",
+    "section": "services.submission",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submissions.auth_allow_cleartext",
+    "section": "services.submissions",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.submissions.disable_plaintext_auth",
+    "section": "services.submissions",
+    "type": "*bool",
+    "kind": "boolean",
+    "default": null
+  },
+  {
+    "key": "services.submissions.enabled",
+    "section": "services.submissions",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submissions.haproxy_protocol",
+    "section": "services.submissions",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submissions.port",
+    "section": "services.submissions",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "services.submissions.ssl.prefer_server_ciphers",
+    "section": "services.submissions.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submissions.ssl.ssl_min_protocol",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.ssl_prefer_server_ciphers",
+    "section": "services.submissions.ssl",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "services.submissions.ssl.ssl_server_alt_cert_file",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.ssl_server_alt_key_file",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.ssl_server_cert_file",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.ssl_server_key_file",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.tls_alt_cert",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.tls_alt_key",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.tls_cert",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.tls_key",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl.tls_min_version",
+    "section": "services.submissions.ssl",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.ssl_mode",
+    "section": "services.submissions",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "services.submissions.xclient_protocol",
+    "section": "services.submissions",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sieve.imapsieve_enabled",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sieve.imapsieve_global_after",
+    "section": "sieve",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sieve.imapsieve_global_before",
+    "section": "sieve",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sieve.imapsieve_script_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_default_name",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "yarilo"
+  },
+  {
+    "key": "sieve.sieve_duplicate_driver",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "file"
+  },
+  {
+    "key": "sieve.sieve_duplicate_file",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ".yarilo.sieve-duplicate"
+  },
+  {
+    "key": "sieve.sieve_duplicate_max_period",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 604800
+  },
+  {
+    "key": "sieve.sieve_enabled",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sieve.sieve_environment",
+    "section": "sieve",
+    "type": "map[string]string",
+    "kind": "map",
+    "default": null
+  },
+  {
+    "key": "sieve.sieve_execute_bin_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "/usr/lib/yarilo/sieve-execute"
+  },
+  {
+    "key": "sieve.sieve_execute_exec_timeout",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "sieve.sieve_execute_input_eol",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "crlf"
+  },
+  {
+    "key": "sieve.sieve_execute_socket_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "sieve-execute"
+  },
+  {
+    "key": "sieve.sieve_extensions",
+    "section": "sieve",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sieve.sieve_filter_bin_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "/usr/lib/yarilo/sieve-filter"
+  },
+  {
+    "key": "sieve.sieve_filter_exec_timeout",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "sieve.sieve_filter_input_eol",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "crlf"
+  },
+  {
+    "key": "sieve.sieve_filter_socket_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "sieve-filter"
+  },
+  {
+    "key": "sieve.sieve_global",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_global_after",
+    "section": "sieve",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sieve.sieve_global_before",
+    "section": "sieve",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sieve.sieve_global_extensions",
+    "section": "sieve",
+    "type": "[]string",
+    "kind": "list",
+    "default": null
+  },
+  {
+    "key": "sieve.sieve_max_actions",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 32
+  },
+  {
+    "key": "sieve.sieve_max_num_scripts",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "sieve.sieve_max_redirects",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 32
+  },
+  {
+    "key": "sieve.sieve_max_script_size",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 65536
+  },
+  {
+    "key": "sieve.sieve_max_storage",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "sieve.sieve_pipe_bin_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "/usr/lib/yarilo/sieve-pipe"
+  },
+  {
+    "key": "sieve.sieve_pipe_exec_timeout",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "sieve.sieve_pipe_input_eol",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "crlf"
+  },
+  {
+    "key": "sieve.sieve_pipe_socket_dir",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "sieve-pipe"
+  },
+  {
+    "key": "sieve.sieve_report_user_agent",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "yarilo"
+  },
+  {
+    "key": "sieve.sieve_scripts_dict",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_scripts_driver",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_spamtest_max_value",
+    "section": "sieve",
+    "type": "float64",
+    "kind": "float64",
+    "default": 10
+  },
+  {
+    "key": "sieve.sieve_spamtest_status_header",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_submission_auth_secret",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_submission_host",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_submission_ssl",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": "no"
+  },
+  {
+    "key": "sieve.sieve_submission_timeout",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "sieve.sieve_vacation_check_recipient",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "sieve.sieve_vacation_default_period",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 604800
+  },
+  {
+    "key": "sieve.sieve_vacation_default_subject",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_vacation_default_subject_template",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "sieve.sieve_vacation_enabled",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "sieve.sieve_vacation_max_period",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 5184000
+  },
+  {
+    "key": "sieve.sieve_vacation_min_period",
+    "section": "sieve",
+    "type": "int",
+    "kind": "integer",
+    "default": 86400
+  },
+  {
+    "key": "sieve.sieve_vacation_send_from_recipient",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sieve.sieve_vacation_to_header_ignore_envelope",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sieve.sieve_vacation_use_original_recipient",
+    "section": "sieve",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "sieve.sieve_virustest_max_value",
+    "section": "sieve",
+    "type": "float64",
+    "kind": "float64",
+    "default": 5
+  },
+  {
+    "key": "sieve.sieve_virustest_status_header",
+    "section": "sieve",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.alt_dir",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.control_dir",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.dbox_reactive_rebuild",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "storage.index",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.index_dir",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.index_log_compact_max_bytes",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.index_log_compact_min_age_secs",
+    "section": "storage",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "storage.index_log_compact_min_bytes",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_alt_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_cache_purge_continued_percentage",
+    "section": "storage",
+    "type": "int",
+    "kind": "integer",
+    "default": 200
+  },
+  {
+    "key": "storage.mail_cache_purge_delete_percentage",
+    "section": "storage",
+    "type": "int",
+    "kind": "integer",
+    "default": 20
+  },
+  {
+    "key": "storage.mail_cache_purge_min_size",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_control_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_driver",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_fsync",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_home",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_home_template",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_inbox_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_index_log_rotate_max_size",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": "1M"
+  },
+  {
+    "key": "storage.mail_index_log_rotate_min_age",
+    "section": "storage",
+    "type": "int",
+    "kind": "integer",
+    "default": 60
+  },
+  {
+    "key": "storage.mail_index_log_rotate_min_size",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": "32k"
+  },
+  {
+    "key": "storage.mail_index_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mail_volatile_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mailbox",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mailbox_list_normalize_names_to_nfc",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "storage.mailbox_list_normalize_to_nfc",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "storage.mailbox_list_refuse_layout_separator",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "storage.mailbox_list_reserved_segments",
+    "section": "storage",
+    "type": "[]string",
+    "kind": "list",
+    "default": [
+      "cur",
+      "new",
+      "tmp",
+      "dbox-Mails",
+      "fts-flatcurve"
+    ]
+  },
+  {
+    "key": "storage.mailbox_list_storage_escape_char",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mailbox_list_utf8",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "storage.mailbox_list_validate_fs_names",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "storage.maildir_root",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.maildir_sync_on_select",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "storage.max_concurrent_writes",
+    "section": "storage",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "storage.mdbox_alt_storage_path",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mdbox_map_format",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mdbox_preallocate_space",
+    "section": "storage",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "storage.mdbox_rotate_interval",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.mdbox_rotate_size",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": "10M"
+  },
+  {
+    "key": "storage.storage_lock_method",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "storage.storage_lock_stale_timeout",
+    "section": "storage",
+    "type": "int",
+    "kind": "integer",
+    "default": 180
+  },
+  {
+    "key": "storage.volatile_dir",
+    "section": "storage",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "submission_login_service.backend_addr",
+    "section": "submission_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "submission_login_service.backend_port",
+    "section": "submission_login_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "submission_login_service.director_addr",
+    "section": "submission_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "submission_login_service.director_tag",
+    "section": "submission_login_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "telemetry.listen",
+    "section": "telemetry",
+    "type": "string",
+    "kind": "string",
+    "default": ":8080"
+  },
+  {
+    "key": "telemetry.liveness_watchdog.liveness_watchdog_enabled",
+    "section": "telemetry.liveness_watchdog",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "telemetry.liveness_watchdog.liveness_watchdog_failure_threshold",
+    "section": "telemetry.liveness_watchdog",
+    "type": "int",
+    "kind": "integer",
+    "default": 3
+  },
+  {
+    "key": "telemetry.liveness_watchdog.liveness_watchdog_fault_injection_enabled",
+    "section": "telemetry.liveness_watchdog",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "telemetry.liveness_watchdog.liveness_watchdog_interval_seconds",
+    "section": "telemetry.liveness_watchdog",
+    "type": "int",
+    "kind": "integer",
+    "default": 10
+  },
+  {
+    "key": "telemetry.liveness_watchdog.liveness_watchdog_timeout_seconds",
+    "section": "telemetry.liveness_watchdog",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "telemetry.telemetry_block_profile_rate",
+    "section": "telemetry",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "telemetry.telemetry_mutex_profile_fraction",
+    "section": "telemetry",
+    "type": "int",
+    "kind": "integer",
+    "default": 0
+  },
+  {
+    "key": "telemetry.telemetry_pprof_enabled",
+    "section": "telemetry",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "threading.threading_cache_idle",
+    "section": "threading",
+    "type": "int",
+    "kind": "integer",
+    "default": 300
+  },
+  {
+    "key": "threading.threading_enabled",
+    "section": "threading",
+    "type": "bool",
+    "kind": "boolean",
+    "default": true
+  },
+  {
+    "key": "warden_service.addr",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "warden_service.channel_prefix",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "warden_service.conns",
+    "section": "warden_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 4
+  },
+  {
+    "key": "warden_service.fail_open",
+    "section": "warden_service",
+    "type": "bool",
+    "kind": "boolean",
+    "default": false
+  },
+  {
+    "key": "warden_service.key_prefix",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "warden_service.listen",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ":9101"
+  },
+  {
+    "key": "warden_service.redis_addr",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "warden_service.redis_password",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "warden_service.shutdown.kill_timeout",
+    "section": "warden_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 5
+  },
+  {
+    "key": "warden_service.shutdown.session_grace_period",
+    "section": "warden_service.shutdown",
+    "type": "int",
+    "kind": "integer",
+    "default": 30
+  },
+  {
+    "key": "warden_service.state_backend",
+    "section": "warden_service",
+    "type": "string",
+    "kind": "string",
+    "default": ""
+  },
+  {
+    "key": "warden_service.warden_service_event_queue_size",
+    "section": "warden_service",
+    "type": "int",
+    "kind": "integer",
+    "default": 4096
+  }
+]
