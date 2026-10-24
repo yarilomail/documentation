@@ -135,7 +135,7 @@ Served by `yarilo-jmap`, through `yarilo-jmap-login`.
 | [9425](https://www.rfc-editor.org/rfc/rfc9425) | JMAP for Quotas | yes | read-only |
 | [9661](https://www.rfc-editor.org/rfc/rfc9661) | JMAP for Sieve scripts | yes | |
 | [8620 §7.2](https://www.rfc-editor.org/rfc/rfc8620#section-7.2) | PushSubscription | no | |
-| [8887](https://www.rfc-editor.org/rfc/rfc8887) | JMAP over WebSocket | no | |
+| [8887](https://www.rfc-editor.org/rfc/rfc8887) | JMAP over WebSocket | yes | with push; `pushState` resumes on any backend. See [WebSocket](/protocols/jmap#websocket) |
 
 See [JMAP](/protocols/jmap#capabilities).
 
