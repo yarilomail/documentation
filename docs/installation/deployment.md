@@ -648,7 +648,7 @@ SANs are not identity.
 | auth master port | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, quota-status, lmtp-login, admin |
 | warden | auth, imap-login, pop3-login, submission-login, managesieve-login, lmtp-login, jmap-login, backend-api, imap |
 | locks | imap, pop3, lmtp, managesieve, backend-api, fts, jmap, admin |
-| dict | imap, pop3, lmtp, managesieve |
+| dict | imap, pop3, lmtp, managesieve, jmap |
 | director | director (ring), the login roles and backend-api (LOOKUP), backend-reg (registration) |
 | director admin API | admin, director-admin |
 | backend-api | admin, backend-api |
