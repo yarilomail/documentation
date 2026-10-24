@@ -84,6 +84,12 @@ clients batch against what is published.
 The session `state` string is derived from these values, so changing one
 invalidates a client's cached session and nothing else does.
 
+## `jmap_login_service`
+
+Configuration for `yarilo-jmap-login` beyond its routing.
+
+<!-- @settings jmap_login_service -->
+
 ---
 
 ## Helm
@@ -670,8 +676,48 @@ resource advertises it as `urn:ietf:params:jmap:websocket`:
 
 The client must offer the `jmap` subprotocol in `Sec-WebSocket-Protocol`;
 without it the upgrade is refused with `400`. The connection authenticates
-like any other request to `yarilo-jmap-login`, and browser origins are
-checked against `jmap_cors_allow_origins` before the upgrade.
+like any other request to `yarilo-jmap-login`, or with a ticket (below), and
+browser origins are checked against `jmap_cors_allow_origins` before the
+upgrade.
+
+### Tickets for browser clients
+
+A browser cannot send an `Authorization` header on a WebSocket. A web client
+that pushes only over WebSocket, and not over EventSource, takes a ticket over
+HTTP first and opens the WebSocket with it. This is that client's own
+extension, `com:linagora:params:jmap:ws:ticket`, not an RFC; it is advertised
+while `jmap_websocket_ticket_ttl` is above `0`, at the session level and in the
+account's `accountCapabilities`, where that client looks for it. The account
+then carries `urn:ietf:params:jmap:websocket` as well.
+
+```json
+"com:linagora:params:jmap:ws:ticket": {
+  "generationEndpoint": "https://mail.example.com/jmap/ws/ticket"
+}
+```
+
+1. `POST /jmap/ws/ticket`, authenticated like any request, answers:
+
+   ```json
+   {
+     "value": "dTFAZXhhbXBsZS5jb20K…",
+     "clientAddress": "192.0.2.7",
+     "generatedOn": "2026-10-24T22:40:00Z",
+     "validUntil": "2026-10-24T22:41:00Z",
+     "username": "u1@example.com"
+   }
+   ```
+
+2. `GET /jmap/ws/?ticket=<value>`, with no `Authorization`, opens the WebSocket
+   as that login.
+
+A ticket is accepted while it is valid, from the client address it was issued
+to, and on `/jmap/ws/` only; with an `Authorization` header the header is used.
+It is signed with `websocket_ticket_key`, so any `yarilo-jmap-login` replica
+accepts it. It is not single-use: within its lifetime it can be used again from
+the same address, which is why the lifetime is short. The ticket is removed from
+the request before it reaches the backend, but a proxy in front of
+`yarilo-jmap-login` may log the URL.
 
 ### Requests
 

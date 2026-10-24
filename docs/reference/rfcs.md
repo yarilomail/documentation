@@ -136,7 +136,8 @@ Served by `yarilo-jmap`, through `yarilo-jmap-login`.
 | [9425](https://www.rfc-editor.org/rfc/rfc9425) | JMAP for Quotas | yes | read-only |
 | [9661](https://www.rfc-editor.org/rfc/rfc9661) | JMAP for Sieve scripts | yes | |
 | [8620 §7.2](https://www.rfc-editor.org/rfc/rfc8620#section-7.2) | PushSubscription | no | not built until a client needs push while it is offline; an open EventSource or WebSocket gets every change |
-| [8887](https://www.rfc-editor.org/rfc/rfc8887) | JMAP over WebSocket | yes | with push; `pushState` resumes on any backend. See [WebSocket](/protocols/jmap#websocket) |
+| [8887](https://www.rfc-editor.org/rfc/rfc8887) | JMAP over WebSocket | yes | with push; `pushState` resumes on any backend; a browser client may open it with a ticket. See [WebSocket](/protocols/jmap#websocket) |
+| | WebSocket ticket (`com:linagora:params:jmap:ws:ticket`) | yes | one web client's own extension: a short-lived ticket instead of credentials on the WebSocket; off with `jmap_websocket_ticket_ttl: 0`. See [Tickets for browser clients](/protocols/jmap#tickets-for-browser-clients) |
 
 See [JMAP](/protocols/jmap#capabilities).
 
