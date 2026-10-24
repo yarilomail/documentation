@@ -128,6 +128,11 @@ absent is answered with `unknownMethod` — the same answer as a method that doe
 not exist (RFC 8620 §3.2). That is what lets the server gain capabilities
 without changing how an older client behaves.
 
+**The account id is not the username.** An id must use only the URL-safe
+base64 alphabet (RFC 8620 §1.2), so the account id encodes the login. Read it
+from the session's `primaryAccounts` (`urn:ietf:params:jmap:mail`), as every
+`accountId`, upload and download URL and push event uses it.
+
 **Failures have two levels.** A request-level fault — malformed JSON, a missing
 `methodCalls`, an unknown capability, an exceeded request limit — aborts the
 batch and returns a problem document. A method-level fault becomes an `error`
@@ -474,7 +479,7 @@ To upload a blob, `POST` its bytes to the session's `uploadUrl`:
 
 ```sh
 curl -u u1@example.com:secret --data-binary @message.eml \
-  -H 'Content-Type: message/rfc822' https://mail.example.com/jmap/upload/u1@example.com/
+  -H 'Content-Type: message/rfc822' https://mail.example.com/jmap/upload/adTFAZXhhbXBsZS5jb20/
 ```
 
 The answer is `201` with `accountId`, `blobId`, `type` and `size`. This upload:
@@ -676,7 +681,7 @@ type](#what-moves-a-type)):
 ```json
 {
   "@type": "StateChange",
-  "changed": {"alice@example.com": {"Email": "s42"}},
+  "changed": {"aYWxpY2VAZXhhbXBsZS5jb20": {"Email": "s42"}},
   "pushState": "eyJFbWFpbCI6InM0MiJ9"
 }
 ```
@@ -766,7 +771,7 @@ To store a script, upload its text as a blob, then create it from that blob:
 
 ```json
 ["SieveScript/set", {
-  "accountId": "alice@example.com",
+  "accountId": "aYWxpY2VAZXhhbXBsZS5jb20",
   "create": {"c1": {"name": "filters", "blobId": "U…"}},
   "onSuccessActivateScript": "#c1"
 }, "0"]
@@ -853,7 +858,7 @@ Create an `EmailSubmission` naming an identity and an Email:
 
 ```json
 ["EmailSubmission/set", {
-  "accountId": "alice@example.com",
+  "accountId": "aYWxpY2VAZXhhbXBsZS5jb20",
   "create": {"s1": {"identityId": "I…", "emailId": "M…"}},
   "onSuccessUpdateEmail": {"#s1": {"keywords/$draft": null}}
 }, "0"]
