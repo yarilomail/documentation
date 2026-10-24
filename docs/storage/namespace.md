@@ -87,8 +87,34 @@ with no wildcard in it.
 ## Configured mailboxes (`mailboxes`)
 
 A namespace can name mailboxes that every user has. A client that does not
-set up its own folders (Outlook, older mobile clients) then finds Sent, Drafts
-and Trash on its first login, instead of picking places for them on its own.
+set up its own folders (Outlook, older mobile clients, JMAP clients that need a
+Sent mailbox to send) then finds Sent, Drafts and Trash on its first login,
+instead of picking places for them on its own.
+
+### The default set
+
+Without a `mailboxes` block, the namespace that owns INBOX makes Sent, Drafts,
+Trash and Junk for every user, each subscribed and marked with its special use.
+A server with no `namespaces` at all does the same. This is the block it
+stands for:
+
+```yaml
+    mailboxes:
+      Sent:   { auto: subscribe, special_use: "\\Sent" }
+      Drafts: { auto: subscribe, special_use: "\\Drafts" }
+      Trash:  { auto: subscribe, special_use: "\\Trash" }
+      Junk:   { auto: subscribe, special_use: "\\Junk" }
+```
+
+- A `mailboxes` block of your own replaces the whole set. To keep the four and
+  add a fifth, list all five.
+- `mailboxes: {}` makes none.
+- Other namespaces, a personal view such as a virtual namespace included, get
+  no default set.
+- A default mailbox the user deletes is made again the next time it is listed
+  or opened.
+
+Name the mailboxes yourself, with their own `auto` modes:
 
 ```yaml
 namespaces:
@@ -101,6 +127,7 @@ namespaces:
       Drafts: { auto: subscribe, special_use: "\\Drafts" }
       Trash:  { auto: subscribe, special_use: "\\Trash" }
       Junk:   { auto: create,    special_use: "\\Junk" }
+      Archive: { auto: create,   special_use: "\\Archive" }
 ```
 
 <!-- @settings namespaces[].mailboxes.* -->

@@ -2511,9 +2511,14 @@ namespaces[].mailboxes.*.auto:
   default_text: "`no`"
   values: ["no", create, subscribe]
   helm: namespaces[].mailboxes.*.auto
+  changed:
+    - version: 2.4.5
+      text: Without a `mailboxes` block the namespace owning INBOX, and a server with no namespaces, make Sent, Drafts, Trash and Junk, each subscribed.
   description: |
     `create` makes the mailbox the first time any server opens or lists the
-    namespace. `subscribe` does the same and subscribes it once.
+    namespace. `subscribe` does the same and subscribes it once. Without a
+    `mailboxes` block, the namespace that owns INBOX takes the default set.
+    See [The default set](/storage/namespace#the-default-set).
 
 namespaces[].mailboxes.*.special_use:
   type: string
