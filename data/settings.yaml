@@ -2154,6 +2154,20 @@ protocol.jmap.jmap_push_poll:
     Interval between a push stream's looks for changes; `0` turns push off.
     See [Push](#push).
 
+protocol.jmap.jmap_websocket_timeout:
+  type: integer
+  unit: seconds
+  default: 1800
+  helm: protocol.jmap.jmap_websocket_timeout
+  added: 2.4.5
+  see_also: [protocol.jmap.jmap_push_poll]
+  description: |
+    How long a JMAP WebSocket may go without answering a ping before it is
+    closed. The server pings every half of it, so a live client keeps its
+    connection even when it only listens. `0` turns WebSocket off: the session
+    does not advertise it and the endpoint answers `404`. See
+    [WebSocket](/protocols/jmap#websocket).
+
 protocol.jmap.jmap_cors_allow_origins:
   type: list
   default: []
