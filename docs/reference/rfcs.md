@@ -1,5 +1,5 @@
 ---
-description: "The RFCs yarilo implements, by service: IMAP, POP3, Submission, LMTP, JMAP, Sieve and ManageSieve, authentication, message format and the policy server, each with its state."
+description: "The RFCs yarilo implements, by service: IMAP, POP3, Submission, LMTP, JMAP, Sieve and ManageSieve, authentication, message format, the policy server and client autoconfiguration, each with its state."
 ---
 
 # RFC support
@@ -220,3 +220,13 @@ Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`,
 | [9562](https://www.rfc-editor.org/rfc/rfc9562) | UUID | yes | version 4, from `%{generate:uuid}` in a request template |
 | [4648](https://www.rfc-editor.org/rfc/rfc4648) | Base64, base64url and base16 | yes | the `base64` and `unbase64` template filters, `url=1` for the URL alphabet and `pad=0` without padding; `hexlify` and `unhexlify` for base16 |
 
+## Client autoconfiguration
+
+Served by [`yarilo-autoconfig`](/installation/autoconfig), a separate service, and by the DNS records each mail domain publishes.
+
+| RFC | Title | State | Notes |
+|:---|:---|:---|:---|
+| [6186](https://www.rfc-editor.org/rfc/rfc6186) | SRV records for email submission and access | yes | `_imaps._tcp`, `_submissions._tcp` and `_submission._tcp`, implicit TLS preferred; see [DNS](/installation/dns) |
+| [6764](https://www.rfc-editor.org/rfc/rfc6764) | Locating CalDAV and CardDAV services | no | no CalDAV or CardDAV server yet |
+
+Also spoken: Thunderbird autoconfig, format 1.1, and the Outlook POX Autodiscover answer with IMAP, POP3 and SMTP settings. ActiveSync Autodiscover requests get the POX error answer.
