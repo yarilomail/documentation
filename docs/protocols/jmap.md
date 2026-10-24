@@ -550,7 +550,7 @@ A renamed mailbox keeps its id and its access rights.
 | Vacation — `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
 | Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured; identities read-only |
 | Push over EventSource | RFC 8620 §7.3 | served; see [Push](#push) |
-| Push over WebSocket | RFC 8887 | not implemented |
+| JMAP over WebSocket, with push | RFC 8887 | served; see [WebSocket](#websocket) |
 | Push subscriptions (Web Push) | RFC 8620 §7.2 | not implemented |
 
 The protocol layer lives in `pkg/jmapcore`, which imports nothing from yarilo
@@ -622,6 +622,96 @@ The stream outlives the proxy's request timeouts, and a kick ends it: a
 session kick from the admin API, or a director `USER-KICKED` for the user,
 including a move to another backend. The client reconnects with
 `Last-Event-ID` and reaches the user's new backend.
+
+## WebSocket
+
+`GET /jmap/ws/` upgrades to JMAP over WebSocket (RFC 8887). The session
+resource advertises it as `urn:ietf:params:jmap:websocket`:
+
+```json
+{
+  "url": "wss://mail.example.com/jmap/ws/",
+  "supportsPush": true
+}
+```
+
+- `url` is `jmap_base_url` with `https` turned into `wss`.
+- `supportsPush` is false when `jmap_push_poll` is `0`.
+- With `jmap_websocket_timeout: 0` the capability is not advertised and the
+  endpoint answers `404`.
+
+The client must offer the `jmap` subprotocol in `Sec-WebSocket-Protocol`;
+without it the upgrade is refused with `400`. The connection authenticates
+like any other request to `yarilo-jmap-login`, and browser origins are
+checked against `jmap_cors_allow_origins` before the upgrade.
+
+### Requests
+
+A text message whose `@type` is `Request` is an API request. It runs exactly as
+a `POST` to the API endpoint, with the same limits. Requests on one connection
+are answered in order:
+
+- `Response` carries the method responses, `sessionState` and, when the
+  request had an `id`, `requestId`.
+- `RequestError` replaces it when the request is refused, with `type`,
+  `status`, `detail` and `requestId`.
+
+A message over `maxSizeRequest` is answered with a `limit` `RequestError`, and
+a message that is not JSON or has an unknown `@type` with `notJSON` or
+`notRequest`. The connection stays open after each. A binary message closes
+it with code `1003`.
+
+### Push over WebSocket
+
+Turn push on for a connection, for some types or for all with `null`:
+
+```json
+{"@type": "WebSocketPushEnable", "dataTypes": ["Email", "Mailbox"]}
+```
+
+From then on the server sends a `StateChange` whenever one of those types
+moves, from the same events as EventSource (see [What moves a
+type](#what-moves-a-type)):
+
+```json
+{
+  "@type": "StateChange",
+  "changed": {"alice@example.com": {"Email": "s42"}},
+  "pushState": "eyJFbWFpbCI6InM0MiJ9"
+}
+```
+
+- A new `WebSocketPushEnable` replaces the earlier one;
+  `WebSocketPushDisable` stops it.
+- The enable is in place before the next message on the connection is
+  handled. A change the client makes in a request sent after the enable is
+  always pushed.
+- With `jmap_push_poll: 0` both messages are refused as an unknown `@type`.
+
+### Resuming with pushState
+
+`pushState` names the states the connection has been sent. To resume after a
+disconnect, send it back in the enable:
+
+```json
+{"@type": "WebSocketPushEnable", "dataTypes": ["Email"], "pushState": "eyJFbWFpbCI6InM0MiJ9"}
+```
+
+Every requested type whose state moved since is sent at once, in one
+`StateChange`, and later changes follow. The server keeps nothing for it, so
+the connection can resume on any backend, after a move as well. Without a
+`pushState`, or with one that does not decode, push starts from the current
+states.
+
+### Idle connections
+
+The server pings every half `jmap_websocket_timeout` and closes a connection
+whose client has not answered by the next ping. A client that is alive keeps
+its connection, even when it only listens; a browser answers pings on its own.
+
+A kick ends the connection as it ends an EventSource stream, and so does the
+server shutting down, with code `1001`. The client reconnects and resumes with
+its last `pushState`.
 
 ## Quota
 
