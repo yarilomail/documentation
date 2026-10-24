@@ -234,7 +234,7 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: `${SITE}${BASE}og.png` }],
   ],
   themeConfig: {
-    logo: '/icon.svg',
+    logo: { src: '/icon.svg', alt: 'Yarilo' },
     search: { provider: 'local' },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/yarilomail' }
