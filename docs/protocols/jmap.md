@@ -507,10 +507,32 @@ threading and IDLE notifications follow it.
   and id headers, and a body given as `bodyStructure` or as `textBody`,
   `htmlBody` and `attachments`. A part's content is a `bodyValues` entry or a
   `blobId`. `Date` and `Message-ID` are added when not given.
+- **header fields on create**: any field can be set as a
+  `header:{name}:{form}` property, on the Email or on a body part, in the
+  forms of RFC 8621 §4.1.2, with `:all` for several occurrences in order. A
+  `null` value writes nothing. `header:Date` and `header:Message-ID` take the
+  place of the generated ones; `header:Content-Type` on a part sets its type
+  and parameters, the charset of a `bodyValues` part staying UTF-8.
 - **update** sets `keywords`, whole or one at a time (`keywords/$seen`), and
   `mailboxIds`, whole or one at a time (`mailboxIds/<id>`). Moving keeps the
   Email's id. A message is never left in no mailbox.
 - **destroy** removes the Email from every mailbox it is in.
+
+A create is refused with `invalidProperties`, naming each offending property,
+when it gives:
+
+- `headers`, on the Email or a part;
+- one field twice: a property and its `header:` form (`from` and
+  `header:From:asAddresses`, a part's `type` and `header:Content-Type`), or two
+  `header:` properties for the same field in any case;
+- a `Content-*` field on the Email, or `Content-Transfer-Encoding` on a part;
+- a form the field does not allow, such as `header:Subject:asDate`;
+- a `bodyStructure` field the Email itself already sets;
+- a value of the wrong type for its form, a date that is not RFC 3339, or a
+  raw value with a line break that is not folding.
+
+A text value with a line break is encoded in its field, never written as a
+second field.
 
 A move does not count against the quota; a copy into another mailbox does. Each
 object fails on its own: one refused id does not fail the rest of the call.
