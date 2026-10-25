@@ -1692,6 +1692,18 @@ protocol.lmtp.proxy.lmtp_proxy_timeout:
     retries. A recipient's userdb field `proxy_timeout` replaces it for that
     recipient.
 
+jmap_login_service.websocket_ticket_key:
+  type: string
+  default: ""
+  added: 2.4.5
+  see_also: [protocol.jmap.jmap_websocket_ticket_ttl]
+  description: |
+    Signs WebSocket tickets; every `yarilo-jmap-login` replica must have the
+    same one. The chart generates it once into the Secret
+    `<release>-jmap-websocket-ticket` and gives it to `yarilo-jmap-login`
+    only. Empty, `yarilo-jmap-login` logs a warning and issues no tickets; a
+    `${VAR}` left unexpanded, which is a missing Secret, stops it at start.
+
 lmtp_login_service.backend_addr:
   type: string
   default: ""
@@ -2167,6 +2179,20 @@ protocol.jmap.jmap_websocket_timeout:
     connection even when it only listens. `0` turns WebSocket off: the session
     does not advertise it and the endpoint answers `404`. See
     [WebSocket](/protocols/jmap#websocket).
+
+protocol.jmap.jmap_websocket_ticket_ttl:
+  type: integer
+  unit: seconds
+  default: 60
+  helm: protocol.jmap.jmap_websocket_ticket_ttl
+  added: 2.4.5
+  see_also: [protocol.jmap.jmap_websocket_timeout, jmap_login_service.websocket_ticket_key]
+  description: |
+    How long a WebSocket ticket from `yarilo-jmap-login` is valid. A browser
+    cannot send credentials on a WebSocket, so a web client that pushes only
+    over WebSocket takes a ticket first and opens the WebSocket with it. `0`
+    issues none and leaves the ticket capability out of the session. See
+    [Tickets for browser clients](/protocols/jmap#tickets-for-browser-clients).
 
 protocol.jmap.jmap_cors_allow_origins:
   type: list
