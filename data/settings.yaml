@@ -1695,7 +1695,6 @@ protocol.lmtp.proxy.lmtp_proxy_timeout:
 jmap_login_service.websocket_ticket_key:
   type: string
   default: ""
-  helm: components.jmapLogin.websocket_ticket_key
   added: 2.4.5
   see_also: [protocol.jmap.jmap_websocket_ticket_ttl]
   description: |
