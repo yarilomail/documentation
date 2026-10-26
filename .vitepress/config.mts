@@ -255,6 +255,7 @@ export default defineConfig({
           { text: 'Installation', link: '/installation/' },
           { text: 'DNS for a mail domain', link: '/installation/dns' },
           { text: 'Mail client autoconfiguration', link: '/installation/autoconfig' },
+          { text: 'Mail applications', link: '/installation/clients' },
           { text: 'Migration', link: '/installation/migration' },
           { text: 'General Configuration', link: '/installation/general' },
           { text: 'Deployment', link: '/installation/deployment' },
