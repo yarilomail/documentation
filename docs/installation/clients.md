@@ -48,10 +48,6 @@ identity, sending, the storage quota, and new mail appearing without a reload.
   [`jmap_websocket_ticket_ttl: 0`](/protocols/jmap#protocol.jmap.jmap_websocket_ticket_ttl)
   the application works but shows new mail only after a reload. See
   [Tickets for browser clients](/protocols/jmap#tickets-for-browser-clients).
-- Mark all as read may leave a few messages unread when several arrived
-  within the same second; running it again marks them. This is how the
-  application pages through the folder, and yarilo keeps the standard meaning of
-  the date filter it relies on.
 - The storage quota appears in the side panel only above 80% of the limit; it
   is always under **Settings → Storage**.
 - The mobile application was not tested.
