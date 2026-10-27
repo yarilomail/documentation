@@ -27,7 +27,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 | [2971](https://www.rfc-editor.org/rfc/rfc2971) | ID | yes | before login always; after login while `imap_id_send` is non-empty; with `imap_id_retain`, the client's `ID` goes to the [policy server](/auth/policy) as `device_id` |
 | [3516](https://www.rfc-editor.org/rfc/rfc3516) | BINARY | yes | after login |
 | [3691](https://www.rfc-editor.org/rfc/rfc3691) | UNSELECT | yes | after login |
-| [4314](https://www.rfc-editor.org/rfc/rfc4314) | ACL | yes | after login, with `acl.enabled` (off by default) |
+| [4314](https://www.rfc-editor.org/rfc/rfc4314) | ACL | yes | after login, with `acl.enabled` (off by default); `SELECT` answers `[READ-ONLY]` without any of `i`, `e`, `w`, `t`, `s` |
 | [4315](https://www.rfc-editor.org/rfc/rfc4315) | UIDPLUS | yes | after login |
 | [4731](https://www.rfc-editor.org/rfc/rfc4731) | ESEARCH | yes | after login |
 | [4959](https://www.rfc-editor.org/rfc/rfc4959) | SASL-IR | yes | |
