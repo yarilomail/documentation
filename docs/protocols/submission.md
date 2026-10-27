@@ -32,7 +32,7 @@ protocol:
 
 ## Submission (port 587 / 465)
 
-Accepts mail from MUAs. AUTH is required. `yarilo-submission-login` offers `PLAIN` and `LOGIN`, plus whatever `yarilo-auth` runs: the SCRAM mechanisms its passdbs can verify (`-PLUS` only over TLS 1.3) and, with OAuth2 configured, `OAUTHBEARER` and `XOAUTH2` (see [OAuth 2.0](/auth/oauth2)). A refused login answers `535`; a mechanism not offered answers `504`. After successful authentication and DATA, the message is forwarded to the configured upstream MTA via `protocol.submission.relay`. If `submission_relay_host` is empty, submission returns `451`.
+Accepts mail from MUAs. AUTH is required. `yarilo-submission-login` offers `PLAIN` and `LOGIN`, plus whatever `yarilo-auth` runs: the SCRAM mechanisms its passdbs can verify (`-PLUS` only over TLS 1.3) and, with OAuth2 configured, `OAUTHBEARER` and `XOAUTH2` (see [OAuth 2.0](/auth/oauth2)). A refused login answers `535`; a mechanism not offered answers `504`. After successful authentication, each transaction is relayed to the configured upstream MTA via `protocol.submission.relay` as the client sends it; see [Relay](#relay-protocol-submission-relay). If `submission_relay_host` is empty, `MAIL FROM` is answered `451 4.3.0`.
 
 `auth_allow_cleartext: false` in the service config blocks AUTH on unencrypted connections; pair it with `ssl_mode: starttls` (port 587) or `ssl_mode: ssl` (port 465).
 
@@ -44,7 +44,9 @@ A proxy or relay that passes the client's address with XCLIENT needs `xclient_pr
 
 ## Relay (`protocol.submission.relay`)
 
-Configures the upstream MTA for submission. One TCP connection per message; any transport error returns `451 4.4.0` to the MUA.
+Configures the upstream MTA for submission. Each transaction gets its own connection, opened at `MAIL FROM` and closed at the end of `DATA`, at `RSET`, or when the client quits or drops. `MAIL FROM`, every `RCPT TO` and `DATA` are passed to the relay as the client sends them, and the relay's reply, code and text, is the client's. A recipient the relay refuses is refused at its `RCPT TO`, and the message still goes to the others. Any transport error returns `451 4.4.0` to the MUA; a relay that cannot be reached fails `MAIL FROM`.
+
+A client silent for five minutes between commands is disconnected, and its relay transaction with it; `submission_relay_command_timeout` bounds each relayed command.
 
 <!-- @settings protocol.submission.relay -->
 
@@ -81,7 +83,7 @@ protocol:
 
 - `relay-master` must be a master user in yarilo-auth (see [Master users](/auth/master_users)).
 - The session's user is the one it logged in as, by every mechanism: PLAIN, LOGIN, SCRAM, OAUTHBEARER and XOAUTH2.
-- When the relay needs a user (`%u`, or a master with no relay user) and the session has none, the message is refused before the relay is dialled.
+- When the relay needs a user (`%u`, or a master with no relay user) and the session has none, `MAIL FROM` is refused before the relay is dialled.
 
 A relay login that fails, or cannot be made for want of a user, answers the client `451 4.7.0 Temporary authentication failure, try again later`. The reason is logged with the session id.
 
