@@ -358,6 +358,9 @@ SELECT password, home, mail FROM mailbox
 | POP3 | `pop3` |
 | Submission | `submission` |
 | Postfix over the SASL login | `smtp` |
+| ManageSieve | `sieve` |
+| LMTP delivery | `lmtp` |
+| JMAP | `jmap` |
 
 The Submission service names itself `submission` everywhere it reports a
 service: auth logs (`proto=submission`), the policy server's `service`, the
@@ -367,9 +370,6 @@ auth cache. Releases before 2.4.3 used `smtp` there.
 logins fail wherever a new and an old component meet, a new proxy with an old
 backend or the reverse; this is the StatefulSet rollout window, minutes. Other
 protocols and delivery are not affected.
-| ManageSieve | `sieve` |
-| LMTP delivery | `lmtp` |
-| JMAP | `jmap` |
 
 **Where the rule goes decides what it covers.**
 
