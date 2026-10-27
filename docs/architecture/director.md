@@ -44,7 +44,8 @@ The chart also renders `shutdown.kill_timeout`, but the director does not read i
 Backend eviction:
 
 - A static backend from `mail_servers`, or one added through the admin API, never heartbeats and never expires.
-- The last backend of a tag is never evicted, by either the lease or the reports; the director logs it instead.
+- The last backend of a tag is never removed by the lease. When its lease expires it stays registered but leaves routing: the tag's lookups fail at once until it heartbeats again, and it comes back with its placements.
+- The reports from login proxies never evict the last backend of a tag, and do not take it out of routing either.
 
 ## `director_service.mail_servers`
 

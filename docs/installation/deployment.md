@@ -226,9 +226,12 @@ Model:
   is reserved for genuine LEAVE (SIGTERM / expiry).
 
 Safety + migration:
-- **Never remove the last backend of a tag** by TTL expiry — a suspect-but-only
-  backend is kept (and logged loudly) rather than guaranteeing a total blackhole
-  for that tag.
+- **The last backend of a tag is never removed by TTL expiry; it leaves routing.**
+  It stays registered with the users and domains placed on it, so its next
+  heartbeat brings it back where it was, as a pod whose heartbeat link only
+  failed. Until then the tag's logins fail at once ("backend unavailable", LMTP
+  `451`, which the MTA retries) instead of each one waiting out
+  `login_proxy_timeout` on a dead pod. The change is logged once.
 - **Static `mail_servers` entries stay non-expiring** — they are a bootstrap /
   non-k8s fallback and are never pruned by the heartbeat lease, so registration can
   be rolled out incrementally with no binary branching (config-not-binary).
