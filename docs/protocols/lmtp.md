@@ -217,7 +217,7 @@ protocol:
       lmtp_proxy_timeout: 60
 ```
 
-A recipient's userdb field `proxy_timeout` replaces it for that recipient; see [AUTH](/auth/) for the format. When that lookup fails the recipient gets `451 4.3.0 Temporary user lookup failure`; when the value cannot be read, `550 5.3.5 Internal user lookup failure`. A user the userdb does not know is delivered with the global value.
+A recipient's userdb field `proxy_timeout` replaces it for that recipient; see [AUTH](/auth/) for the format. When that lookup fails the recipient gets `451 4.3.0 Temporary user lookup failure`; when the value cannot be read, `550 5.3.5 Internal user lookup failure`. A user the userdb does not know is refused at `RCPT` with `550 5.1.1 No such user here`, before the director is asked. With `auth_master_addr` empty no lookup is made, and every recipient goes on to the backend, which refuses an unknown one the same way.
 
 ---
 
