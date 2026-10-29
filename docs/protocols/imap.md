@@ -38,6 +38,21 @@ protocol:
 
 ---
 
+## Recent messages
+
+A message is `\Recent` to the first session that selects its folder after the message arrives (RFC 3501). That session sees it in `* n RECENT`, in `FLAGS` and in `SEARCH RECENT`, `NEW` and `OLD`. Every later session sees it as old.
+
+- `SELECT` takes the folder's recent messages. Mail that arrives while the folder is selected is recent to that session.
+- `EXAMINE` and `STATUS (RECENT)` report the recent messages and leave them for the next `SELECT`.
+- A virtual mailbox reports no recent messages and takes none from its folders.
+- A client cannot set `\Recent`: `STORE` and `APPEND` with it are answered `BAD`.
+
+IMAP4rev2 removed `\Recent`. After `ENABLE IMAP4rev2` the session gets no `RECENT` response and no `\Recent` flag. Its `SELECT` still takes the recent messages, so a later IMAP4rev1 session sees them as old.
+
+Each folder's index records which messages are no longer recent. An index written before this record existed reports every message as recent once, to the first `SELECT`.
+
+---
+
 ## Supported IMAP extensions
 
 [Feature coverage](/architecture/parity#imap-extensions) is the exhaustive list of what the server advertises. This table explains the ones that need it.
