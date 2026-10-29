@@ -29,6 +29,9 @@ jobs:
         run: node scripts/check-nofollow.mjs site/main
       - name: Check images have alt text
         run: node scripts/check-img-alt.mjs site/main
+      # main is noindex and points search engines at the same page in latest.
+      - name: Check main is canonical to latest
+        run: node scripts/check-canonical.mjs site/main
       # main documents the next release; yarilo's develop CI writes its export to settings-export.
       - name: Compare settings with the code
         run: |
@@ -42,6 +45,8 @@ jobs:
           DOCS_VERSION=latest npm run docs:build
           cp -R .vitepress/dist site/latest
           node scripts/site-root.mjs root site
+      - name: Check latest is canonical to itself
+        run: node scripts/check-canonical.mjs site/latest
       - name: Check redirects
         run: |
           test -f site/index.html

@@ -200,6 +200,11 @@ inline.
 
 ### Prerequisites
 
+#### Redis
+
+The chart bundles a Redis. An external Redis must be version 6.2 or later: a
+Redis-backed dict reads a path with `ZRANGE … BYLEX`.
+
 #### DNS
 
 An A (or AAAA) record for the public hostname pointing at the LoadBalancer IP

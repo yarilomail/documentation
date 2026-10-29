@@ -156,7 +156,7 @@ export default defineConfig({
     buildLlmsTxt(siteConfig.srcDir, siteConfig.outDir)
   },
   /* Per-page description (frontmatter, else first paragraph) and Open Graph
-     tags; releases are canonical to latest, main is not indexed. */
+     tags; every version is canonical to latest, main is also not indexed. */
   transformPageData(pageData, { siteConfig }) {
     const file = join(siteConfig.srcDir, pageData.filePath)
     // Settings are H3s; list them under their sections in the outline.
@@ -169,11 +169,8 @@ export default defineConfig({
     const title = pageData.frontmatter.title || pageData.title || 'Yarilo'
     const description = pageData.frontmatter.description || pageData.description
     pageData.frontmatter.head ??= []
-    if (VERSION === 'main') {
-      pageData.frontmatter.head.push(['meta', { name: 'robots', content: 'noindex' }])
-    } else {
-      pageData.frontmatter.head.push(['link', { rel: 'canonical', href: pageUrl('/latest/', pageData.relativePath) }])
-    }
+    if (VERSION === 'main') pageData.frontmatter.head.push(['meta', { name: 'robots', content: 'noindex' }])
+    pageData.frontmatter.head.push(['link', { rel: 'canonical', href: pageUrl('/latest/', pageData.relativePath) }])
     pageData.frontmatter.head.push(
       ['meta', { property: 'og:url', content: url }],
       ['meta', { property: 'og:title', content: title }],

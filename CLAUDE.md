@@ -91,7 +91,8 @@ blocked by branch protection:
 Every version of the docs lives under its own prefix:
 
 - `/main/` — built from `main`: the next, unreleased version. Kept out of
-  search results (`noindex`).
+  search results (`noindex`), with its canonical on the same page in
+  `/latest/`.
 - `/2.4.5/` — built from the docs tag `v2.4.5`, pushed when Yarilo 2.4.5 is
   released. Prerelease tags (`v2.4.5-dev.4`) publish nothing.
 - `/latest/` — the newest release, rebuilt when its tag is pushed. Until the
