@@ -101,7 +101,8 @@ what turn a busy mailbox into a stream of contention, which is why coalescing is
 a correctness property here rather than an optimisation.
 
 Merging keeps the widest range: the pass covers the highest UID any request
-asked for, and the strictest `max_recent` bound. A priority request (a search
+asked for, and the smaller `max_recent` bound, where `0` (no bound) is the
+smallest, so a request without a bound lifts it. A priority request (a search
 catch-up) for a mailbox already queued **moves** it to the front instead of
 adding a second entry.
 
