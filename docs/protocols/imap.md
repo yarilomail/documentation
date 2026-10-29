@@ -44,7 +44,7 @@ A message is `\Recent` to the first session that selects its folder after the me
 
 - `SELECT` takes the folder's recent messages. Mail that arrives while the folder is selected is recent to that session.
 - `EXAMINE` and `STATUS (RECENT)` report the recent messages and leave them for the next `SELECT`.
-- A virtual mailbox reports no recent messages and takes none from its folders.
+- A virtual mailbox has recent messages of its own and is taken the same way. A folder its configuration names with `+` gives up its recent messages to that `SELECT`; see [Virtual Mailboxes](/features/virtual).
 - A client cannot set `\Recent`: `STORE` and `APPEND` with it are answered `BAD`.
 
 IMAP4rev2 removed `\Recent`. After `ENABLE IMAP4rev2` the session gets no `RECENT` response and no `\Recent` flag. Its `SELECT` still takes the recent messages, so a later IMAP4rev1 session sees them as old.

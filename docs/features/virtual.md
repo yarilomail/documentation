@@ -173,11 +173,15 @@ metadata store, it costs one query per folder and line on each check.
 
 ### `+Folder`
 
-`+` asks for the folder's `\Recent` messages to be taken when the virtual
-mailbox is opened. A virtual mailbox in yarilo takes no `\Recent` messages,
-from its folders or of its own, and reports `RECENT 0`; see
-[Recent messages](/protocols/imap#recent-messages). The line is read as the
-folder name without the `+`.
+`+` makes a `SELECT` of the virtual mailbox take the folder's `\Recent`
+messages, as a `SELECT` of the folder would. Mail arriving in the folder
+while the virtual mailbox is selected is taken too. A later `SELECT` of the
+folder itself sees those messages as old. A folder named without `+` keeps
+its recent messages for whoever selects it.
+
+The virtual mailbox has recent messages of its own, independent of `+`: the
+first `SELECT` after a message appears in it takes it. See
+[Recent messages](/protocols/imap#recent-messages).
 
 ## What the mailbox holds
 
