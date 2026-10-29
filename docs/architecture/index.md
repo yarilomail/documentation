@@ -590,7 +590,7 @@ for drivers without native atomic multi-key writes.
 Driver authors implement the three interfaces and call `dict.Register(name, init)`
 from their package's `init()`. The `pkg/dict/drivers/all` package
 blank-imports all in-tree drivers — binaries that want them all just
-`import _ "github.com/yarilomail/yarilo/pkg/dict/drivers/all"`.
+`import _ "github.com/yarilomail/yarilo/v2/pkg/dict/drivers/all"`.
 
 ### Path expansion
 
