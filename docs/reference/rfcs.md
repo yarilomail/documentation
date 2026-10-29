@@ -20,8 +20,8 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
-| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | |
-| [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | |
+| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages) |
+| [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | `\Recent` held by the first session that selects the folder; see [Recent messages](/protocols/imap#recent-messages) |
 | [2177](https://www.rfc-editor.org/rfc/rfc2177) | IDLE | yes | |
 | [2342](https://www.rfc-editor.org/rfc/rfc2342) | NAMESPACE | yes | after login; see [Namespaces](/storage/namespace) |
 | [2971](https://www.rfc-editor.org/rfc/rfc2971) | ID | yes | before login always; after login while `imap_id_send` is non-empty; with `imap_id_retain`, the client's `ID` goes to the [policy server](/auth/policy) as `device_id` |

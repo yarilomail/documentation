@@ -455,6 +455,16 @@ pattern is the fallback.
 over-broad pattern looks exactly like an index that has quietly stopped being
 written, which is the failure mode of every silent filter.
 
+## Skipping folders nobody reads
+
+`fts_autoindex_max_recent_msgs` skips autoindexing for a folder holding more recent messages than the limit. `0`, the default, sets no limit.
+
+Recent is counted as IMAP counts it: messages no session has selected since they arrived. See [Recent messages](/protocols/imap#recent-messages). A folder that keeps receiving mail nobody opens, such as a spam trap or an archive of a mailing list, grows past the limit and stops costing tokenisation. Once a client selects it, the count drops, and the next delivery indexes everything the folder holds.
+
+Like the exclusion list, the limit applies to autoindexing only. A rescan, and the catch-up a search triggers, index the folder whatever its count. When a search catch-up and an autoindex request for the same folder are queued together, the folder is indexed.
+
+`fts_autoindex_skipped_recent_total` counts the passes the limit skips.
+
 ## Where the index lives
 
 `fts_index_root` is a location template, expanded per user with `~/`, `%h`,
