@@ -38,7 +38,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 | [5258](https://www.rfc-editor.org/rfc/rfc5258) | LIST-EXTENDED | yes | after login |
 | [5464](https://www.rfc-editor.org/rfc/rfc5464) | METADATA | yes | after login, when a `metadata` dict is configured |
 | [5465](https://www.rfc-editor.org/rfc/rfc5465) | NOTIFY | partial | after login; annotation and metadata events are not reported |
-| [5530](https://www.rfc-editor.org/rfc/rfc5530) | IMAP response codes | partial | sent: `ALREADYEXISTS`, `AUTHENTICATIONFAILED`, `CANNOT`, `CLIENTBUG`, `CORRUPTION`, `EXPUNGEISSUED`, `LIMIT`, `NONEXISTENT`, `NOPERM`, `OVERQUOTA`, `SERVERBUG`, `UNAVAILABLE`; the others are not |
+| [5530](https://www.rfc-editor.org/rfc/rfc5530) | IMAP response codes | partial | sent: `AUTHENTICATIONFAILED`, `CANNOT`, `CLIENTBUG`, `CORRUPTION`, `EXPUNGEISSUED`, `LIMIT`, `NONEXISTENT`, `NOPERM`, `OVERQUOTA`, `SERVERBUG`, `UNAVAILABLE`; the others are not |
 | [5819](https://www.rfc-editor.org/rfc/rfc5819) | LIST-STATUS | yes | after login |
 | [6154](https://www.rfc-editor.org/rfc/rfc6154) | SPECIAL-USE, CREATE-SPECIAL-USE | yes | after login |
 | [6851](https://www.rfc-editor.org/rfc/rfc6851) | MOVE | yes | after login |
