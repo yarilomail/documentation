@@ -22,6 +22,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 |:---|:---|:---|:---|
 | [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages) |
 | [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | `\Recent` held by the first session that selects the folder; see [Recent messages](/protocols/imap#recent-messages) |
+| [2180](https://www.rfc-editor.org/rfc/rfc2180) | IMAP4 multi-accessed mailbox practice | partial | a `COPY` that meets a message another session expunged copies nothing and answers `NO [EXPUNGEISSUED]` (§4.4.1) |
 | [2177](https://www.rfc-editor.org/rfc/rfc2177) | IDLE | yes | |
 | [2342](https://www.rfc-editor.org/rfc/rfc2342) | NAMESPACE | yes | after login; see [Namespaces](/storage/namespace) |
 | [2971](https://www.rfc-editor.org/rfc/rfc2971) | ID | yes | before login always; after login while `imap_id_send` is non-empty; with `imap_id_retain`, the client's `ID` goes to the [policy server](/auth/policy) as `device_id` |
@@ -37,6 +38,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 | [5258](https://www.rfc-editor.org/rfc/rfc5258) | LIST-EXTENDED | yes | after login |
 | [5464](https://www.rfc-editor.org/rfc/rfc5464) | METADATA | yes | after login, when a `metadata` dict is configured |
 | [5465](https://www.rfc-editor.org/rfc/rfc5465) | NOTIFY | partial | after login; annotation and metadata events are not reported |
+| [5530](https://www.rfc-editor.org/rfc/rfc5530) | IMAP response codes | partial | sent: `ALREADYEXISTS`, `AUTHENTICATIONFAILED`, `CANNOT`, `CLIENTBUG`, `CORRUPTION`, `EXPUNGEISSUED`, `LIMIT`, `NONEXISTENT`, `NOPERM`, `OVERQUOTA`, `SERVERBUG`, `UNAVAILABLE`; the others are not |
 | [5819](https://www.rfc-editor.org/rfc/rfc5819) | LIST-STATUS | yes | after login |
 | [6154](https://www.rfc-editor.org/rfc/rfc6154) | SPECIAL-USE, CREATE-SPECIAL-USE | yes | after login |
 | [6851](https://www.rfc-editor.org/rfc/rfc6851) | MOVE | yes | after login |
