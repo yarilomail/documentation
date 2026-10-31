@@ -1,5 +1,5 @@
 ---
-description: "End-to-end smoke test for a live yarilo instance — authenticate, deliver over LMTP, read over IMAP and POP3: how to run it, what it checks, reading failures."
+description: "End-to-end smoke test for a live yarilo instance - authenticate, deliver over LMTP, read over IMAP and POP3: how to run it, what it checks, reading failures."
 ---
 
 # End-to-end smoke test
@@ -17,7 +17,7 @@ authenticate → deliver → read.
 | POP3S USER/PASS | POP3 native `USER` + `PASS` |
 | POP3S AUTH PLAIN (SASL) | POP3 SASL PLAIN via AUTH (RFC 5034), with initial response |
 
-The harness lives in [`app/smoketest-e2e`](https://github.com/yarilomail/yarilo/tree/main/app/smoketest-e2e) and runs against any yarilo deployment exposing the listeners — local binary, docker compose, or staging cluster.
+The harness lives in [`app/smoketest-e2e`](https://github.com/yarilomail/yarilo/tree/main/app/smoketest-e2e) and runs against any yarilo deployment exposing the listeners - local binary, docker compose, or staging cluster.
 
 ---
 
@@ -59,7 +59,7 @@ stack whose `yarilo-auth` reads one you can reach from the host.
 -lmtp-port        plain TCP LMTP         (default: 9024)
 -imaps-port       IMAPS                  (default: 9993)
 -pop3s-port       POP3S                  (default: 9995)
--insecure         skip TLS verify         (default: true — pass -insecure=false to verify)
+-insecure         skip TLS verify         (default: true - pass -insecure=false to verify)
 -timeout          per-step timeout        (default: 10s)
 ```
 
@@ -69,9 +69,9 @@ Against a real deployment, point `-host` at the public hostname, use the standar
 
 ## What auto-provisioning means
 
-When LMTP receives a message for a user whose Maildir doesn't exist, it creates `INBOX/{cur,new,tmp}/` and proceeds. This matches the reference's behavior — LMTP is internal, the upstream MTA has already vetted recipients.
+When LMTP receives a message for a user whose Maildir doesn't exist, it creates `INBOX/{cur,new,tmp}/` and proceeds. This matches the reference's behavior - LMTP is internal, the upstream MTA has already vetted recipients.
 
-If you want strict recipient validation at the LMTP layer (instead of trusting the MTA), file an issue — there's currently no `lmtp_reject_unknown_recipients` knob.
+If you want strict recipient validation at the LMTP layer (instead of trusting the MTA), file an issue - there's currently no `lmtp_reject_unknown_recipients` knob.
 
 ---
 
@@ -94,7 +94,7 @@ to a folder of its own, `YariloSmoke`, reads it back through every `header:*`
 form of RFC 8621 §4.1.3, and removes both afterwards.
 
 It brings its own message because the alternative is depending on whatever
-happens to be in the mailbox — which differs per deployment, so a green run
+happens to be in the mailbox - which differs per deployment, so a green run
 would mean different things in different places.
 
 **The folder rather than INBOX** because the check runs on every rollout, and a
@@ -106,12 +106,12 @@ It needs `-jmap-user` and `-jmap-pass`, and it is skipped without them.
 
 What it asserts beyond the forms themselves:
 
-- the response carries **only** the requested properties — an unprojected answer
+- the response carries **only** the requested properties - an unprojected answer
   states `hasAttachment: false` for a message that has one;
 - a missing header is answered `null` and is **present** in the object, checked
   separately from its value because in Go a missing key and a null value are
   both `nil`;
-- a misspelled property is refused with `invalidArguments` — silence there is
+- a misspelled property is refused with `invalidArguments` - silence there is
   indistinguishable from a property yarilo has not implemented;
 - `headers` lists every field in the order the message carries them.
 
@@ -130,6 +130,6 @@ in the ways below, and nothing else.
 **It does not empty INBOX**, and must not: the account need not be disposable.
 Every check identifies its own message by a unique subject or marker.
 `TestNothingEmptiesTheInbox` reads the source and fails on any function that
-selects INBOX, searches `ALL` and deletes the result — deleting a message the
+selects INBOX, searches `ALL` and deletes the result - deleting a message the
 check itself sent stays allowed, because the fault was the breadth and not the
 delete.

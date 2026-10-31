@@ -28,7 +28,7 @@ key. A folder everyone may read is a grant of `anyone lrs`, not ACL turned
 off.
 
 With `acl.enabled: true`, rights are checked on `SELECT`, on every read
-and write, and on `LIST` — a user without the lookup right does not learn
+and write, and on `LIST` - a user without the lookup right does not learn
 the mailbox exists. Some enforcement gaps remain for cross-user delivery, so treat that
 issue as the list of what is not yet covered rather than as a statement
 that nothing is.
@@ -42,7 +42,7 @@ namespaces:
   - type: personal              # required: personal | other | shared
     prefix: ""                  # mailbox name prefix; "" reserved for personal
     separator: "/"              # one character; different per-namespace allowed
-    list: "yes"                 # LIST exposure: yes | children | no — quote it
+    list: "yes"                 # LIST exposure: yes | children | no - quote it
     subscriptions: true         # track SUBSCRIBE state for this namespace
     inbox: true                 # owns the magic "INBOX" mailbox (set on exactly one)
     location: "maildir:%h"      # storage URL; varexpand %u/%h/%n/%d/%i
@@ -52,8 +52,8 @@ namespaces:
       Junk:  { auto: create,    special_use: "\\Junk" }
 ```
 
-`list` takes exactly `yes`, `children` or `no`. A boolean — `true`, `false`,
-or an unquoted `yes`/`no` where the YAML reader treats it as one — is
+`list` takes exactly `yes`, `children` or `no`. A boolean - `true`, `false`,
+or an unquoted `yes`/`no` where the YAML reader treats it as one - is
 refused at startup with `unknown list mode`. Left out, it is `children` for
 an owner-templated prefix and `yes` for any other.
 
@@ -177,7 +177,7 @@ namespaces:
     list: "yes"
 ```
 
-Equivalent to pre-v1.20 behaviour — the IMAP `NAMESPACE` response is
+Equivalent to pre-v1.20 behaviour - the IMAP `NAMESPACE` response is
 `* NAMESPACE (("" "/")) NIL NIL`.
 
 ### Personal + Shared + Other Users (reference-style)
@@ -207,7 +207,7 @@ namespaces:
 ### Owner-templated namespaces
 
 When a namespace `prefix` contains the owner variable `%u` (e.g. `user/%u/`),
-the namespace is **owner-templated** — `%n` and `%d` are not owner variables
+the namespace is **owner-templated** - `%n` and `%d` are not owner variables
 in a prefix: the `%u/%n/%d/%h` variables
 in its `location` expand against the **owner** whose name fills the prefix slot,
 not the logged-in user. Accessing `user/alice/Sent` extracts `owner = alice`,
@@ -217,7 +217,7 @@ owner's ACL. Fixed prefixes (no variable, e.g. `Shared/`, `Public/`) are
 unaffected and resolve to one path for everyone.
 
 The owner is resolved when its mailbox carries the same farm tag (same PV)
-as the session's — standalone and single-farm deployments. An owner on a
+as the session's - standalone and single-farm deployments. An owner on a
 **different farm tag** is not reachable yet. `LIST ""
 "user/%"` lists the owners who granted the caller something when
 `acl_sharing_map` names a dict for the owner registry; without it, an owner is
@@ -285,7 +285,7 @@ maildir tree on the first `CREATE` / `APPEND`.
 For multi-pod backend deployments the namespace roots must be on
 shared storage (NFS/CephFS RWX) so all replicas see the same shared
 folder tree. The standalone helm chart leaves shared roots **empty by
-default** — operators opt in by populating `cfg.Namespaces` and
+default** - operators opt in by populating `cfg.Namespaces` and
 mounting a PV at the chosen `location:`.
 
 ## Quota interaction
@@ -294,7 +294,7 @@ A save is checked against the quota of the **session's** user, whichever
 namespace it lands in: an `APPEND` to `user/alice/INBOX` by bob counts against
 bob's limit, while the message itself is stored, and later counted, in alice's
 mailbox. Owner-paid quota is not implemented, and shared or public namespaces
-have no quota root of their own — `quota:` has no per-namespace setting. See
+have no quota root of their own - `quota:` has no per-namespace setting. See
 [Quota](/storage/quota).
 
 ---
@@ -308,10 +308,10 @@ have no quota root of their own — `quota:` has no per-namespace setting. See
 | A `type: other` namespace with a fixed prefix | `NO`: there is no owner to resolve; use an owner-templated prefix |
 | Owner variables other than `%u` in a prefix | not supported |
 
-Everything else — `SELECT`, `APPEND`, `FETCH`, `STORE`, `EXPUNGE`, `SEARCH`,
+Everything else - `SELECT`, `APPEND`, `FETCH`, `STORE`, `EXPUNGE`, `SEARCH`,
 `COPY`/`MOVE` between namespaces, `RENAME` within one, metadata, `LIST`
 across every configured namespace, and per-namespace subscriptions
-(`subscriptions-<prefix>` beside the personal `subscriptions`) — works on
+(`subscriptions-<prefix>` beside the personal `subscriptions`) - works on
 shared, public and owner-templated namespaces, gated by ACL.
 
 ## Virtual mailboxes

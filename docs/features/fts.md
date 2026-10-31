@@ -24,7 +24,7 @@ Set the options under `fts:`:
 ```yaml
 fts:
   ## Master switch + explicit engine selection. fts_engine is REQUIRED when
-  ## enabled: there is no implicit default — startup fails fast on a missing
+  ## enabled: there is no implicit default - startup fails fast on a missing
   ## or unknown engine name, so the active engine is always stated in config.
   enabled: false
   fts_engine: ""                    # required when enabled: "flatcurve"
@@ -34,8 +34,8 @@ fts:
   fts_addr: ""                      # e.g. "yarilo-fts:9106"; the chart's default is localhost (co-located)
   fts_listen: ":9106"               # yarilo-fts: where it serves
   fts_auth_master_addr: ""          # yarilo-fts: userdb of the user being indexed (storage identity)
-  fts_max_conns: 4                  # connections per session process — see below
-  fts_storage_type: local           # local | nfs — what the index sits on; nfs skips directory fsyncs
+  fts_max_conns: 4                  # connections per session process - see below
+  fts_storage_type: local           # local | nfs - what the index sits on; nfs skips directory fsyncs
   fts_handle_idle_timeout: 300      # an idle per-user index handle is closed, releasing its write lock; 0 never closes one
 
   ## Indexing behaviour.
@@ -49,14 +49,14 @@ fts:
   ## Search behaviour.
   fts_search_add_missing: body-search-only
   fts_search_read_fallback: true    # IMAP reads the messages when the index cannot answer
-  fts_search_timeout: 30            # seconds — an integer; "30s" fails to load
+  fts_search_timeout: 30            # seconds - an integer; "30s" fails to load
   fts_search_first_index_grace: 10  # seconds to wait for a mailbox with nothing indexed yet
   fts_search_strict: false          # RFC substring verification of candidates
   fts_search: true                  # false = SEARCH-only degrade, indexing keeps running
 
   ## Language chain.
   language_filters: [lowercase, stopwords, snowball]   # default ON
-  fts_flatcurve_prefix_search: "yes"   # yes | no | N | N-M — see below
+  fts_flatcurve_prefix_search: "yes"   # yes | no | N | N-M - see below
   languages: [en]                   # >1 enables per-part detection
   fts_language_filters_override: {} # per-language override, e.g. {uk: [lowercase, stopwords]}
   fts_detection_sample_bytes: "1k"  # bytes sampled per part; 0 is refused
@@ -77,7 +77,7 @@ fts:
   fts_dedup_body_parts: false       # skip a part whose text was already indexed for the same message
 
   ## Engine-specific: flatcurve (fts_engine: "flatcurve"; the yarilo-fts
-  ## binary links libxapian — cgo confined to the fts Deployment image).
+  ## binary links libxapian - cgo confined to the fts Deployment image).
   fts_flatcurve_commit_limit: 500
   fts_flatcurve_min_term_size: 2
   fts_flatcurve_optimize_limit: 10  # auto-queues a mailbox at this shard count; 0 disables
@@ -95,7 +95,7 @@ does the chart render a separate `<release>-fts` Deployment and Service.
 
 The queue holds **at most one pending pass per mailbox**. A mailbox is the unit
 of work, not a request: a pass reads the checkpoint and indexes everything above
-it, so two passes over one mailbox do the same work twice — and the second finds
+it, so two passes over one mailbox do the same work twice - and the second finds
 that out only after taking the lock. Under delivery load those duplicates are
 what turn a busy mailbox into a stream of contention, which is why coalescing is
 a correctness property here rather than an optimisation.
@@ -109,8 +109,8 @@ adding a second entry.
 A request that arrives while its mailbox is being indexed is not dropped: the
 running pass read its checkpoint before that request existed and will not cover
 it, so the mailbox is re-queued when the pass finishes. Every popped mailbox is
-released through the same path whatever happens to the pass — including a panic
-— because a mailbox left claimed would never be queued again, and its mail would
+released through the same path whatever happens to the pass - including a panic -
+because a mailbox left claimed would never be queued again, and its mail would
 stay unindexed with nothing in the log to say so.
 
 ### Reading ahead
@@ -128,14 +128,14 @@ Tokenising and base64 decoding dominate; the disk barely appears. Overlapping
 reads with parsing therefore recovers almost nothing, while the read-ahead
 window holds messages in memory once per worker.
 
-Raise it where reads are genuinely slow — cold alt-tier storage, or an NFS mount
+Raise it where reads are genuinely slow - cold alt-tier storage, or an NFS mount
 whose cache is not warm. `fts_read_seconds` against `fts_build_seconds` is what
 says whether that is your deployment; do not raise it on the assumption that it
 must help.
 
 When enabled, four properties hold:
 
-**Advisory.** A depth below two reads one message at a time — the same code
+**Advisory.** A depth below two reads one message at a time - the same code
 path, not a second one.
 
 **Order is mandatory.** Indexing walks UIDs upwards and the checkpoint advances
@@ -147,7 +147,7 @@ than unlikely.
 can name instead of halting on one it cannot.
 
 **Two ceilings.** Depth bounds messages, `fts_prefetch_max_bytes` bounds what
-they hold — and the byte ceiling is per pass, so N workers can hold N windows. A
+they hold - and the byte ceiling is per pass, so N workers can hold N windows. A
 message larger than the whole ceiling is admitted alone: refusing to index it
 would be worse than briefly exceeding a bound whose purpose is limiting
 concurrency.
@@ -157,13 +157,13 @@ concurrency.
 `fts_index_workers` is how many mailboxes are indexed at once. What it can and
 cannot buy follows from the engine: `userIndex` holds **one mutex per user**,
 taken by every write. Two workers on two mailboxes of the same user therefore
-serialise inside the engine — they would occupy two workers to do one user's
+serialise inside the engine - they would occupy two workers to do one user's
 work while other users wait.
 
 So dispatch hands each worker a **different user**: a worker takes the
 highest-priority mailbox whose user is not already being indexed, and skips the
-rest. Nothing is lost — a skipped mailbox is dispatched as soon as its user is
-released — and one user with many mailboxes cannot occupy every worker.
+rest. Nothing is lost - a skipped mailbox is dispatched as soon as its user is
+released - and one user with many mailboxes cannot occupy every worker.
 
 A consequence worth recognising before it is diagnosed as a stall: workers can
 sit idle while the queue is deep, because everything queued belongs to users
@@ -177,8 +177,8 @@ busy now" is sampled between passes almost every time: it reads zero whether the
 service is saturated or idle. A metric that cannot answer the question it was
 added for is worse than none, because the question then looks answered.
 
-The useful lever is not this number. Indexing is CPU-bound — `fts_build_seconds`
-is almost all of a pass — so worker count is bounded by the CPU the container is
+The useful lever is not this number. Indexing is CPU-bound - `fts_build_seconds`
+is almost all of a pass - so worker count is bounded by the CPU the container is
 given, and `components.fts.resources.limits.cpu` defaults to `1`. A second
 worker under a one-CPU limit adds scheduling and a second prefetch window, not
 throughput. Raise the CPU limit and the worker count together, or add pods.
@@ -188,8 +188,8 @@ throughput. Raise the CPU limit and the worker count together, or add pods.
 An index pass takes a lock keyed `fts:<user>:<folder>`, not the mailbox lock.
 The two are different resources with different writers: the mail index is
 written by every session, the full-text index only by `yarilo-fts`. The lock
-exists solely so two full-text passes over one mailbox — after a ring move, for
-instance — cannot race the checkpoint's read-modify-write.
+exists solely so two full-text passes over one mailbox - after a ring move, for
+instance - cannot race the checkpoint's read-modify-write.
 
 Sharing the mailbox key made every pass queue behind unrelated session writes.
 Under load that was not theoretical: the lock is taken without waiting, so a
@@ -198,8 +198,8 @@ retried. The mail-index reads a pass needs (`OpenFolder`,
 `GetMessages`, the present-UID snapshot) deliberately happen **outside** the
 lock, so nothing was relying on the wider scope.
 
-A pass that still loses its lock — genuine contention between two full-text
-writers — is requeued with a bounded backoff rather than dropped, and counted
+A pass that still loses its lock - genuine contention between two full-text
+writers - is requeued with a bounded backoff rather than dropped, and counted
 in `fts_index_deferred_total`. A pass abandoned after exhausting its retries
 increments `fts_index_dropped_total`, which is expected to stay at zero: every
 increment is mail that is not in the index and will not be until something else
@@ -209,55 +209,55 @@ queues that mailbox.
 
 | Metric | Answers |
 |:---|:---|
-| `fts_index_lag_uids` | how much mail is not in the index — the largest gap between a mailbox's highest UID and its checkpoint |
+| `fts_index_lag_uids` | how much mail is not in the index - the largest gap between a mailbox's highest UID and its checkpoint |
 | `fts_index_lag_seconds` | how old the oldest unindexed message is |
 | `fts_index_queue_depth` | mailboxes waiting for a pass |
-| `fts_queue_wait_seconds` | how long they waited — separates "deep queue" from "deep queue that is not draining" |
+| `fts_queue_wait_seconds` | how long they waited - separates "deep queue" from "deep queue that is not draining" |
 | `fts_queue_merged_total` | requests folded into a queued pass: duplicate work, and duplicate lock contention, that did not happen |
 | `fts_queue_requeued_total` | mailboxes put back because a request arrived mid-pass |
-| `fts_fetch_seconds` | opening a message — **not** reading it |
+| `fts_fetch_seconds` | opening a message - **not** reading it |
 | `fts_read_seconds` | time actually blocked reading a message's bytes |
 | `fts_build_seconds` | the whole of indexing one message |
 | `fts_build_stage_seconds{stage}` | where that time went: `parse`, `decode`, `tokenize`, `write` |
 | `fts_prefetch_inflight_bytes` | bytes read ahead and not yet indexed |
-| `fts_prefetch_stall_seconds` | the reader waiting for window space — growth means the ceiling is the bottleneck, not the disk |
+| `fts_prefetch_stall_seconds` | the reader waiting for window space - growth means the ceiling is the bottleneck, not the disk |
 | `fts_message_bytes` | the size those two are relative to; 200ms on 30MB and on 3KB are different diagnoses |
 | `fts_index_deferred_total` | passes requeued after losing the lock |
 | `fts_index_dropped_total` | passes given up on. **Expected zero** |
 | `fts_worker_busy_seconds_total` | total time workers spent inside passes; `rate()` divided by `fts_index_workers` is utilisation |
-| `fts_pop_skipped_total` | mailboxes passed over because their user was already being indexed — this is what separates "idle because there is no work" from "idle because the work belongs to busy users" |
+| `fts_pop_skipped_total` | mailboxes passed over because their user was already being indexed - this is what separates "idle because there is no work" from "idle because the work belongs to busy users" |
 
 `fts_fetch_seconds` timed only the open for a long time while the body streamed
-into the tokeniser, so every byte of storage I/O was being counted as parsing —
+into the tokeniser, so every byte of storage I/O was being counted as parsing -
 which made the read share look like 7% of a pass when the real figure was
 unknown. `fts_read_seconds` is what settles that.
 
-`fts_build_seconds` answers "is indexing CPU-bound" — it is, overwhelmingly.
+`fts_build_seconds` answers "is indexing CPU-bound" - it is, overwhelmingly.
 `fts_build_stage_seconds` answers the next question, which is what the CPU is
 doing:
 
-- `parse` — reading the MIME structure;
-- `decode` — extracting text from attachments, including anything handed to an
+- `parse` - reading the MIME structure;
+- `decode` - extracting text from attachments, including anything handed to an
   external decoder;
-- `write` — feeding terms to the engine;
-- `tokenize` — the remainder.
+- `write` - feeding terms to the engine;
+- `tokenize` - the remainder.
 
 Those first three are timed directly. Tokenising is **derived**: reading a text
 part is interleaved with tokenising it, because the reader feeds the tokeniser
 through a callback, and separating them would require every layer to subtract
 its children. So `tokenize` is the pass time that is not parsing, decoding or
-writing — accurate as a share, not as an isolated measurement, and named here
+writing - accurate as a share, not as an isolated measurement, and named here
 rather than left to look measured.
 
 The split matters because the fixes differ. Decoding an attachment that yields
 no useful terms and tokenising a body cost the same in the total, and one is a
-question about `fts_message_max_size` and the decoder settings — what is worth
-indexing at all — while the other is a question about the tokeniser.
+question about `fts_message_max_size` and the decoder settings - what is worth
+indexing at all - while the other is a question about the tokeniser.
 
 The two lag gauges are the ones a user feels: "search does not find recent
 mail". Everything else is a proxy for them.
 
-They carry no per-user or per-mailbox labels — a few hundred users times their
+They carry no per-user or per-mailbox labels - a few hundred users times their
 folders would put that cardinality into Prometheus. The per-mailbox detail is
 kept in process and only the worst case is published, sampled every 30 seconds;
 for a specific user, use the logs.
@@ -270,7 +270,7 @@ pairs**, so a caller that issues several lookups at once gets them queued, not
 run in parallel. Until this is above one, a search fanning out over several
 folders is sequential however the caller is written.
 
-The service has always handled each connection on its own goroutine — the
+The service has always handled each connection on its own goroutine - the
 client side was the bottleneck. Connections open on demand, so a pool of four
 costs nothing until four calls actually overlap.
 
@@ -287,14 +287,14 @@ literal copy:
 
 - **`fts_message_max_size`**: yarilo's `0` means unlimited. The reference
   rejects a literal `0` at startup and spells "no limit" as the keyword
-  `unlimited` — copying a numeric `0` across from a reference config that
+  `unlimited` - copying a numeric `0` across from a reference config that
   actually meant "reject anything over 0 bytes" (not the common case, but
   possible) would silently flip its meaning; copying the reference's
   `unlimited` keyword across as literal text would fail to parse here.
   Translate `unlimited` → `0`, and any other reference value across as
   the same byte count.
 - **Time values**: the reference uses TIME strings (`"30s"`, `"5s"`, …).
-  yarilo uses bare integers with the unit fixed in the key name —
+  yarilo uses bare integers with the unit fixed in the key name -
   `fts_search_timeout` (seconds), `fts_flatcurve_rotate_time`
   (milliseconds). Strip the unit suffix and convert if the reference value
   used a different unit than the yarilo key expects (e.g. reference
@@ -304,7 +304,7 @@ literal copy:
   also accepted as "disabled" (see `decoder.New`), so this is forgiving,
   but `none` is the canonical yarilo spelling going forward.
 - **`fts_decoder_script_addr`**: a superset of the reference's plain
-  socket-path value — accepts `unix:///path/to.sock` (a bare reference
+  socket-path value - accepts `unix:///path/to.sock` (a bare reference
   socket path becomes `unix://` + that same path) or `host:port` for a
   standalone Deployment/Service the reference has no equivalent topology
   for.
@@ -312,14 +312,14 @@ literal copy:
 ### Differences from the reference
 
 Deliberate differences from the reference, kept because the tradeoff was
-evaluated and accepted — not gaps to close silently:
+evaluated and accepted - not gaps to close silently:
 
 - **Subject is indexed via the no-stemming data chain**, unlike the
   reference, which stems Subject/Comments/Keywords like body text.
   Prefix-wildcard search (flatcurve's own `Xapian::Query(OP_WILDCARD, ...)`
   shape, unconditional on every term) compensates when the query word's
   stem happens to be a PREFIX of the indexed unstemmed word (e.g. English
-  `run` as a prefix of indexed `running`) — but not when a language's
+  `run` as a prefix of indexed `running`) - but not when a language's
   stemming rule doesn't produce a prefix relationship (e.g. Russian
   `бежать`/`бегу` share no common prefix with their stem; German
   compounding can move the stem to the middle of the surface form). A
@@ -330,10 +330,10 @@ evaluated and accepted — not gaps to close silently:
 - **Mid-token `*` tokenizes differently**: the reference treats `*` as a token-continuation
   character in its generic tokenizer (not a break), so `foo*bar` is one
   token there; yarilo's tokenizer treats `*` as a break character, so
-  `foo*bar` becomes two tokens (`foo`, `bar`). No practical recall impact
-  — if anything, treating `*` as a break is the softer behavior (it can
+  `foo*bar` becomes two tokens (`foo`, `bar`). No practical recall impact -
+  if anything, treating `*` as a break is the softer behavior (it can
   only ever match MORE, never fewer, real-world messages containing a
-  literal asterisk mid-word) — kept as a known, accepted divergence rather
+  literal asterisk mid-word) - kept as a known, accepted divergence rather
   than fixed, since replicating it exactly would need `*` to stop being a
   break character everywhere, which has its own tokenization
   consequences elsewhere in the break table.
@@ -341,7 +341,7 @@ evaluated and accepted — not gaps to close silently:
   `relevancyScores`): a UID matched by a stripped non-FTS criterion but
   absent from the engine's own score map is floored at `1`, not folded
   into the min-max range via an implicit `0.0` the way the reference's
-  plain map lookup would — that implicit zero would otherwise drag the
+  plain map lookup would - that implicit zero would otherwise drag the
   whole result set's low end down and compress every genuine score toward
   100. An improvement over the reference's own behavior, not a gap.
 - **Rescan does targeted deletes against the exact missing-UID list**
@@ -358,7 +358,7 @@ evaluated and accepted — not gaps to close silently:
 prefixes: `yes`, `no`, `N` (terms of at least N characters) or `N-M`. Lengths
 count characters, not bytes, so the rule is the same in every script.
 
-A prefix search asks the index for every term beginning with what was typed —
+A prefix search asks the index for every term beginning with what was typed -
 which is what makes `corp` find `corporate`, and what makes `co` name a large
 part of the index. Measured against a vocabulary of 2000 words sharing prefixes:
 
@@ -367,7 +367,7 @@ part of the index. Measured against a vocabulary of 2000 words sharing prefixes:
 | 2 | 1 179 µs | 45 µs | **26×** |
 | 4 | 1 181 µs | 45 µs | **26×** |
 | 6 | 98 µs | 45 µs | 2.2× |
-| 8 | 48 µs | 51 µs | — |
+| 8 | 48 µs | 51 µs | - |
 
 **The default expands every term**, which is what the engine did before the
 setting existed, and it is *unmeasured as a default*. The measurement above
@@ -377,7 +377,7 @@ where four characters name everything, a minimum of four saves nothing. Measure
 against a real index before narrowing it.
 
 `fts_flatcurve_substring_search` stores suffixes at index time, and a stored
-suffix is only reachable by expanding the query — so `no` disables substring
+suffix is only reachable by expanding the query - so `no` disables substring
 search in effect. That combination is corrected at startup with a log line
 rather than served as an index nothing can query.
 
@@ -421,7 +421,7 @@ fts_autoindex_exclude: ["\\Junk", "\\Trash", ".EXPUNGED", ".EXPUNGED/*"]
 
 Junk and trash are why it exists. They take high volumes of large,
 attachment-heavy mail, they are almost never searched, and indexing cost is
-dominated by tokenisation — so keeping them current spends the most expensive
+dominated by tokenisation - so keeping them current spends the most expensive
 part of the pipeline on content nobody queries.
 
 **It applies to autoindexing and nothing else.** An explicit rescan indexes the
@@ -430,14 +430,14 @@ mailbox, and so does the catch-up a search triggers, so an excluded folder is
 exclusion that made a mailbox unfindable would be a different feature with a
 different name.
 
-**`*` does not cross the hierarchy separator** — the one the deployment
+**`*` does not cross the hierarchy separator** - the one the deployment
 configures, not always `/`. Write patterns in the separator your namespace uses:
 with `separator: "."`, `EXPUNGED.*` names the children and `EXPUNGED` names the
 folder itself, so list both when both are meant.
 
 The separator is taken from the personal namespace, deployment-wide. A namespace
 configured with a different delimiter is matched by the personal one's, which is
-a limitation of resolving it once rather than per user — the same trade the
+a limitation of resolving it once rather than per user - the same trade the
 special-use lookup makes below, for the same reason.
 
 **A malformed pattern is dropped with a log line at startup.** One that cannot
@@ -447,7 +447,7 @@ not disable every exclusion configured.
 
 **A flag resolves against `imap_special_use_defaults`, not the per-user
 special-use file.** Reading the per-user file takes the cross-process lock, and
-the autoindex hook runs on every delivery — a network round trip to decide
+the autoindex hook runs on every delivery - a network round trip to decide
 something that changes once in a mailbox's life. A user who applied `\Junk` to a
 folder of their own naming is therefore not covered by the flag form; a name
 pattern is the fallback.
@@ -477,8 +477,8 @@ fts_index_root: "/srv/fts/%d/%n"
 ```
 
 It exists because the two kinds of data have different requirements and there
-was no way to say so. **FTS data is derived** — it can be deleted and rebuilt,
-and mail cannot — and it is **write-heavy**, index writes being about a third of
+was no way to say so. **FTS data is derived** - it can be deleted and rebuilt,
+and mail cannot - and it is **write-heavy**, index writes being about a third of
 the pipeline. Placing them on different volumes is a legitimate deployment shape
 that could not previously be described.
 
@@ -488,6 +488,6 @@ people's INBOX index at one path. That is not over-indexing, which heals on the
 next pass; it is two accounts writing the same files.
 
 **Changing it moves nothing.** The old data stays where it was and the index
-rebuilds at the new location on demand — which is safe precisely because the
+rebuilds at the new location on demand - which is safe precisely because the
 data is derived, and is also why the old `fts-flatcurve` directories have to be
 removed by hand if the space matters.

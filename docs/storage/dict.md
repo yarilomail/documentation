@@ -6,7 +6,7 @@ durable per-user or per-mailbox state sits on top of. A single contract
 choice of driver (`file`, `redis`, `sql`, `memory`, `fail`) is made via
 YAML config, not code. The drivers run in the `yarilo-dict` service
 (mTLS, port 9107); a session binary names a dict and reaches it through
-`pkg/dict/proxy`, and needs `dict_service.dict_addr` set to start — see
+`pkg/dict/proxy`, and needs `dict_service.dict_addr` set to start - see
 [The dict service](#the-dict-service).
 
 See [Architecture §Dict abstraction](/architecture/#dict-abstraction)
@@ -22,8 +22,8 @@ configuring and operating dicts.
 | **Dict** | A named key-value store instance, declared once in `yarilo.yaml` under `dicts:` |
 | **Driver** | The backing implementation (`file`, `redis`, `sql`, `memory`, `fail`) |
 | **Settings** | Driver-specific configuration map (path / addr / dsn / ...) |
-| **Namespace** | `priv/` (per-user) and `shared/` (per-resource) key prefixes — application convention; not enforced by drivers |
-| **OpSettings** | Per-call context: username, home dir, TTL — passed by callers, used by drivers; through the dict service the TTL travels with the transaction |
+| **Namespace** | `priv/` (per-user) and `shared/` (per-resource) key prefixes - application convention; not enforced by drivers |
+| **OpSettings** | Per-call context: username, home dir, TTL - passed by callers, used by drivers; through the dict service the TTL travels with the transaction |
 
 ## YAML schema
 
@@ -78,7 +78,7 @@ that carries no home, rather than resolving to a path shared by everyone.
 
 Safe across processes: a commit takes a lock on `<path>.lock`, re-reads
 the document under the lock and then rewrites it, so two pods writing the
-same user's file keep each other's keys. Reads take no lock — they stat
+same user's file keep each other's keys. Reads take no lock - they stat
 the file and reload when its stamp has moved.
 
 Unlike `redis` and `sql`, this driver is opened by the process that uses
@@ -151,7 +151,7 @@ Settings:
 
 | Key | Type | Required | Default | Meaning |
 |:---|:---|:---|:---|:---|
-| `addr` | string | yes | — | `host:port` |
+| `addr` | string | yes | - | `host:port` |
 | `password` | string | no | `""` | AUTH; empty = no auth |
 | `db` | int | no | `0` | Logical database |
 | `prefix` | string | no | `""` | Per-dict key prefix, taken literally. A `%`-variable is refused at startup: the dict opens once per process, so nothing would expand it, and a per-user key already carries `priv/<user>/` |
@@ -179,11 +179,11 @@ Settings:
 
 | Key | Type | Required | Default | Meaning |
 |:---|:---|:---|:---|:---|
-| `driver` | string | yes | — | `sqlite`, `postgres` or `mysql` |
-| `dsn` | string | yes | — | `database/sql` DSN |
+| `driver` | string | yes | - | `sqlite`, `postgres` or `mysql` |
+| `dsn` | string | yes | - | `database/sql` DSN |
 | `table` | string | no | `dict_kv` | Table name; must match `[A-Za-z0-9_]+` (generic mode) |
 | `namespace` | string | no | `""` | Per-dict key prefix within the shared table (generic mode) |
-| `maps` | list | no | — | Column bindings; presence enables **mapped mode** (see below) |
+| `maps` | list | no | - | Column bindings; presence enables **mapped mode** (see below) |
 | `max_open_conns` | int | no | mysql `25`, postgres `8`, sqlite `1` | Connections the dict's pool may hold, in use and idle; `0` = unlimited |
 | `max_idle_conns` | int | no | = `max_open_conns` | Idle connections kept for reuse; `0` keeps none |
 | `conn_max_lifetime` | int | no | `300` | Seconds before a connection is recycled, so it does not stay pinned to a server that failed over; `0` = never |
@@ -225,7 +225,7 @@ dicts:
         - { key: "priv/quota/messages", table: quota, username_field: username, value_field: messages }
 ```
 
-The operator owns the table — mapped mode does **not** auto-create it (column
+The operator owns the table - mapped mode does **not** auto-create it (column
 types are the operator's choice):
 
 ```sql
@@ -235,7 +235,7 @@ CREATE TABLE quota (username VARCHAR(255) PRIMARY KEY, bytes BIGINT, messages BI
 
 > **Every column other than `username_field` must be nullable (or carry a
 > `DEFAULT`).** A `Set` inserts only `(username_field, value_field)`, so the
-> first write for a new user leaves sibling columns unset — a `NOT NULL` sibling
+> first write for a new user leaves sibling columns unset - a `NOT NULL` sibling
 > would reject that insert. `Unset` also relies on the column being nullable.
 
 Mapped mode is validated at startup: `New` runs a
@@ -357,7 +357,7 @@ priv/box/INBOX/comment	first message arrived
 | Unit tests | `memory` |
 | "Feature disabled" wiring | `fail` |
 
-The choice is config-only — switching from `file` to `redis` is a
+The choice is config-only - switching from `file` to `redis` is a
 `yarilo.yaml` edit, not a rebuild. What does change with it is who opens
 the dict: `file` is opened by the session, an engine by `yarilo-dict`. This is the
 **config-not-binary** rule that every yarilo storage decision honours.

@@ -17,14 +17,14 @@ role via `YARILO_COMPONENT` (Compose) or the Helm chart (Kubernetes).
 Clients always connect to login proxies. The proxies terminate TLS and forward
 plaintext to the session backends; session processes have no TLS knowledge.
 
-Examples use `mail.example.com` and namespace `yarilo-sb` — substitute your own
+Examples use `mail.example.com` and namespace `yarilo-sb` - substitute your own
 values throughout.
 
 ## Installing with Docker Compose
 
 A single-host standalone deployment. The backends share a Maildir store and
 coordinate through `yarilo-auth`, `yarilo-warden` and `yarilo-locks`
-(Redis-backed). The userdb is SQLite — no external database required.
+(Redis-backed). The userdb is SQLite - no external database required.
 
 ::: warning
 Single-host, not highly available. For HA or multi-node, use
@@ -39,8 +39,8 @@ files live in
 ### Prerequisites
 
 - Docker Engine 24+ with the Compose v2 plugin (`docker compose version`)
-- Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and — loopback-only by
-  default — 24, 12345, 12340. Override in `.env`.
+- Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and - loopback-only by
+  default - 24, 12345, 12340. Override in `.env`.
 - ~512 MB RAM
 
 ### Quickstart
@@ -100,7 +100,7 @@ printf 'LHLO t\r\nMAIL FROM:<s@ext.test>\r\nRCPT TO:<user@mail.example.com>\r\nD
   | nc 127.0.0.1 24
 ```
 
-Read it back over IMAPS — with the self-signed certificate the verify warning
+Read it back over IMAPS - with the self-signed certificate the verify warning
 is expected:
 
 ```sh
@@ -126,11 +126,11 @@ docker compose exec yarilo-imap \
 | Submission | 587 / 465 | login proxy |
 | ManageSieve | 4190 | login proxy |
 | JMAP | 8443 | login proxy, HTTPS |
-| LMTP | 24 (loopback) | unauthenticated — for your MTA only |
+| LMTP | 24 (loopback) | unauthenticated - for your MTA only |
 | SASL auth | 12345 (loopback) | fronting MTA: `smtpd_sasl_type = dovecot` |
 | Quota policy | 12340 (loopback) | fronting MTA: `check_policy_service` |
 
-Wiring a fronting Postfix — LMTP delivery, SASL auth, quota policy — is
+Wiring a fronting Postfix - LMTP delivery, SASL auth, quota policy - is
 covered in [Docker Compose](/installation/docker_compose).
 
 ### Operations
@@ -165,7 +165,7 @@ To uninstall:
 docker compose down
 ```
 
-Add `-v` to also delete the `mail`, `state` and `redis` volumes — this
+Add `-v` to also delete the `mail`, `state` and `redis` volumes - this
 destroys all data.
 
 ## Installing on Kubernetes
@@ -194,9 +194,9 @@ inline.
 | `yarilo-warden` | Deployment | connection accounting, auth-penalty, cross-node kick bus |
 | `yarilo-locks` | Deployment | cross-process write coordination (mTLS `:9104`, Redis-backed) |
 | `yarilo-quota-status` | Deployment | RCPT-time quota policy service for a fronting MTA |
-| SQL StatefulSet | StatefulSet | passdb / userdb store (sandbox only — use managed SQL in production) |
+| SQL StatefulSet | StatefulSet | passdb / userdb store (sandbox only - use managed SQL in production) |
 | `yarilo-tls` Secret | Secret | TLS certificate provisioned by cert-manager |
-| LoadBalancer Services | Service | public entry for IMAP, POP3, Submission and JMAP (143/993, 110/995, 587/465, 8443); `yarilo-managesieve-login` (4190) and `yarilo-lmtp-login` (24) default to ClusterIP — set `components.<login>.service.type` to publish them |
+| LoadBalancer Services | Service | public entry for IMAP, POP3, Submission and JMAP (143/993, 110/995, 587/465, 8443); `yarilo-managesieve-login` (4190) and `yarilo-lmtp-login` (24) default to ClusterIP - set `components.<login>.service.type` to publish them |
 
 ### Prerequisites
 
@@ -216,8 +216,8 @@ mail.example.com  A  <LB-IP>
 
 ::: note
 For real mail you also need MX, SPF/TXT, DKIM and PTR records, and the zone
-should be served by more than one nameserver — see
-[DNS for a mail domain](/installation/dns). For the sandbox an A record is enough — the
+should be served by more than one nameserver - see
+[DNS for a mail domain](/installation/dns). For the sandbox an A record is enough - the
 smoke test connects by hostname.
 :::
 
@@ -242,7 +242,7 @@ The repo ships
 with two solvers: `http01` (nginx ingress) and `dns01` (Cloudflare, used for
 mail since no port 80 is needed).
 
-Edit it — replace `admin@example.com` / `example.com` — then apply:
+Edit it - replace `admin@example.com` / `example.com` - then apply:
 
 ```sh
 kubectl -n cert-manager create secret generic cloudflare-api-token \
@@ -258,9 +258,9 @@ The ClusterIssuer should report `STATUS: Ready`.
 The chart provisions `Service` objects of type `LoadBalancer`. Ensure a
 controller can fulfil them:
 
-- **microk8s** — `microk8s enable metallb` and assign an IP range
-- **k3s** — bundled `klipper-lb` works out of the box
-- **EKS / GKE / AKS** — the cloud LB controller handles it automatically
+- **microk8s** - `microk8s enable metallb` and assign an IP range
+- **k3s** - bundled `klipper-lb` works out of the box
+- **EKS / GKE / AKS** - the cloud LB controller handles it automatically
 
 ### Setting up the passdb / userdb store
 
@@ -291,13 +291,13 @@ kubectl apply -f helm_values/mysql-sandbox.yaml
 kubectl -n db get pods,svc,pvc
 ```
 
-The `mailbox` table is what `values-sandbox.yaml` queries — columns are
+The `mailbox` table is what `values-sandbox.yaml` queries - columns are
 matched by name, `password` is the only required one, `active` maps to
 `enabled`. Its DSN reaches `yarilo-auth` through the `YARILO_DB_DSN` env var,
 injected from the `mysql` Secret; `skip_schema: true` keeps `yarilo-auth`
 from creating its own table.
 
-Seed a user — `domain` + `mailbox` + `alias` rows:
+Seed a user - `domain` + `mailbox` + `alias` rows:
 
 ```sh
 kubectl -n db exec -i mysql-0 -- mysql -uyarilo -pHIDDEN yarilo <<'SQL'
@@ -367,7 +367,7 @@ Listeners brought up by the login proxies:
 | ManageSieve | 4190 | STARTTLS | ClusterIP by default |
 | JMAP | 8443 | HTTPS | LoadBalancer |
 | LMTP | 24 | plain (front it with an MTA) | ClusterIP by default |
-| Telemetry | 8080 | — | ClusterIP only — `/healthz`, `/readyz`, `/metrics` |
+| Telemetry | 8080 | - | ClusterIP only - `/healthz`, `/readyz`, `/metrics` |
 
 ### Waiting for the certificate
 
@@ -412,7 +412,7 @@ go run ./app/smoketest-e2e/ \
 ```
 
 For an in-cluster protocol/sieve check, the `yarilo-smoketest` binary runs as
-a Job against the login-proxy Services — see
+a Job against the login-proxy Services - see
 [`hack/smoketest/job.yaml`](https://github.com/yarilomail/yarilo/tree/main/hack/smoketest).
 
 ### Troubleshooting
@@ -425,7 +425,7 @@ a Job against the login-proxy Services — see
 | Smoke test `tls: handshake failure` | DNS not yet at the LB, or cert still issuing | `dig` the host, `kubectl get certificate`, wait |
 | AUTH fails for the seeded user | wrong table/column or missing `{SCHEME}` prefix | MySQL: `mailbox` row has `active=1`; Postgres: `users` row has `active=TRUE`; verify the `{BCRYPT}` prefix |
 
-There is no single `yarilo` Deployment — read logs per component:
+There is no single `yarilo` Deployment - read logs per component:
 
 ```sh
 kubectl -n yarilo-sb logs deploy/yarilo-imap-login --tail=200 -f
@@ -453,7 +453,7 @@ mail data, take a `kubectl cp` snapshot first.
 Yarilo storage follows the `mail_storage` pattern: `MailboxBackend` and
 `IndexBackend` are per-process factories; `UserMailbox` / `UserIndex` are
 per-session handles created once after authentication and closed when the
-session ends. All per-user state — filesystem root, quota, uid/gid — is
+session ends. All per-user state - filesystem root, quota, uid/gid - is
 captured in `mailbox.UserInfo` at login time.
 
 The global home layout is controlled by two config keys:
@@ -468,7 +468,7 @@ The default `%d/%u` gives `/var/mail/vhosts/example.com/alice@example.com`. Use
 `%d/%n` for `/var/mail/vhosts/example.com/alice`, or `%n` for single-domain
 setups. `mail_home_template` is the pre-beta spelling of `mail_home` and is
 still accepted. Per-user relocation is a
-DB-only change — populate `home` — with no code or config change.
+DB-only change - populate `home` - with no code or config change.
 
 A username that would be a path has no home: one holding `/`, `\` or NUL, an
 empty local part, or a local part or domain that is `.` or `..`. Such a login

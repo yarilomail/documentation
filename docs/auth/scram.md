@@ -9,7 +9,7 @@ that resists offline brute-force on the wire.
 
 The PLUS variant adds **channel binding** (RFC 9266 `tls-exporter`)
 so a successful auth additionally proves the client is on the
-same TLS session — defeating MITM proxies that terminate TLS at
+same TLS session - defeating MITM proxies that terminate TLS at
 the attacker.
 
 ## Supported mechanisms
@@ -21,11 +21,11 @@ the attacker.
 | `SCRAM-SHA-1` | RFC 5802 | Compatibility with legacy clients (older Thunderbird builds, Apple Mail fallback). PBKDF2-HMAC-SHA-1 ladder. |
 | `SCRAM-SHA-1-PLUS` | RFC 5802 + RFC 9266 | SHA-1 + channel binding. |
 
-SHA-1 is **not deprecated for SCRAM** — the HMAC construction is
+SHA-1 is **not deprecated for SCRAM** - the HMAC construction is
 not broken by SHA-1 collision attacks the way digital signatures
 are. It is provided strictly for client compatibility; new
 deployments should provision SHA-256 verifiers. The two digest
-families are independent — a single user may carry one or the
+families are independent - a single user may carry one or the
 other (but only one verifier blob per user; clients negotiate
 the strongest mech the server advertises).
 
@@ -40,7 +40,7 @@ Enable SCRAM when:
   hands them the password the moment they get a single MITM
   window).
 - Compliance pressure to never store plain passwords on the
-  server (SCRAM verifiers are derived material — operators
+  server (SCRAM verifiers are derived material - operators
   cannot recover the original password).
 
 Skip when every client is restricted to PLAIN/LOGIN, or when the
@@ -50,7 +50,7 @@ user.
 ## Storage format
 
 Each SCRAM-enabled user's `password` column carries a reference-
-compatible blob — the inner shape is identical across the
+compatible blob - the inner shape is identical across the
 SHA-256 and SHA-1 families; only the scheme prefix differs:
 
 ```
@@ -67,12 +67,12 @@ Example:
 
 The fields:
 
-- `iterations` — PBKDF2-HMAC-SHA-256 iteration count.
-- `salt` — per-user random salt (16 bytes recommended).
+- `iterations` - PBKDF2-HMAC-SHA-256 iteration count.
+- `salt` - per-user random salt (16 bytes recommended).
 - `stored_key` = `SHA-256(HMAC(salted_password, "Client Key"))`.
 - `server_key` = `HMAC(salted_password, "Server Key")`.
 
-`salted_password = PBKDF2(password, salt, iterations)` — that
+`salted_password = PBKDF2(password, salt, iterations)` - that
 intermediate is NEVER stored. The plain password is never stored
 in any form.
 
@@ -108,7 +108,7 @@ client cannot speak SHA-256.
 `--iterations N` overrides the default 600 000 (2023 OWASP
 recommendation for SHA-256-based PBKDF2; the same default applies
 to SHA-1 because the iteration count is what carries the
-compute-cost — the digest choice is fixed by the mech). Anything
+compute-cost - the digest choice is fixed by the mech). Anything
 below 4096 is clamped up so a typo cannot land a weak verifier in
 the database.
 
@@ -116,8 +116,8 @@ Omit `--password` to read it from stdin (one line).
 
 The output is the literal value to drop into the SQL `password`
 column. Existing PLAIN-or-BCRYPT users keep working with PLAIN and
-LOGIN unchanged. SCRAM is still offered to them — advertisement is
-not per user — and a SCRAM attempt by such a user fails like a wrong
+LOGIN unchanged. SCRAM is still offered to them - advertisement is
+not per user - and a SCRAM attempt by such a user fails like a wrong
 password, so a client that picks SCRAM on its own needs the verifier
 first.
 
@@ -127,13 +127,13 @@ first.
 can serve verifiers of that family at all; whether a given user has
 one is read during the exchange, not at the handshake. The `sql`,
 `passwd-file` and `static` drivers all serve both families, so a
-chain with any of them announces all four mechanisms — whatever
+chain with any of them announces all four mechanisms - whatever
 verifiers are actually stored. The login proxies offer what the
 service announced:
 
-- **IMAP** — matching mechs appear in the `CAPABILITY` reply.
-- **POP3** — `CAPA` lists them after `SASL`.
-- **Submission (SMTP)** — EHLO's `AUTH` extension lists them
+- **IMAP** - matching mechs appear in the `CAPABILITY` reply.
+- **POP3** - `CAPA` lists them after `SASL`.
+- **Submission (SMTP)** - EHLO's `AUTH` extension lists them
   alongside `PLAIN LOGIN`.
 
 The `-PLUS` variants are additionally gated on the TLS state
@@ -154,7 +154,7 @@ server-final  ← "v=<base64-server-signature>"
 ```
 
 The server-final `v=` carries an HMAC that the client verifies
-to confirm the server itself knew the verifier — mutual
+to confirm the server itself knew the verifier - mutual
 authentication without a second round-trip.
 
 ## Channel binding policy
@@ -170,7 +170,7 @@ Identical for both digest families:
 
 The `y,,` value lets a TLS client SIGNAL that it knows about
 channel binding (so a wiretap attacker can be detected by a
-later trace) without actually using it. We accept `y,,` —
+later trace) without actually using it. We accept `y,,` -
 operators who require strict channel binding configure clients
 to use the PLUS mechanism.
 
@@ -196,7 +196,7 @@ Tooling clamps anything below 4 096 up to 4 096 so a misconfig
 never lands trivially-cracked verifiers in the database.
 Operators on hardware that struggles with 600 000 can run
 `yarctl auth scram-verifier --iterations N` to pick a
-lower value (down to the 4 096 floor) — but this is a
+lower value (down to the 4 096 floor) - but this is a
 deliberate security trade-off and should be documented in the
 deployment's runbook.
 
@@ -213,7 +213,7 @@ EOF
 
 For the full multi-round exchange use a SCRAM-capable client
 (e.g. Thunderbird, or the Go `pkg.go.dev/github.com/xdg-go/scram`
-library) — driving SCRAM by hand against openssl is tedious
+library) - driving SCRAM by hand against openssl is tedious
 because every round needs separate base64 work.
 
 ### Thunderbird
@@ -231,7 +231,7 @@ exposes the `+PLUS` capability.
   registration; the per-login cost is only HMAC + SHA-256 + memcmp.
 - A **PLAIN or LOGIN** login against the same verifier is different:
   the server re-derives it from the password, which is the full
-  PBKDF2 — 600 000 rounds by default — on every such login. Raising
+  PBKDF2 - 600 000 rounds by default - on every such login. Raising
   the iteration count raises that cost too.
 - SCRAM does not benefit from the `auth.cache` (the SCRAM exchange
   itself replaces what the cache would shortcut). PLAIN/LOGIN does:
@@ -241,4 +241,4 @@ exposes the `+PLUS` capability.
 - For multi-tenant deployments, rotate verifiers per-tenant by
   re-running `scram-verifier` and pushing fresh blobs through
   the SQL passdb's update path. There is no cluster-wide
-  verifier rotation primitive — verifiers are per-user.
+  verifier rotation primitive - verifiers are per-user.

@@ -23,7 +23,7 @@ Four things read it:
 - the domain part of a `Message-ID` synthesised at delivery (see [LMTP](/protocols/lmtp)),
 - the LMTP `LHLO` banner,
 - the `Received:` header added at delivery,
-- submission's banner and `Message-ID` domain — unless `protocol.submission.hostname` is set, which overrides **submission alone**.
+- submission's banner and `Message-ID` domain - unless `protocol.submission.hostname` is set, which overrides **submission alone**.
 
 ```yaml
 hostname: mail.example.com
@@ -45,7 +45,7 @@ rather than silently plausible.
 
 Written by the Helm chart, not by an operator. It carries the chart's own
 version so a process can say whether the ConfigMap beside it was rendered by the
-same release it was built from — `helm upgrade --set image.tag=X` pairs a binary
+same release it was built from - `helm upgrade --set image.tag=X` pairs a binary
 with whatever chart is on disk, and a chart older than the binary silently fails
 to render keys the binary reads.
 
@@ -64,7 +64,7 @@ Shared TLS certificate. Used by every TLS-enabled listener that does not define 
 
 <!-- @settings general.ssl -->
 
-**TLS ALPN matching (the reference parity).** TLS listeners advertise ALPN protocol identifiers per IANA RFC 7301: `imap` for IMAP/IMAPS, `pop3` for POP3/POP3S, `smtp` for Submission/Submissions. Clients that send ALPN must match — mismatching connections are refused. Clients without ALPN are accepted (backward-compatibility). LMTP is internal-only and does not enforce ALPN.
+**TLS ALPN matching (the reference parity).** TLS listeners advertise ALPN protocol identifiers per IANA RFC 7301: `imap` for IMAP/IMAPS, `pop3` for POP3/POP3S, `smtp` for Submission/Submissions. Clients that send ALPN must match - mismatching connections are refused. Clients without ALPN are accepted (backward-compatibility). LMTP is internal-only and does not enforce ALPN.
 
 ```yaml
 general:
@@ -77,7 +77,7 @@ general:
     ssl_prefer_server_ciphers: false
 ```
 
-`${ENV_VAR}` substitution is supported in all path values — no secrets in config files.
+`${ENV_VAR}` substitution is supported in all path values - no secrets in config files.
 
 ---
 

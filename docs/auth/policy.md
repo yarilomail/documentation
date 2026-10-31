@@ -11,7 +11,7 @@ without a custom adapter.
 A policy server is useful when:
 
 - credential-stuffing detection needs cross-IP pattern analysis (one
-  IP brute-forcing 1000 distinct users — invisible to per-IP penalty)
+  IP brute-forcing 1000 distinct users - invisible to per-IP penalty)
 - access policies depend on signals that don't fit a SQL passdb:
   geolocation, time of day, fraud-score, SIEM integration
 - multi-tenant deployments need per-tenant abuse policies
@@ -259,7 +259,7 @@ With the default 12-bit truncation:
   second byte, masked off)
 - 4096 possible distinct values for the entire user base
 - a single user's `pwhash` is stable across attempts with the same
-  password, changes on password change — rate-limiters can count
+  password, changes on password change - rate-limiters can count
   reused-vs-novel passwords per IP without ever seeing plain text
 
 If your policy server needs higher precision, set `auth_policy_hash_truncate`
@@ -323,13 +323,13 @@ with a policy against password guessing and the steps to turn it on.
 
 ## Rollout strategy
 
-1. **Shadow mode** (week 1) — set `auth_policy_log_only: true`, watch the logs
+1. **Shadow mode** (week 1) - set `auth_policy_log_only: true`, watch the logs
    for would-have-rejected events. Logins are neither delayed nor refused.
    Tune policy server thresholds until false-positive rate is acceptable.
-2. **Soft enforce** (week 2) — flip `auth_policy_log_only: false`, keep
+2. **Soft enforce** (week 2) - flip `auth_policy_log_only: false`, keep
    `auth_policy_reject_on_fail: false` (fail-open). A policy server outage
    does not affect logins.
-3. **Hard enforce** (week 3+) — flip `auth_policy_reject_on_fail: true` once
+3. **Hard enforce** (week 3+) - flip `auth_policy_reject_on_fail: true` once
    the policy server has proven HA. A policy server outage now
    blocks logins; pair this with a monitored healthcheck.
 
@@ -339,7 +339,7 @@ with a policy against password guessing and the steps to turn it on.
   Most operators disable `auth_policy_check_after_auth` once `auth_policy_check_before_auth` is
   trusted; `auth_policy_report_after_auth` is fire-and-forget so it doesn't add
   perceived latency.
-- The HTTP client uses keep-alive — a single yarilo-auth pod
+- The HTTP client uses keep-alive - a single yarilo-auth pod
   reuses connections to the policy server across thousands of
   requests.
 - Set `timeout_ms` shorter than `auth.auth_failure_delay` so a slow

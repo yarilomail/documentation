@@ -1,12 +1,12 @@
 # Authentication configuration
 
-Yarilo authenticates IMAP/POP3/Submission credentials against an ordered chain of `passdb` entries. The first passdb that returns a definitive result (success or failure for a known user) wins. Unknown users fall through to the next entry. A temporary failure — a database that does not answer — stops the chain there: the login is answered as a temporary failure, not passed to the next entry.
+Yarilo authenticates IMAP/POP3/Submission credentials against an ordered chain of `passdb` entries. The first passdb that returns a definitive result (success or failure for a known user) wins. Unknown users fall through to the next entry. A temporary failure - a database that does not answer - stops the chain there: the login is answered as a temporary failure, not passed to the next entry.
 
 ---
 
 ## `auth.passdb`
 
-A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters — entries are tried left-to-right.
+A list of passdb entries. Each entry has a `driver` and a `dsn`. Order matters - entries are tried left-to-right.
 
 <!-- @settings auth.passdb[].driver auth.passdb[].dsn auth.passdb[].passwd_file_path auth.passdb[].passdb_sql_query auth.passdb[].userdb_sql_query auth.passdb[].userdb_sql_iterate_query auth.passdb[].passdb_default_password_scheme auth.passdb[].skip_schema auth.passdb[].max_open_conns auth.passdb[].max_idle_conns auth.passdb[].conn_max_lifetime auth.passdb[].conn_max_idle_time auth.passdb[].username_filter -->
 
@@ -33,7 +33,7 @@ CREATE TABLE yarilo_users (
 );
 ```
 
-Yarilo runs `CREATE TABLE IF NOT EXISTS` on startup — fresh installs work without manual migration. Existing tables are left untouched.
+Yarilo runs `CREATE TABLE IF NOT EXISTS` on startup - fresh installs work without manual migration. Existing tables are left untouched.
 
 ### SQLite
 
@@ -73,7 +73,7 @@ auth:
 ## passwd-file passdb
 
 A flat, colon-separated user file (classic `/etc/passwd` layout) that serves
-**both** passdb and userdb roles — a self-hosted deployment can authenticate
+**both** passdb and userdb roles - a self-hosted deployment can authenticate
 and resolve mail storage without any database.
 
 ```yaml
@@ -85,7 +85,7 @@ auth:
 ```
 
 > **Kubernetes note.** Mount the file from a Secret/ConfigMap into its **own**
-> directory — do **not** place it under `/etc/yarilo`, which is already the
+> directory - do **not** place it under `/etc/yarilo`, which is already the
 > rendered-config mount. A `subPath` file mounted inside that directory fails
 > with `not a directory` and crash-loops every pod. With the Helm chart, supply
 > the content via `extraVolumes` / `extraVolumeMounts` at a distinct path
@@ -112,7 +112,7 @@ user:password:uid:gid:gecos:home:shell:extra_fields
 
 - Only `user` and `password` are required.
 - `uid` / `gid` / `gecos` / `shell` are parsed for layout compatibility but
-  **ignored** — yarilo derives privilege drop from config and storage paths from
+  **ignored** - yarilo derives privilege drop from config and storage paths from
   the home template, not per-user uid/gid.
 - `home` (column 6) populates the userdb `home` field.
 - `extra_fields` (column 8 onward) are space-separated `key=value` pairs.
@@ -139,7 +139,7 @@ One shared credential and a set of templated fields applied to **every** user.
 Serves both passdb and userdb roles. For tests, single-mailbox installs, and
 proxy front-ends. Because it matches every username it must be placed **last**
 in the chain, and given a `username_filter` unless every name really is a user:
-without one, a userdb lookup — delivery, quota-status — finds any address, so
+without one, a userdb lookup - delivery, quota-status - finds any address, so
 mail to a name nobody has is accepted.
 
 ```yaml
@@ -147,7 +147,7 @@ auth:
   passdb:
     - driver: sqlite
       dsn: /var/lib/yarilo/users.db
-    - driver: static            # catch-all — last in the chain
+    - driver: static            # catch-all - last in the chain
       static_password: "${YARILO_STATIC_PASSWORD}"
       passdb_default_password_scheme: BCRYPT
       fields:
@@ -202,7 +202,7 @@ Autodetection (no `{SCHEME}` prefix):
 |:---|:---|
 | `$2a$` / `$2b$` / `$2y$` | BCRYPT |
 | `$6$` | SHA512-CRYPT |
-| anything else | `passdb_default_password_scheme` — `PLAIN` for SQL unless set |
+| anything else | `passdb_default_password_scheme` - `PLAIN` for SQL unless set |
 
 ### Generating a bcrypt hash
 
@@ -279,15 +279,15 @@ query matches.
 
 ### Contract
 
-- **`passdb_sql_query` must return a `password` column.** Columns are matched **by name, not position**, so the order is free; use `AS` aliases to map an existing schema (`pw_hash AS password`). `home`, `mail` and `enabled` are optional — an absent `enabled` counts as active. `password` is the only value used downstream when `userdb_sql_query` is also set.
-- **`userdb_sql_query` must return:** `home`, `mail`. It answers every userdb lookup — after a login, and on its own for LMTP delivery, quota-status and the backend API, where no password is involved. **Unset, it is not taken from `passdb_sql_query`:** the built-in query against `yarilo_users` runs, and on your own schema every such lookup fails. Set it whenever `passdb_sql_query` is set.
+- **`passdb_sql_query` must return a `password` column.** Columns are matched **by name, not position**, so the order is free; use `AS` aliases to map an existing schema (`pw_hash AS password`). `home`, `mail` and `enabled` are optional - an absent `enabled` counts as active. `password` is the only value used downstream when `userdb_sql_query` is also set.
+- **`userdb_sql_query` must return:** `home`, `mail`. It answers every userdb lookup - after a login, and on its own for LMTP delivery, quota-status and the backend API, where no password is involved. **Unset, it is not taken from `passdb_sql_query`:** the built-in query against `yarilo_users` runs, and on your own schema every such lookup fails. Set it whenever `passdb_sql_query` is set.
 - **`userdb_sql_iterate_query` must return one column:** `username`.
 
 > **PostgreSQL with a `BOOLEAN` enabled column.** The built-in `yarilo_users`
 > schema declares `enabled` as `INTEGER`, so the default queries filter with
 > `WHERE enabled = 1`. Point yarilo at an existing Postgres schema that types
 > the column `BOOLEAN` and that clause fails with `operator does not exist:
-> boolean = integer` — write `WHERE enabled = true` in your own
+> boolean = integer` - write `WHERE enabled = true` in your own
 > `passdb_sql_query` / `userdb_sql_query`. MySQL is unaffected: its `BOOLEAN` is
 > `TINYINT(1)`, so `= 1` is valid. The Go-side check is dialect-agnostic and
 > accepts `1` / `true` / `t` / `yes` / `on` either way.
@@ -398,7 +398,7 @@ addresses, the `allow_nets` field below takes CIDR lists. A passdb that reads
 
 ### Userdb / passdb extra fields
 
-Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column alias, `userdb_sql_query` output, or an auth-socket `key=value` / `userdb_*` pair — that tune per-user mailbox, access, and proxying behaviour. Unset fields fall back to the global config. Comma-separated fields (`groups`, `acl_groups`, `quota_rule`, `allow_nets`) accept multiple values and merge across repeated assignments. Boolean fields accept `1` / `yes` / `y` / `true` / `t` / `on` (case-insensitive). Unknown keys are preserved in `Extra`; `forward_*` keys populate the proxy forward map.
+Beyond `home` / `mail`, a lookup may return extra fields - as a SQL column alias, `userdb_sql_query` output, or an auth-socket `key=value` / `userdb_*` pair - that tune per-user mailbox, access, and proxying behaviour. Unset fields fall back to the global config. Comma-separated fields (`groups`, `acl_groups`, `quota_rule`, `allow_nets`) accept multiple values and merge across repeated assignments. Boolean fields accept `1` / `yes` / `y` / `true` / `t` / `on` (case-insensitive). Unknown keys are preserved in `Extra`; `forward_*` keys populate the proxy forward map.
 
 **Identity**
 
@@ -406,7 +406,7 @@ Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column ali
 |:---|:---|
 | `username` / `user` | Canonical username (overrides the login for master-user flows). |
 | `original_user` | The login as typed before normalisation. |
-| `master_user` | On a userdb answer: the master when the login impersonated a user. On a passdb answer, a true value (`master_user=yes`) grants this login master rights — see [Master users](/auth/master_users). |
+| `master_user` | On a userdb answer: the master when the login impersonated a user. On a passdb answer, a true value (`master_user=yes`) grants this login master rights - see [Master users](/auth/master_users). |
 | `login_user` | Login user for delegated lookups (equals `username` otherwise). |
 
 **System identity & groups**
@@ -438,19 +438,19 @@ Beyond `home` / `mail`, a lookup may return extra fields — as a SQL column ali
 | `mail_inbox_path` | Explicit INBOX path override. |
 | `mail_volatile_path` / `mail_index_path` / `mail_control_path` / `mail_alt_path` | Direct overrides for the corresponding mail-location modifier (win over modifiers embedded in `mail`). The names are the reference implementation's too, so a userdb query written for it works unchanged. |
 | `mail_uid` / `mail_gid` | Ownership for mail files, distinct from the system `uid`/`gid`. |
-| `mailbox_format` / `mail_driver` | `maildir` \| `sdbox` \| `mdbox` — the storage backend that opens this user's mail. Wins over the driver prefix in `mail`. A name yarilo does not implement is refused and the prefix stands. |
+| `mailbox_format` / `mail_driver` | `maildir` \| `sdbox` \| `mdbox` - the storage backend that opens this user's mail. Wins over the driver prefix in `mail`. A name yarilo does not implement is refused and the prefix stands. |
 | `mail_attribute_dict` | Dict URL backing RFC 5464 METADATA. |
 
 Each of these paths can carry the same variables as the corresponding
-configuration key — `%u` / `%{user}`, `%h` / `~/`, hash buckets, and the rest. See
+configuration key - `%u` / `%{user}`, `%h` / `~/`, hash buckets, and the rest. See
 [Path templates](/storage/#path-templates).
 
 > **One value, three places.** The four path fields can arrive as a modifier inside `mail`
-> (`:INDEX=…`) or as the explicit field (`mail_index_path` — one spelling now, ours and the reference's alike).
-> An explicit field always beats the modifier, whichever spelling the field uses — so
+> (`:INDEX=…`) or as the explicit field (`mail_index_path` - one spelling now, ours and the reference's alike).
+> An explicit field always beats the modifier, whichever spelling the field uses - so
 > moving a userdb query from one spelling to the other never changes which source wins.
 
-**How a userdb answer is applied.** One order, for every protocol — IMAP, POP3 and
+**How a userdb answer is applied.** One order, for every protocol - IMAP, POP3 and
 delivery (LMTP, JMAP, FTS, quota-status) share the code that does it:
 
 1. the separate path fields are expanded against the user and written onto the session;
@@ -464,7 +464,7 @@ rather than failing the login, and a driver name yarilo does not implement is re
 the stamped one left in place. Both are logged.
 
 > **`mailbox_format` used to be inert.** Before 2.3.133 the field was parsed, carried and
-> reported by the backend API — and never consulted. A userdb answering `mdbox` opened the
+> reported by the backend API - and never consulted. A userdb answering `mdbox` opened the
 > user with the globally configured driver. If you set it and saw no effect, that is why;
 > it works now, so check that its value is the one you want before upgrading.
 
@@ -580,7 +580,7 @@ auth:
 `username`, `password`, `active`, `maildir` and `quota` are stock PostfixAdmin;
 `mpath`, `mbtype`, `quota_bytes`, `quota_messages` and `allow_nets` are columns
 this schema adds. Note that `%2.256Nu` and the second `%u` sit inside a quoted
-SQL string and are left alone — substitution skips quoted sections, so those
+SQL string and are left alone - substitution skips quoted sections, so those
 reach the mail layer as templates, while the bare `%u` in the `WHERE` becomes a
 bound parameter.
 
@@ -607,7 +607,7 @@ Leaving `= 1` in place breaks only enumeration: mail keeps flowing while
 ```yaml
 auth:
   passdb:
-    # Fast cache table — recent logins, refreshed by app.
+    # Fast cache table - recent logins, refreshed by app.
     - driver: postgres
       dsn: "postgres://yarilo:${DB_PASSWORD}@cache.internal:5432/auth"
       skip_schema: true
@@ -618,7 +618,7 @@ auth:
         SELECT '/srv/' || %n AS home, '' AS mail
         FROM auth_cache WHERE email = %u
 
-    # Authoritative store — falls through when not in cache.
+    # Authoritative store - falls through when not in cache.
     - driver: mysql
       dsn: "yarilo:${DB_PASSWORD}@tcp(db.internal:3306)/billing"
       skip_schema: true
@@ -643,8 +643,8 @@ Settings of `yarilo-auth` itself, under `auth:`.
 
 A cached answer outlives a password change or a deleted user until its TTL
 runs out; `yarctl auth cache flush [<user-mask> …]` evicts entries at once
-([yarctl](/operations/yarilo_admin#auth)). Further layers — the cross-pod penalty and an
-external policy server — are on [Auth penalty](/auth/penalty) and
+([yarctl](/operations/yarilo_admin#auth)). Further layers - the cross-pod penalty and an
+external policy server - are on [Auth penalty](/auth/penalty) and
 [Auth policy](/auth/policy).
 
 ---

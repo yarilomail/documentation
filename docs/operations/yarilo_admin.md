@@ -40,14 +40,14 @@ The variables:
 | Variable | Default | Description |
 |:---|:---|:---|
 | `YARILO_ADMIN_URL` | `http://localhost:9103` | Director API base URL (used by `director` subcommand) |
-| `YARILO_ADMIN_TOKEN` | — | Director Bearer token (fallback: `DIRECTOR_API_TOKEN`) |
+| `YARILO_ADMIN_TOKEN` | - | Director Bearer token (fallback: `DIRECTOR_API_TOKEN`) |
 | `YARILO_BACKEND_API_URL` | `http://localhost:9105` | Backend API base URL (used by `backend <service>` subcommands) |
-| `YARILO_BACKEND_API_TOKEN` | — | Backend API Bearer token (fallback: `BACKEND_API_TOKEN`) |
+| `YARILO_BACKEND_API_TOKEN` | - | Backend API Bearer token (fallback: `BACKEND_API_TOKEN`) |
 | `YARILO_BACKEND_API_PORT` | `9105` | Backend API port on the pod a per-user operation is routed to |
 | `YARILO_ADMIN_ROUTE_BY_USER` | `auto` | Route per-user backend operations to the user's pod through a director `LOOKUP` |
-| `YARILO_ADMIN_TYPE` | — | `backend`, `director` or `auth`: the plane this container serves; the plane word becomes optional |
-| `YARILO_API_URL`, `YARILO_API_TOKEN` | — | URL and token for the plane named by `YARILO_ADMIN_TYPE`; override the plane-specific variables |
-| `YARILO_ADMIN_TLS_CERT`, `_KEY`, `_CA`, `_SERVER_NAME` | — | Client certificate, key, CA and server name for HTTPS to the backend API |
+| `YARILO_ADMIN_TYPE` | - | `backend`, `director` or `auth`: the plane this container serves; the plane word becomes optional |
+| `YARILO_API_URL`, `YARILO_API_TOKEN` | - | URL and token for the plane named by `YARILO_ADMIN_TYPE`; override the plane-specific variables |
+| `YARILO_ADMIN_TLS_CERT`, `_KEY`, `_CA`, `_SERVER_NAME` | - | Client certificate, key, CA and server name for HTTPS to the backend API |
 
 With `YARILO_ADMIN_ROUTE_BY_USER=auto`, routing is on when a director URL is configured, through `YARILO_ADMIN_URL` or `--url`. Each per-user backend command then goes to the pod that owns the user, so it never becomes a second writer of that user's index. With no director URL, every command goes to `--backend-url`.
 
@@ -69,7 +69,7 @@ yarctl [--url URL] [--token TOKEN] \
 ```
 
 Global flags (`-O`, `--url`, `--token`, `--backend-url`, `--backend-token`, …)
-are **position-independent** — they may appear before the plane, between the
+are **position-independent** - they may appear before the plane, between the
 plane and the command, or trailing. All of these are equivalent:
 
 ```sh
@@ -93,7 +93,7 @@ The two URLs are separate by design: director-plane ops (ring,
 backends, users, peers) live on `yarilo-director:9103`; backend-plane
 ops (dict / acl / quota / folder / user / mailbox) live on
 `yarilo-backend-api:9105`. Each binary holds the state its plane
-exposes — director state lives in director's process; backend state
+exposes - director state lives in director's process; backend state
 (NFS + dicts) lives on backend pods.
 
 ---
@@ -102,10 +102,10 @@ exposes — director state lives in director's process; backend state
 
 Every family the tool exposes, and where each is documented. The tool's own
 usage text is checked against its dispatcher by a test in the repository, and
-this index is written from that usage — so a family the tool announces is a
+this index is written from that usage - so a family the tool announces is a
 family this page can list. Nothing checks the page itself: a row missing here
 is a gap, not a build failure. `yarctl` is
-organised as **planes** — `director`, `backend`, `auth` — with a few shorthands
+organised as **planes** - `director`, `backend`, `auth` - with a few shorthands
 that skip the prefix.
 
 | Family | What it manages | Documented |
@@ -121,7 +121,7 @@ that skip the prefix.
 | `backend subscriptions` | IMAP SUBSCRIBE state | [below](#backend-subscriptions) |
 | `backend specialuse` | RFC 6154 special-use attributes | [below](#backend-specialuse) |
 | `backend metadata` | RFC 5464 annotations | [below](#backend-metadata) |
-| `backend mailbox` | message retrieval — the content of a stored message | [below](#backend-mailbox) |
+| `backend mailbox` | message retrieval - the content of a stored message | [below](#backend-mailbox) |
 | `backend who` | active sessions | [below](#backend-who) |
 | `backend sessions` | kick a session by id | [below](#backend-sessions) |
 | `backend fts` | search index status, rescan, optimize, lookup | [below](#backend-fts) |
@@ -305,7 +305,7 @@ yarctl director domains move example.com 10.0.0.2
 Show the ring topology **as the queried replica sees it** (ring membership is
 per-replica, so this is one replica's own view). For every member it prints the
 computed left/right neighbors in `(ip,port)` order, and for this replica's
-direct neighbors the live edge — role (`left`/`right`, or `both` at N=2 where a
+direct neighbors the live edge - role (`left`/`right`, or `both` at N=2 where a
 single connection serves both directions), state (`connected`/`reconnecting`)
 and uptime. It also prints each member's dedup watermark (highest `seq`
 processed from that origin; `-` when none has been heard) and any tombstones
@@ -326,7 +326,7 @@ IDX  ADDR              LEFT | RIGHT                       LINK                  
 `backend-set` is a hash of this replica's routing backend set; replicas that agree on routing print the same value.
 
 Use `-O json` for the structured object (`schemaVersion`, `self`, `size`,
-`members[]`, `tombstones[]`, `backendSetHash`) — suitable for programmatic topology assertions.
+`members[]`, `tombstones[]`, `backendSetHash`) - suitable for programmatic topology assertions.
 
 #### Cross-replica view
 
@@ -347,12 +347,12 @@ REPLICA           REACHABLE  SIZE  BACKEND-SET  SELF-NEIGHBORS (L | R)
 issues:
   [error] peer-unreachable: 10.0.0.3:9102 is in membership but its view could not be collected
 assumptions:
-  - peer API endpoints derived as <ring-ip>:9103 — assumes uniform api.listen across replicas
+  - peer API endpoints derived as <ring-ip>:9103 - assumes uniform api.listen across replicas
   - admin API is plain HTTP guarded by Bearer token + api.allowed_nets; fan-out source is a director pod IP
 ```
 
-The verdict flips to `UNHEALTHY` on `error`-severity issues — `peer-unreachable`
-(a member whose view could not be collected — never reported as healthy),
+The verdict flips to `UNHEALTHY` on `error`-severity issues - `peer-unreachable`
+(a member whose view could not be collected - never reported as healthy),
 `view-size-mismatch`, `backend-set-divergence` (replicas hashing their routing
 backend set differently), `asymmetric-edge` (A.right=B but B does not see A as its
 left), and `tombstone-divergence`. `seq-lag` is `warn`-only and does **not**
@@ -384,7 +384,7 @@ command that writes says so in its **Effect** line; the rest only read.
 
 ### `backend dict`
 
-Direct access to the key-value stores the server keeps its non-mail state in —
+Direct access to the key-value stores the server keeps its non-mail state in -
 quota counters, metadata annotations, ACL indexes. An escape hatch for
 inspection and repair, not a routine tool: writing here bypasses the code that
 normally maintains these rows.
@@ -406,8 +406,8 @@ it resolves. Op-flags carry the identity a dict operation runs under:
 `--user USER`, `--home DIR`, `--expire-secs N` (default TTL for writes).
 
 `iterate` streams NDJSON, so it is safe over a large prefix.
-`commit-batch` reads a TAB-delimited script from stdin —
-`set\tKEY\tBASE64`, `unset\tKEY`, `atomic-inc\tKEY\tDELTA` — and applies it
+`commit-batch` reads a TAB-delimited script from stdin -
+`set\tKEY\tBASE64`, `unset\tKEY`, `atomic-inc\tKEY\tDELTA` - and applies it
 as one batch.
 
 ```sh
@@ -492,7 +492,7 @@ yarctl backend folder rename  <user> <old> <new> [--namespace NS] # alias: mv
 yarctl backend folder expunge <user> <folder> [--namespace NS] [--uids 1,2,3]
 ```
 
-`guid` prints the rename-stable identifier — the one `MAILBOXID` reports and
+`guid` prints the rename-stable identifier - the one `MAILBOXID` reports and
 the one a Sieve script targets with `fileinto :mailboxid`. `stats` is `info`
 plus on-disk totals. `repair` rebuilds the folder's index from what is on disk
 and compacts its log.
@@ -520,11 +520,11 @@ yarctl backend user usage   <user>
 yarctl backend user iterate                                       # alias: list
 ```
 
-`info` prints the username, the resolved home, the effective mail and INBOX paths, the configured namespaces and — when `backend_api.auth_master_addr` points at `yarilo-auth` — the userdb block. An account userdb does not know prints `user not found`; a userdb that cannot be reached fails the command with `503`. That distinction is the useful part when an account behaves as though it does not exist.
+`info` prints the username, the resolved home, the effective mail and INBOX paths, the configured namespaces and - when `backend_api.auth_master_addr` points at `yarilo-auth` - the userdb block. An account userdb does not know prints `user not found`; a userdb that cannot be reached fails the command with `503`. That distinction is the useful part when an account behaves as though it does not exist.
 
 `usage` gives per-folder message and byte totals across every namespace.
 `iterate` enumerates every username the userdb backend can list, and answers
-`503` when no auth address is configured — enumeration is a userdb capability,
+`503` when no auth address is configured - enumeration is a userdb capability,
 not a local one.
 
 ```sh
@@ -550,7 +550,7 @@ yarctl backend index check           <user> [--namespace NS] [--fix]
 yarctl backend index rebuild-guid-store <user> [--namespace NS]
 ```
 
-`dump` prints every record — UID, flags, modseq, size, GUID.
+`dump` prints every record - UID, flags, modseq, size, GUID.
 
 `rebuild` regenerates **one folder's** index from the storage on disk, keeping
 the UIDs of filenames the index already knows. It is for maildir and sdbox and
@@ -565,7 +565,7 @@ unmounted alt tier. **Run it with delivery to that account quiesced.**
 tag back into their folder; off by default, because the tag proves the message
 was once there, not that it is lost now.
 
-`optimize` folds the index log into the base index — no semantic change, safe
+`optimize` folds the index log into the base index - no semantic change, safe
 while nothing is reading the folder. With `--all` it folds every folder of the
 account, and the per-user map where the driver keeps one.
 
@@ -613,7 +613,7 @@ expunge released.
 ### `backend subscriptions`
 
 IMAP `SUBSCRIBE` state, through the same on-disk format and lock key the IMAP
-command uses — so an admin write is visible to a live session immediately.
+command uses - so an admin write is visible to a live session immediately.
 
 ```
 yarctl backend subscriptions list    <user> [--namespace NS]
@@ -630,7 +630,7 @@ namespace. It is a **dry run unless `--apply`** is given.
 
 ### `backend specialuse`
 
-RFC 6154 attributes — which folder is Sent, which is Trash — as overrides on
+RFC 6154 attributes - which folder is Sent, which is Trash - as overrides on
 top of the configured defaults.
 
 ```
@@ -641,7 +641,7 @@ yarctl backend specialuse delete <user> <folder>   # alias: del
 ```
 
 `get` reports the resolved attribute **and its source**: `override`, `default`
-or `none` — which is the difference between a user's own choice and the
+or `none` - which is the difference between a user's own choice and the
 server's configuration, and the thing to check when a client files into the
 wrong folder. `delete` drops the override so the default applies again.
 
@@ -657,7 +657,7 @@ yarctl backend specialuse set alice@example.com Sent '\Sent'
 
 ### `backend metadata`
 
-IMAP METADATA annotations (RFC 5464) — the same entries a client reads with
+IMAP METADATA annotations (RFC 5464) - the same entries a client reads with
 `GETMETADATA`, and the mechanism a Sieve script is bound to a mailbox through.
 
 ```
@@ -672,7 +672,7 @@ server scope**, which is stored vendor-prefixed under INBOX's GUID.
 
 `--as-user` defaults to the account being read and matters only for shared and
 public folders under `/private/` scope, where every user has their own slice of
-the annotations — so reading "the" private entry of a shared mailbox is
+the annotations - so reading "the" private entry of a shared mailbox is
 meaningless without saying whose.
 
 `get` prints the value base64-encoded, because an annotation may hold bytes.
@@ -696,13 +696,13 @@ yarctl backend mailbox message get raw  <user> <folder> --uid N | --guid G [--na
 ```
 
 `mime` prints the headers as written and each part's headers, with the part
-bodies elided — enough to see how a message is structured without reading it.
+bodies elided - enough to see how a message is structured without reading it.
 `raw` prints the message byte for byte.
 
 A message is addressed by exactly one of `--uid` within the folder, or `--guid`, which
 survives the message being moved. `--out` writes to a file instead of stdout.
 
-**Effect:** reads only. No flag is set and no counter moves — a `get` here does
+**Effect:** reads only. No flag is set and no counter moves - a `get` here does
 not mark a message `\Seen` the way a client's `FETCH` would, which is what
 makes it safe to inspect a live mailbox.
 
@@ -740,7 +740,7 @@ yarctl backend sessions kick <sess-id> [--user U] [--protocols imap,pop3,...]
 ```
 
 Closes one session. backend-api hands the kick to `yarilo-warden`, which emits
-it on every protocol's channel, and only the owner of that id reacts — so the id
+it on every protocol's channel, and only the owner of that id reacts - so the id
 alone is enough, and it comes from `backend who`. Success means the kick was
 emitted, not that the session is confirmed closed.
 
@@ -777,7 +777,7 @@ yarctl auth scram-verifier [--mech sha256|sha1] [--iterations N] [--password X]
 
 `cache flush` evicts auth-cache entries matching the masks; **no mask flushes
 everything**. `scram-verifier` derives the verifier blob for a SQL password
-column — `{SCRAM-SHA-256}` by default. `--iterations 0` uses the library default.
+column - `{SCRAM-SHA-256}` by default. `--iterations 0` uses the library default.
 
 This plane has its own connection flags, because it speaks to the auth master
 socket rather than to an HTTP API:
@@ -789,7 +789,7 @@ socket rather than to an HTTP API:
 | `--auth-key` | `YARILO_AUTH_KEY` | mTLS client key |
 | `--auth-ca` | `YARILO_AUTH_CA` | CA bundle signing the server certificate |
 
-With none of the TLS flags set the connection is **plain TCP** — development
+With none of the TLS flags set the connection is **plain TCP** - development
 and smoke tests only.
 
 ```sh
@@ -820,7 +820,7 @@ yarctl wait [--timeout 2s] URL...
 
 Probes every URL once, in order, and exits `0` when all answer: a `2xx` for `http://`, an open connection for `tcp://`. The first failure prints `not ready: …` to stderr and exits `1`. There is no retry loop: the caller repeats, as a Kubernetes startup probe does.
 
-`--timeout` bounds **each probe** — DNS, dial and response — which is the difference from a shell read timeout that bounds only the read. A refused connection, an HTTP error status and a timeout are all reported the same way.
+`--timeout` bounds **each probe** - DNS, dial and response - which is the difference from a shell read timeout that bounds only the read. A refused connection, an HTTP error status and a timeout are all reported the same way.
 
 `wait` belongs to no plane, so it works in any pod regardless of `YARILO_ADMIN_TYPE`.
 

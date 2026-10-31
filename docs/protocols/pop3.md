@@ -66,7 +66,7 @@ protocol:
 
 ## UIDL stability (`pop3_save_uidl`)
 
-By default, UIDLs are computed fresh each session from `pop3_uidl_format`. If the index is rebuilt or a backend migration changes filenames, UIDLs may change — causing POP3 clients to re-download mail they already have.
+By default, UIDLs are computed fresh each session from `pop3_uidl_format`. If the index is rebuilt or a backend migration changes filenames, UIDLs may change - causing POP3 clients to re-download mail they already have.
 
 Enable `pop3_save_uidl` to persist the computed UIDL for each message:
 
@@ -84,7 +84,7 @@ Priority when multiple sources exist: `pop3_reuse_xuidl` header → saved index 
 
 ## Session locking (`pop3_lock_session`)
 
-In multi-replica deployments (yarilo-pop3 `replicas > 1` on a shared PVC), two pods could serve the same user simultaneously — one via POP3 and one via IMAP. Enable `pop3_lock_session` to prevent this:
+In multi-replica deployments (yarilo-pop3 `replicas > 1` on a shared PVC), two pods could serve the same user simultaneously - one via POP3 and one via IMAP. Enable `pop3_lock_session` to prevent this:
 
 ```yaml
 protocol:

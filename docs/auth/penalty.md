@@ -3,7 +3,7 @@
 `yarilo-auth` can enforce a per-client-IP exponential backoff on
 failed auth attempts. The counter lives in the `yarilo-warden`
 service so a single attacker IP pays the cost across every auth pod
-they land on — pod load-balancing does not let them reset by
+they land on - pod load-balancing does not let them reset by
 landing on a fresh pod.
 
 ## When to enable
@@ -13,7 +13,7 @@ A penalty store is useful when:
 - the deployment runs more than one `yarilo-auth` pod and the
   process-local `auth_failure_delay` no longer covers all paths
 - the threat model includes credential stuffing from a single IP
-  (or a small IP set) — exponential backoff makes 100 attempts/sec
+  (or a small IP set) - exponential backoff makes 100 attempts/sec
   unprofitable
 - `auth_failure_delay` alone amplifies legitimate retries too
   aggressively (delay applies to every attempt; penalty escalates
@@ -43,13 +43,13 @@ address; no separate connection knob.
 - **Pre-passdb**: Lookup the counter for the client IP. Sleep
   `PenaltyToSecs(count)` seconds before running the chain.
 - **Post-passdb**:
-  - `ResultOK` → Update(ip, 0) — reset to zero on success
-  - `ResultFail` → Update(ip, count+1) — capped server-side at
+  - `ResultOK` → Update(ip, 0) - reset to zero on success
+  - `ResultFail` → Update(ip, count+1) - capped server-side at
     `MaxPenalty` (4)
-  - `ResultTempFail` (passdb backend down) → **no update** —
+  - `ResultTempFail` (passdb backend down) → **no update** -
     a backend outage is not the client's fault, and counting
     those would lock every client out for the decay window
-- **Master-user flows exempt** — admin sessions are never
+- **Master-user flows exempt** - admin sessions are never
   tarpitted regardless of unrelated IP noise
 
 ## Backoff curve
@@ -69,10 +69,10 @@ sixth, seventh, … each also wait the cap.
 ## Decay
 
 After 29 seconds with no Update, the entry is swept (matches the
-cumulative budget plus one cap window — once the worst-case backoff
+cumulative budget plus one cap window - once the worst-case backoff
 chain has fully played out, the entry no longer carries useful
 signal). Configurable via `warden.WithPenaltyDecay` for testing,
-not exposed in the YAML — the default is well-calibrated.
+not exposed in the YAML - the default is well-calibrated.
 
 A decayed entry returns 0 on the next Lookup, so a long-quiet IP
 starts fresh on its next attempt.
@@ -97,7 +97,7 @@ The full warden protocol is documented in
 
 The defence-in-depth stack is layered:
 
-1. **TCP / TLS layer**: HAProxy rate limits, fail2ban — pre-Yarilo
+1. **TCP / TLS layer**: HAProxy rate limits, fail2ban - pre-Yarilo
 2. **Connection limits**: `mail_max_userip_connections` enforced
    by `yarilo-warden` (`CONNECT` / `DISCONNECT` verbs)
 3. **Auth failure delay**: `auth.auth_failure_delay` (2s by default)
@@ -105,7 +105,7 @@ The defence-in-depth stack is layered:
 4. **Auth penalty** (this feature): exponential backoff per IP,
    shared cross-pod via `yarilo-warden`
 5. **Policy server** (`auth.policy.url`): external HTTP hook with
-   pattern-detection logic — see [Auth Policy Server Integration](/auth/policy)
+   pattern-detection logic - see [Auth Policy Server Integration](/auth/policy)
 
 Penalty + failure-delay compose additively: an attacker on
 counter=2 facing `auth_failure_delay=2s` waits `4s (penalty) + 2s

@@ -4,7 +4,7 @@
 **OAUTHBEARER** (RFC 7628) and **XOAUTH2** (Google/Microsoft legacy
 extension) mechanisms and exposes them as a passdb so OAuth logins
 flow through the same chain machinery as SQL logins (cache, penalty,
-policy, audit log — all work unchanged).
+policy, audit log - all work unchanged).
 
 Both mechanisms share the same token validator. The only difference
 is the wire format of the client's initial response.
@@ -37,7 +37,7 @@ Four validation modes:
 | `local` | `oauth2_jwks_url` and/or `oauth2_local_keys` | JWT signature verify against operator-provided keys and/or a cached JWKS. No HTTP call per login. RECOMMENDED when the IdP issues signed JWTs (Google, Microsoft, most OIDC providers). |
 | `introspection` | `oauth2_introspection_url`, usually `oauth2_client_id` + `oauth2_client_secret` | RFC 7662 introspection. Supports opaque (non-JWT) tokens. Slower (one HTTP call per login). |
 | `tokeninfo` | `oauth2_tokeninfo_url` | Google-style endpoint (`?access_token=…`). Pre-OIDC providers. |
-| `discovery` | `oauth2_issuer_url` | Auto-resolves `jwks_uri` + `introspection_endpoint` from `<issuer>/.well-known/openid-configuration`. PREFERRED for new deployments — least operator config. |
+| `discovery` | `oauth2_issuer_url` | Auto-resolves `jwks_uri` + `introspection_endpoint` from `<issuer>/.well-known/openid-configuration`. PREFERRED for new deployments - least operator config. |
 
 ### Common fields (apply across modes)
 
@@ -59,7 +59,7 @@ endpoint (`grant_type=password`, plus `client_id`, `client_secret` and
 - `invalid_grant` is a wrong password: the chain goes on to the next passdb.
   Any other failure (endpoint down, `invalid_client`, a reply without
   `access_token`) is a temporary failure.
-- The URL must be `https` — the request carries the user's password — and
+- The URL must be `https` - the request carries the user's password - and
   `oauth2_client_id` is required.
 
 ### Local keys
@@ -105,7 +105,7 @@ selected), `oauth2_introspection_mode` picks the transport:
 ### Helm
 
 The chart builds `auth.oauth2` from `components.auth.oauth2`, where every
-key is the `auth.oauth2` name without the `oauth2_` prefix — with two more
+key is the `auth.oauth2` name without the `oauth2_` prefix - with two more
 changes: `oauth2_scope` is `scopes` and `oauth2_fields` is `extra_fields`.
 A `local_keys` entry takes `alg`, `azp`, `kid` and either `file` (a path in
 the pod) or `secret_ref` (`name`, `key`): the chart mounts that Secret key
@@ -165,7 +165,7 @@ token's user after `oauth2_username_validation_format`.
 
 ### XOAUTH2 (Google/Microsoft legacy)
 
-Client sends a simpler format — no GS2 header, no host/port:
+Client sends a simpler format - no GS2 header, no host/port:
 
 ```
 user=alice@example.com\x01auth=Bearer <token>\x01\x01
@@ -177,8 +177,8 @@ case-insensitive. XOAUTH2 does not support channel binding.
 **When to use XOAUTH2:** Legacy Outlook configurations, older
 Android mail apps, and some older Thunderbird OAuth setups that
 advertise XOAUTH2 instead of OAUTHBEARER. New clients should
-prefer OAUTHBEARER. Both mechanisms hit the same token validator
-— there is no difference in security posture once a TLS session
+prefer OAUTHBEARER. Both mechanisms hit the same token validator -
+there is no difference in security posture once a TLS session
 is established.
 
 Both mechanisms validate the token per the configured provider and
@@ -192,11 +192,11 @@ when an OAuth provider is configured (`auth.oauth2` non-empty), since that is
 what puts a token validator in the chain. The login proxies offer exactly what
 the service announced:
 
-- **IMAP** — `AUTH=OAUTHBEARER` and `AUTH=XOAUTH2` in `CAPABILITY`
-- **POP3** — `CAPA` lists them on the `SASL` line
-- **Submission (SMTP)** — the EHLO `AUTH` line lists them
-- **ManageSieve** — the `SASL` capability lists them; `AUTHENTICATE "OAUTHBEARER" "<base64>"`, challenges as quoted base64. 2.4.3-dev.21 and earlier offered only `PLAIN LOGIN` here
-- **JMAP** — a `401` lists `Bearer realm="jmap"` next to `Basic`; a request's
+- **IMAP** - `AUTH=OAUTHBEARER` and `AUTH=XOAUTH2` in `CAPABILITY`
+- **POP3** - `CAPA` lists them on the `SASL` line
+- **Submission (SMTP)** - the EHLO `AUTH` line lists them
+- **ManageSieve** - the `SASL` capability lists them; `AUTHENTICATE "OAUTHBEARER" "<base64>"`, challenges as quoted base64. 2.4.3-dev.21 and earlier offered only `PLAIN LOGIN` here
+- **JMAP** - a `401` lists `Bearer realm="jmap"` next to `Basic`; a request's
   `Authorization: Bearer <token>` is run in `yarilo-auth` as OAUTHBEARER for the
   `jmap` service, with no authzid, so the token names the user
 
@@ -220,8 +220,8 @@ retries rather than asks for new credentials.
 
 | Mechanism | JSON |
 |:---|:---|
-| `OAUTHBEARER` | `{"status":"invalid_token","scope":"…","openid-configuration":"…"}` — `invalid_token` for a token that did not validate, `invalid_request` for a malformed message |
-| `XOAUTH2` | `{"status":"401","schemes":"bearer","scope":"…","openid-configuration":"…"}` — `401` for a bad token, `400` for a malformed message |
+| `OAUTHBEARER` | `{"status":"invalid_token","scope":"…","openid-configuration":"…"}` - `invalid_token` for a token that did not validate, `invalid_request` for a malformed message |
+| `XOAUTH2` | `{"status":"401","schemes":"bearer","scope":"…","openid-configuration":"…"}` - `401` for a bad token, `400` for a malformed message |
 
 `scope` is the configured `oauth2_scope` list, or `mail` when none is set;
 `openid-configuration` is `<oauth2_issuer_url>/.well-known/openid-configuration`
@@ -266,7 +266,7 @@ auth:
       oauth2_fields: [oid, tid, roles]
 ```
 
-- `oauth2_username_attribute: preferred_username` — Microsoft's email is
+- `oauth2_username_attribute: preferred_username` - Microsoft's email is
   in this claim, not `email`.
 - `oauth2_fields: [roles]` projects Azure AD app roles for
   downstream policy.
@@ -301,7 +301,7 @@ auth:
 ### Chained provider order
 
 The OAuth chain runs **before** SQL. The order within
-`auth.oauth2` is honoured — list the strictest / cheapest provider
+`auth.oauth2` is honoured - list the strictest / cheapest provider
 first:
 
 ```yaml

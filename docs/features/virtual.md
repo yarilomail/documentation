@@ -41,7 +41,7 @@ renamed with its directory. A client cannot do either: `CREATE`, `DELETE` and
 decided by the rights on the folders it draws from, and it holds no storage of
 its own to grant rights over. `GETACL` and `MYRIGHTS` answer as usual.
 
-`SUBSCRIBE` is answered the same way — a virtual mailbox is opened by name, not
+`SUBSCRIBE` is answered the same way - a virtual mailbox is opened by name, not
 subscribed to. `UNSUBSCRIBE` still works, so a row left by another server can
 be removed. Subscriptions an existing installation kept in its own virtual
 subscription file are not read, so after a migration those mailboxes stop

@@ -2265,7 +2265,7 @@ storage.storage_lock_method:
   values: [flock, fcntl, dotlock]
   helm: storage.storage_lock_method
   description: |
-    How a write to a shared file — an index, a uidlist — excludes another
+    How a write to a shared file - an index, a uidlist - excludes another
     writer. Pick what the mail volume supports; a dict of the `file` driver
     should use the same.
 
@@ -2338,7 +2338,7 @@ storage.mailbox_list_refuse_layout_separator:
   helm: storage.mailbox_list_refuse_layout_separator
   description: |
     Refuse a name containing the on-disk separator when the namespace speaks
-    a different one — with namespace `/` over Maildir++, `a.b` and `a/b`
+    a different one - with namespace `/` over Maildir++, `a.b` and `a/b`
     both land on `.a.b`. Retroactive against ordinary names such as
     `example.com`, so check that no mailbox holds one before turning it on.
 
@@ -2436,7 +2436,7 @@ quota.quota_mailbox_count:
   default: 0
   helm: quota.quota_mailbox_count
   description: |
-    Cap the number of mailboxes (folders). Enforced at CREATE — `NO [LIMIT]
+    Cap the number of mailboxes (folders). Enforced at CREATE - `NO [LIMIT]
     Maximum number of mailboxes reached`. `0` is unlimited.
 
 quota.quota_mailbox_message_count:

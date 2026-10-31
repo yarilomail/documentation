@@ -12,7 +12,7 @@ userdb quota_rule=*:storage=5G → AuthResponse.QuotaRules → userInfo.QuotaRul
   → quota.ParseRules(...) → quota.Limits{StorageBytes: 5*1024^3}
 ```
 
-**Usage is the `count` backend — derived from the index, never a stored
+**Usage is the `count` backend - derived from the index, never a stored
 counter.** This mirrors the reference, which *removed* its `dict` quota backend
 (the drift-prone "counter is the source of truth" model); the authoritative
 value is computed from the mailbox index.
@@ -25,7 +25,7 @@ value is computed from the mailbox index.
   messages` (a cheap O(1) validity check, exactly the reference's), otherwise it is
   recomputed from the per-record vsize.
 - `quota.CountUsage(idx, folders, limits)` sums each folder's `FolderVSize`
-  aggregate — the authoritative usage. `ignore` folders are skipped.
+  aggregate - the authoritative usage. `ignore` folders are skipped.
 
 **Every enforcer reads from the index** (no dict in the enforcement path):
 
@@ -33,21 +33,21 @@ value is computed from the mailbox index.
 |:---|:---|
 | IMAP GETQUOTA / APPEND enforcement | `session.countUsage` → sum `FolderVSize` (1 s display cache; enforcement fresh) |
 | LMTP delivery | opens the recipient index at delivery time → `CountUsage` |
-| `yarilo-quota-status` (Postfix policy) | a **full mail process**: looks the recipient up in userdb through `yarilo-auth`, opens the mailbox+index → `CountUsage`, exactly like the reference's quota-status (`mail_storage_service`). **Not** a dict reader. Needs the mail PV mounted and `quota_status.auth_master_addr` set — see [quota-status actions](#quota-status-actions). |
+| `yarilo-quota-status` (Postfix policy) | a **full mail process**: looks the recipient up in userdb through `yarilo-auth`, opens the mailbox+index → `CountUsage`, exactly like the reference's quota-status (`mail_storage_service`). **Not** a dict reader. Needs the mail PV mounted and `quota_status.auth_master_addr` set - see [quota-status actions](#quota-status-actions). |
 | `backend-api` /show, /recalc | `CountUsage`; /recalc force-rebuilds each folder's aggregate |
-| POP3 | **nothing** — POP3 never appends, so no enforcement; DELE→expunge decrements the index aggregate automatically |
+| POP3 | **nothing** - POP3 never appends, so no enforcement; DELE→expunge decrements the index aggregate automatically |
 
 ## Quota engine and IMAP QUOTA
 
-1. **quota engine** (`quota.enabled`) — the count backend + enforcement on
+1. **quota engine** (`quota.enabled`) - the count backend + enforcement on
    **every save**: IMAP APPEND/COPY/MOVE (OVERQUOTA), LMTP delivery (552, or 452
    with `protocol.lmtp.quota_full_tempfail`), and
    the quota-status policy service. This mirrors the reference's `quota` plugin, whose
-   `quota-storage.c` hooks `mail_save` — the path shared by APPEND and delivery.
-2. **IMAP QUOTA extension** (`protocol.imap.imap_quota`) — RFC 9208
+   `quota-storage.c` hooks `mail_save` - the path shared by APPEND and delivery.
+2. **IMAP QUOTA extension** (`protocol.imap.imap_quota`) - RFC 9208
    `GETQUOTA` / `GETQUOTAROOT` + the `QUOTA` capability. A **client-facing query
    only, no enforcement** (the reference's `imap_quota` plugin registers only the
-   commands). Toggle it independently of the engine — you can enforce without
+   commands). Toggle it independently of the engine - you can enforce without
    advertising the extension, or advertise it without enforcing.
 
 In the chart the engine is off by default (`quota.enabled: false`) and the extension on
@@ -57,7 +57,7 @@ In the chart the engine is off by default (`quota.enabled: false`) and the exten
 
 `quota_clone` mirrors the current usage into external dicts for **external**
 consumers outside the mail server (provisioning DB, dashboard). It is **not**
-part of enforcement — enforcement always reads the index; yarilo's own
+part of enforcement - enforcement always reads the index; yarilo's own
 quota-status opens the mailbox. The mirror is advisory and never the source of
 truth.
 
@@ -65,11 +65,11 @@ The trigger matches the reference plugin: on a usage-changing event (save /
 copy / expunge) the session marks the mirror dirty and, at most once per
 `quota_clone_flush_delay` seconds, reads the authoritative count and writes it
 out; a final flush runs on session close. Only **active** users (with an open
-session) are mirrored — there is no full-user sweep.
+session) are mirrored - there is no full-user sweep.
 
 yarilo's enhancement over the single-dict reference is a **multi-dict fan-out**:
 several targets are written in parallel (e.g. SQL + Redis at once), each
-best-effort — a failing target is logged and never blocks the others or the
+best-effort - a failing target is logged and never blocks the others or the
 authoritative path.
 
 ```yaml
@@ -82,12 +82,12 @@ dicts:
 ```
 
 Keys written per user: `priv/quota/storage` (bytes) and `priv/quota/messages`
-(count) — the same layout the reference's clone uses, so existing external readers
+(count) - the same layout the reference's clone uses, so existing external readers
 work unchanged.
 
 ## Configuration
 
-Two independent toggles — in the chart the engine defaults off, the extension on:
+Two independent toggles - in the chart the engine defaults off, the extension on:
 
 ```yaml
 quota:
@@ -107,7 +107,7 @@ offered as `SIZE` and enforced while the message is read (see LMTP). The
 `quota-status` policy service additionally honours `quota_status.recipient_delimiter`
 (default `+`) when deriving the target folder from the recipient detail part.
 
-No dict is needed — usage is summed from the index. Set a per-user limit in the SQL passdb:
+No dict is needed - usage is summed from the index. Set a per-user limit in the SQL passdb:
 
 ```sql
 UPDATE yarilo_users SET quota_rule = '*:storage=5G' WHERE username = 'alice@example.com';
@@ -147,7 +147,7 @@ that crosses this limit through. It does not raise the limit.
 ### Quota warnings
 
 `quota_warning` runs an action when a user's usage **crosses** a percentage of
-their limit — the same edge-trigger as the reference `quota_warning_match`
+their limit - the same edge-trigger as the reference `quota_warning_match`
 (fires once on the transition, not repeatedly while over). The action is a
 program in `quota_warning_bin_dir` (mirrors `sieve_execute_bin_dir`), run
 best-effort; when no bin dir is set the crossing is only logged.
@@ -195,7 +195,7 @@ quota:
   environment. The check runs once per session and only while the userdb flag is
   still fresh (login within 10 s).
 - Empty `quota_over_status_mask` disables it. Currently wired for IMAP logins
-  (POP3 lacks the usage-count path — a separate task).
+  (POP3 lacks the usage-count path - a separate task).
 
 ## quota-status actions
 
@@ -203,7 +203,7 @@ Every answer of the `yarilo-quota-status` policy service is a setting under
 `components.quotaStatus` in the chart (`quota_status:` in `yarilo.yaml`). In the
 over-quota and too-large actions, `%{error}` is replaced by the reason.
 
-**The service needs `quota_status.auth_master_addr`** — the `yarilo-auth` master
+**The service needs `quota_status.auth_master_addr`** - the `yarilo-auth` master
 listener it looks recipients up through. Without it the service answers
 `quota_status_success` for every recipient: it checks no limit, applies no
 `default_quota_rules` and refuses no unknown user.
@@ -267,7 +267,7 @@ S: A3 NO [NOPERM] Permission denied
 `STORAGE` values are in kibibytes (1 KiB = 1024 bytes). `MESSAGE`
 values are raw counts. Limit `0` means unlimited.
 
-`SETQUOTA` is always rejected — limits are operator-managed only.
+`SETQUOTA` is always rejected - limits are operator-managed only.
 
 ## Enforcement
 
@@ -298,7 +298,7 @@ yarctl backend quota recalc alice@example.com
 ```
 
 These call `GET /api/backend/quota/show` and `POST /api/backend/quota/recalc`
-on `yarilo-backend-api`. There is no `set` — usage is computed, not stored.
+on `yarilo-backend-api`. There is no `set` - usage is computed, not stored.
 
 ### Recalc
 
@@ -323,7 +323,7 @@ yarctl backend quota clone get quota_clone_mysql alice@example.com
 These call `GET /api/backend/quota/clone/list` and
 `GET /api/backend/quota/clone/get?backend=<name>&user=<user>`, which reads
 `priv/quota/storage` + `priv/quota/messages` from that dict, scoped per user.
-`backend` is restricted to the configured clone list — for arbitrary dicts use
+`backend` is restricted to the configured clone list - for arbitrary dicts use
 `yarctl backend dict lookup` ([yarctl](/operations/yarilo_admin#backend-dict)). The returned value is an **advisory mirror**;
 the authoritative usage is `quota show`, summed from the index.
 

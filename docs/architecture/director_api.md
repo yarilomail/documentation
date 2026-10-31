@@ -5,10 +5,10 @@ Director-plane admin endpoints exposed by `yarilo-director` on port
 token; an IP allow-list can be added on top.
 
 For the storage-plane admin API (dict / acl / quota / folder),
-see [yarilo-backend-api — backend-plane HTTP wire reference](/architecture/backend_api) — different binary
+see [yarilo-backend-api - backend-plane HTTP wire reference](/architecture/backend_api) - different binary
 (`yarilo-backend-api`), different port (`:9105`), different token.
 
-Both are reachable from the same `yarctl` CLI — director ops
+Both are reachable from the same `yarctl` CLI - director ops
 via `--url` / `--token`, storage ops via `--backend-url` /
 `--backend-token`.
 
@@ -69,7 +69,7 @@ Environment variables (set automatically in the container):
 | Variable | Default | Description |
 |:---|:---|:---|
 | `YARILO_ADMIN_URL` | `http://localhost:9103` | API base URL (flag `--url`) |
-| `YARILO_ADMIN_TOKEN` | — | Bearer token (flag `--token`; fallback: `DIRECTOR_API_TOKEN`) |
+| `YARILO_ADMIN_TOKEN` | - | Bearer token (flag `--token`; fallback: `DIRECTOR_API_TOKEN`) |
 
 The `--tls-*` flags of `yarctl` have no effect here: the director API does not serve HTTPS.
 
@@ -220,7 +220,7 @@ CLI: `yarctl director backends up 10.0.0.3`
 
 #### `POST /api/director/backends/{ip}/down`
 
-Mark backend as down (flush — stops new routing, keeps in registry). Broadcasts `RING-CHANGE flush`.
+Mark backend as down (flush - stops new routing, keeps in registry). Broadcasts `RING-CHANGE flush`.
 
 CLI: `yarctl director backends down 10.0.0.3`
 
@@ -270,7 +270,7 @@ CLI: `yarctl director backends flush 10.0.0.3 [--force] [--max-parallel N]`
 Assign a user to a specific backend. The assignment is a sticky pin with the usual `user_expire` lifetime, not a permanent override. The user's sessions on the old backend are kicked, and `USER-MOVED` is broadcast to login pods and around the ring.
 
 ```json
-// Request — either form works:
+// Request - either form works:
 {"backend": "10.0.0.1:993"}
 {"ip": "10.0.0.1", "port": 993}
 
@@ -327,7 +327,7 @@ CLI: `yarctl director domains move example.com 10.0.0.2`
 Ring topology as **this replica** sees it (membership is per-replica). Each
 member carries its computed `left`/`right` neighbors (`(ip,port)` order; `null`
 at N=1). `link` is present only for this replica's direct neighbors and
-describes the live edge — `role` (`left`/`right`, or `both` at N=2 where one
+describes the live edge - `role` (`left`/`right`, or `both` at N=2 where one
 connection serves both directions), `state` (`connected`/`reconnecting`) and
 `since` (RFC3339, `null` while reconnecting). `seq` is the dedup watermark
 (highest seq processed from that origin; `null` when none heard). `tombstones`
@@ -363,7 +363,7 @@ Cross-replica aggregate. The queried director fans out to every peer's own
 `GET /api/director/ring` (one authorized server-side fan-out, shared per-release
 Bearer token) and returns each replica's view plus a health verdict. `healthy`
 is `false` when any `error`-severity issue is present: `peer-unreachable` (a
-member whose view could not be collected — never silently dropped),
+member whose view could not be collected - never silently dropped),
 `view-size-mismatch`, `backend-set-divergence` (replicas hashing their routing
 backend set differently), `asymmetric-edge`, `tombstone-divergence`.
 `seq-lag` is
@@ -383,7 +383,7 @@ endpoints are derived from each ring IP + this replica's `api.listen` port
     {"addr": "10.0.0.2:9102", "reachable": true, "status": { /* RingStatus */ }},
     {"addr": "10.0.0.3:9102", "reachable": false, "error": "director/topology: get 10.0.0.3:9103 ..."}
   ],
-  "assumptions": ["peer API endpoints derived as <ring-ip>:9103 — assumes uniform api.listen across replicas", "..."]
+  "assumptions": ["peer API endpoints derived as <ring-ip>:9103 - assumes uniform api.listen across replicas", "..."]
 }
 ```
 

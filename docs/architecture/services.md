@@ -13,7 +13,7 @@ All services share the following fields:
 A service may also carry `ssl`, a per-service SSL override with the same fields as `general.ssl`; it overrides only the fields it sets.
 
 ::: warning Renamed with an inverted sense
-`auth_allow_cleartext` replaces the pre-beta `disable_plaintext_auth`, and the meaning is flipped: `auth_allow_cleartext: false` is what `disable_plaintext_auth: true` used to say. The old key is still accepted on its own. Setting **both** keys on one listener refuses startup — even when their values agree — because a config carrying both is one edit away from meaning the opposite of what it says.
+`auth_allow_cleartext` replaces the pre-beta `disable_plaintext_auth`, and the meaning is flipped: `auth_allow_cleartext: false` is what `disable_plaintext_auth: true` used to say. The old key is still accepted on its own. Setting **both** keys on one listener refuses startup - even when their values agree - because a config carrying both is one edit away from meaning the opposite of what it says.
 :::
 
 ---
