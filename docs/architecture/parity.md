@@ -8,7 +8,7 @@ Three values are used, and **no** is as legitimate an answer as **yes**:
 | | meaning |
 |:---|:---|
 | **yes** | implemented and exercised by tests; a configuration that uses it has an equivalent here |
-| **partial** | usable, with a stated limit — read the note before relying on it |
+| **partial** | usable, with a stated limit - read the note before relying on it |
 | **no** | not implemented. Where an issue exists it is linked, and that issue is where the plan lives |
 
 This page is maintained in the same change that alters coverage: a row is
@@ -18,7 +18,7 @@ worse than none, because every row here is a promise somebody may migrate on.
 The IMAP extension table below is **exhaustive for what is advertised**: every
 capability in the server's `CAPABILITY` reply has a row here, and the rows
 marked `no` name the notable extensions that are not advertised. Where this
-page and a protocol page disagree, this one is the one kept current — the
+page and a protocol page disagree, this one is the one kept current - the
 disagreement is a bug in the other, and both are fixed together.
 
 Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
@@ -32,7 +32,7 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | LMTP | yes | delivery, proxying to backends, a synthesised `Message-ID` when one is missing |
 | Submission (MSA) | yes | separate service, relay to an external MTA |
 | ManageSieve | yes | RFC 5804 |
-| JMAP | partial | **reads, writes, submits, and pushes over EventSource and WebSocket.** `Mailbox/{get,query,set,changes}`, `Email/{get,query,set,import,changes}` (`Email/set` creates, updates keywords and `mailboxIds`, and destroys), `Thread/{get,changes}`, `SearchSnippet/get`, blob upload and download, back-references and creation ids across calls, real state strings. `Quota/{get,changes,query,queryChanges}` (RFC 9425, read-only). `SieveScript/{get,set,query,validate}` (RFC 9661) over the ManageSieve store; `VacationResponse/{get,set}` as the managed Sieve script ManageSieve also sees. `EmailSubmission/{get,set,query,queryChanges,changes}` and `Identity/{get,changes,set}` when a Submission relay is configured; the login address and `identity_aliases` give the account's own identities, and `Identity/set` creates, changes and destroys further ones. JMAP over WebSocket (RFC 8887), with push, is served; PushSubscription (Web Push) is not implemented. `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design — a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false`. See [JMAP](/protocols/jmap#capabilities) |
+| JMAP | partial | **reads, writes, submits, and pushes over EventSource and WebSocket.** `Mailbox/{get,query,set,changes}`, `Email/{get,query,set,import,changes}` (`Email/set` creates, updates keywords and `mailboxIds`, and destroys), `Thread/{get,changes}`, `SearchSnippet/get`, blob upload and download, back-references and creation ids across calls, real state strings. `Quota/{get,changes,query,queryChanges}` (RFC 9425, read-only). `SieveScript/{get,set,query,validate}` (RFC 9661) over the ManageSieve store; `VacationResponse/{get,set}` as the managed Sieve script ManageSieve also sees. `EmailSubmission/{get,set,query,queryChanges,changes}` and `Identity/{get,changes,set}` when a Submission relay is configured; the login address and `identity_aliases` give the account's own identities, and `Identity/set` creates, changes and destroys further ones. JMAP over WebSocket (RFC 8887), with push, is served; PushSubscription (Web Push) is not implemented. `Email/queryChanges` and `Mailbox/queryChanges` answer `cannotCalculateChanges` by design - a query result depends on its filter and sort, and this server keeps no per-client result set, so `canCalculateChanges` is advertised as `false`. See [JMAP](/protocols/jmap#capabilities) |
 
 ## IMAP extensions
 
@@ -46,11 +46,11 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | SPECIAL-USE, CREATE-SPECIAL-USE | yes | RFC 6154 |
 | SORT | yes | RFC 5256, all keys; `SORT=DISPLAY` (RFC 5957) is not implemented |
 | THREAD | yes | RFC 5256, `REFERENCES` and `ORDEREDSUBJECT` |
-| OBJECTID | yes | RFC 8474 — `MAILBOXID`, `EMAILID`, `THREADID` |
+| OBJECTID | yes | RFC 8474 - `MAILBOXID`, `EMAILID`, `THREADID` |
 | BINARY | yes | RFC 3516 |
 | NOTIFY | partial | RFC 5465; annotation/metadata events are not reported |
 | METADATA | yes | RFC 5464, when a metadata dict is configured |
-| ACL | yes | RFC 4314, enforced on every path — **off by default** (`acl.enabled`); a configuration with a shared, public or other users namespace and ACL off is refused at startup. See [Namespaces](/storage/namespace) |
+| ACL | yes | RFC 4314, enforced on every path - **off by default** (`acl.enabled`); a configuration with a shared, public or other users namespace and ACL off is refused at startup. See [Namespaces](/storage/namespace) |
 | QUOTA | yes | RFC 9208 |
 | ID | yes | RFC 2971; always offered before login, after login only while `imap_id_send` is non-empty |
 | COMPRESS | no | |
@@ -92,7 +92,7 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | Feature | yarilo | Notes |
 |:---|:---|:---|
 | Sieve (RFC 5228) | yes | |
-| Sieve extensions | yes | 43 extensions, including `imap4flags`, `editheader`, `enotify`, `imapsieve`, `mailboxid`, `spamtest`/`virustest` and the RFC 5703 MIME set. The full list is on the [Sieve page](/features/sieve) rather than repeated here — one list cannot disagree with itself |
+| Sieve extensions | yes | 43 extensions, including `imap4flags`, `editheader`, `enotify`, `imapsieve`, `mailboxid`, `spamtest`/`virustest` and the RFC 5703 MIME set. The full list is on the [Sieve page](/features/sieve) rather than repeated here - one list cannot disagree with itself |
 | Sieve `pipe` / external programs | yes | with a configured binary directory |
 | Local delivery agent | partial | delivery is via LMTP; there is no standalone local-delivery binary |
 | Recipient rate limiting | yes | cluster-wide, per (sender IP, recipient) |
@@ -118,20 +118,20 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 
 | Feature | yarilo | Notes |
 |:---|:---|:---|
-| Director (per-user backend affinity) | yes | own ring and peer sync, plus a per-user flush hook (`flush_program`) — see [Director](/architecture/director) |
+| Director (per-user backend affinity) | yes | own ring and peer sync, plus a per-user flush hook (`flush_program`) - see [Director](/architecture/director) |
 | Replication (dsync) | no | |
 | Shared and public namespaces | partial | namespaces and ACLs work; cross-user delivery and some enforcement gaps remain |
 | Virtual mailboxes | partial | a namespace whose mailboxes are defined by a configuration file of folders and `SEARCH` rules; kept in sync while open, with `FETCH`, `SEARCH`, `SORT`, `THREAD`, `STORE`, `EXPUNGE`, `COPY` and `MOVE` acting on the real message, `APPEND`/`COPY`/`MOVE` into one storing to its save folder, and annotation lines filtering the folders. A virtual mailbox has `\Recent` messages of its own, and `+` takes a folder's. See [Virtual Mailboxes](/features/virtual) |
-| imap-hibernate | no | idle IMAP sessions are not parked into a separate process; each holds its own. No issue open yet — this row is the record |
+| imap-hibernate | no | idle IMAP sessions are not parked into a separate process; each holds its own. No issue open yet - this row is the record |
 | Prometheus metrics, health endpoints | yes | per-command latencies, storage and index counters, `/healthz` and `/readyz` |
-| Command-line administration | yes | `yarctl` covers the operations the services expose — routing, storage, index, quota, ACL, metadata, sessions, auth — and each family is documented on the [administration page](/operations/yarilo_admin). The command set is not a one-to-one map of any other server's, so a migrated runbook is translated rather than copied |
+| Command-line administration | yes | `yarctl` covers the operations the services expose - routing, storage, index, quota, ACL, metadata, sessions, auth - and each family is documented on the [administration page](/operations/yarilo_admin). The command set is not a one-to-one map of any other server's, so a migrated runbook is translated rather than copied |
 
 ## What migration involves
 
 Configuration keys keep their established names where the setting means the
 same thing, so translating an existing configuration into `yarilo.yaml` is
 mechanical for the covered surface. The
-on-disk formats — Maildir, dbox, the index — are the same layouts, which is
+on-disk formats - Maildir, dbox, the index - are the same layouts, which is
 what makes a migration a matter of pointing yarilo at existing mail rather than
 converting it.
 

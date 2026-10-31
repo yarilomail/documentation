@@ -7,10 +7,10 @@ chart, on one host, with Docker Compose.
 Clients connect to login proxies, which terminate TLS and forward to the
 session backends. The backends share a Maildir store and coordinate through
 `yarilo-auth`, `yarilo-warden` and `yarilo-locks` (Redis-backed). One image
-serves every role — each container picks its component via `YARILO_COMPONENT`.
+serves every role - each container picks its component via `YARILO_COMPONENT`.
 
 ::: warning
-Single-host, not highly available. For HA or multi-node, use the Helm chart —
+Single-host, not highly available. For HA or multi-node, use the Helm chart -
 see [Deployment](/installation/deployment).
 :::
 
@@ -28,14 +28,14 @@ Everything lives in
 | MTA integration | `yarilo-sasl-login` (SASL auth for Postfix), `yarilo-quota-status` (quota policy) |
 | Operator API | `yarilo-backend-api`, the API `yarctl backend` talks to (not published on the host) |
 
-The userdb is SQLite — `yarilo-auth` owns it in the `state` volume; mail lives
+The userdb is SQLite - `yarilo-auth` owns it in the `state` volume; mail lives
 in the shared `mail` volume. No external database is required.
 
 ## Prerequisites
 
 - Docker Engine 24+ with the Compose v2 plugin (`docker compose version`)
-- Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and — loopback-only
-  by default — 24, 12345, 12340. Override in `.env`.
+- Free host ports: 143/993, 110/995, 587/465, 4190, 8443, and - loopback-only
+  by default - 24, 12345, 12340. Override in `.env`.
 - ~512 MB RAM
 
 ## Quickstart
@@ -87,7 +87,7 @@ printf 'LHLO t\r\nMAIL FROM:<s@ext.test>\r\nRCPT TO:<user@example.test>\r\nDATA\
   | nc 127.0.0.1 24
 ```
 
-Read it back over IMAPS — with the self-signed certificate the verify warning
+Read it back over IMAPS - with the self-signed certificate the verify warning
 is expected:
 
 ```sh
@@ -104,7 +104,7 @@ printf 'a login user@example.test changeit\r\nb select INBOX\r\nc logout\r\n' \
 | Submission | 587 / 465 | login proxy |
 | ManageSieve | 4190 | login proxy |
 | JMAP | 8443 | login proxy, HTTPS |
-| LMTP | 24 (loopback) | unauthenticated — for your MTA only |
+| LMTP | 24 (loopback) | unauthenticated - for your MTA only |
 | SASL auth | 12345 (loopback) | Postfix `smtpd_sasl_type = dovecot` |
 | Quota policy | 12340 (loopback) | Postfix `check_policy_service` |
 

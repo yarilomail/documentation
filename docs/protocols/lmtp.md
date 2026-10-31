@@ -54,7 +54,7 @@ root in every conversation, no later reply can name it in `In-Reply-To` or
 `References`, and JMAP reports its `messageId` as `null`.
 
 Behind an MTA the header is already present and this key changes nothing. Fed
-LMTP directly — a script, or a deployment with no MTA in front — delivery is the
+LMTP directly - a script, or a deployment with no MTA in front - delivery is the
 last place the identity can still be given, which is why the default is `true`.
 Set it to `false` if the stored bytes must be exactly what arrived.
 
@@ -70,7 +70,7 @@ within one host or one run.
 **An existing `Message-ID` is never rewritten**, not even a malformed one:
 whatever a sender wrote is what a reply quotes back in `References`, so
 replacing it would break the conversation the message already belongs to. Only a
-message whose header section has no `Message-ID` field at all is given one — a
+message whose header section has no `Message-ID` field at all is given one - a
 header inside a forwarded or quoted message is body, and does not count.
 
 The header is added before Sieve runs, before the message is stored and before
@@ -130,7 +130,7 @@ exceeded for recipient`, and the sender retries later. Nothing is lost and
 nothing is bounced. The connection stays open, and the other recipients of the
 same transaction are answered as usual.
 
-Counters live in `yarilo-locks`, so the limit is **cluster-wide** — a sender
+Counters live in `yarilo-locks`, so the limit is **cluster-wide** - a sender
 does not get a fresh allowance by reaching a different backend pod. The key is
 the pair (sender IP, recipient mailbox), so one noisy sender cannot exhaust
 another's allowance, and one busy mailbox does not throttle its neighbours.
@@ -151,7 +151,7 @@ without the prefix (`enabled`, `per_recipient_burst`,
 `per_recipient_window_seconds`).
 
 **When to raise it.** The defaults suit ordinary mail and do not suit bulk
-delivery into a single account — a migration, a load test, a mailing-list
+delivery into a single account - a migration, a load test, a mailing-list
 expansion landing in one mailbox. Those are what the burst and the window are
 for. Turning the check off entirely leaves nothing between a misbehaving sender
 and a mailbox.

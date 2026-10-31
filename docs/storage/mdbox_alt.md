@@ -1,7 +1,7 @@
 # mdbox Alt Storage (Cold Tiering)
 
 yarilo mdbox supports moving messages to a secondary (cold) storage
-tier — functionally equivalent to the reference's alt-path setting and its
+tier - functionally equivalent to the reference's alt-path setting and its
 alt-move command. Messages moved to alt storage remain fully
 accessible; the Fetch path transparently falls back to the alt
 directory when a file is not found in primary.
@@ -16,7 +16,7 @@ storage:
 ```
 
 `mail_alt_path` is a path template like `mail_home`, with the same variables
-and filters — `%u`, `%n`, `%d`, `%h`, the hash buckets and the `%{…}` forms;
+and filters - `%u`, `%n`, `%d`, `%h`, the hash buckets and the `%{…}` forms;
 see [Path templates](/storage/#path-templates). There is no `%L` modifier: a
 lowercased path is written `%{user | lower}`, and a template the server cannot
 expand stops startup, naming the key.
@@ -29,7 +29,7 @@ The alt directory mirrors the primary mdbox layout:
     m.1001, m.1002, ...    ← moved m.<N> files (same naming scheme)
 ```
 
-File IDs are global across both tiers — the same `m.<N>` ID never
+File IDs are global across both tiers - the same `m.<N>` ID never
 exists in both primary and alt simultaneously.
 
 ## Helm
@@ -44,7 +44,7 @@ The chart passes `storage.mail_alt_path` through unchanged. The older
 spellings `mdbox_alt_storage_path` and `alt_dir` are pre-beta aliases of the
 same key.
 
-A separate PVC (or NFS export) should be mounted at the cold path —
+A separate PVC (or NFS export) should be mounted at the cold path -
 typically a cheaper storage class (HDD-backed, object-gateway, etc.).
 
 ## Triggering a move
@@ -64,7 +64,7 @@ yarctl backend mdbox altmove alice@example.com \
 ```
 
 `--before` accepts RFC 3339 timestamps. Messages whose `InternalDate`
-(the `R` field in the dbox v2 trailer — set when the message was first
+(the `R` field in the dbox v2 trailer - set when the message was first
 saved) is strictly before the cutoff are eligible.
 
 ## Operational notes
@@ -75,8 +75,8 @@ saved) is strictly before the cutoff are eligible.
 of a moved message opens the alt file directly, without trying primary
 first. The IMAP client sees no difference.
 
-The mark is a hint, not the truth. If it lags — the move finished but the
-index was not updated yet — a fetch that finds no primary file (`ENOENT`)
+The mark is a hint, not the truth. If it lags - the move finished but the
+index was not updated yet - a fetch that finds no primary file (`ENOENT`)
 tries the alt file before giving up; any other open error (permissions,
 I/O) is returned as-is. In the other direction, a mark whose alt copy is
 missing or unreadable falls back to primary rather than being reported as
@@ -137,8 +137,8 @@ pod does not own.
 
 ## On-disk format and the reference
 
-A moved `m.<N>` file has the same format as a primary one — the same dbox v2
-record layout — and the alt tier mirrors the primary layout, so the records
+A moved `m.<N>` file has the same format as a primary one - the same dbox v2
+record layout - and the alt tier mirrors the primary layout, so the records
 in it parse in either direction ([mdbox on-disk layout](/storage/#mdbox-on-disk-layout-rotation)).
 
 A store is still not interchangeable between the servers, because
@@ -146,5 +146,5 @@ the index that says which message lives where is each server's own. An mdbox
 store of the reference is taken over by
 [adoption](/installation/migration#adoption-this-server-takes-over-the-store-in-place):
 on first open this server converts the index and the other server can no
-longer serve the store. The reverse is not possible — the reference cannot
+longer serve the store. The reverse is not possible - the reference cannot
 read a yarilo index.

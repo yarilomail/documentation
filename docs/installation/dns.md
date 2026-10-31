@@ -1,5 +1,5 @@
 ---
-description: "The DNS records a mail domain needs — A/AAAA, MX, SPF, DKIM, DMARC and PTR — with examples, why nameserver redundancy matters, and how to verify with dig."
+description: "The DNS records a mail domain needs - A/AAAA, MX, SPF, DKIM, DMARC and PTR - with examples, why nameserver redundancy matters, and how to verify with dig."
 ---
 
 # DNS records for a mail domain: MX, SPF, DKIM, DMARC and PTR
@@ -15,8 +15,8 @@ recipient domain's MX record, then the A/AAAA record of the host it names.
 Receiving servers look up SPF, DKIM and DMARC to decide whether to accept the
 message, and check the PTR record of the connecting IP.
 
-If any of those lookups fails, the message is not lost immediately — sending
-servers queue and retry for hours or days — but delivery stalls, bounces
+If any of those lookups fails, the message is not lost immediately - sending
+servers queue and retry for hours or days - but delivery stalls, bounces
 appear, and reputation suffers. A mail domain is only as reachable as its DNS.
 
 ## Required records
@@ -56,7 +56,7 @@ example.com.   3600  IN  MX  10 mail.example.com.
 The MX target must be a hostname with an A/AAAA record, never an IP address
 and never a CNAME. In a yarilo deployment this host runs the inbound MTA, which
 delivers over LMTP to `yarilo-lmtp-login`; that proxy looks up each recipient's
-backend and hands the message on — see [LMTP](/protocols/lmtp).
+backend and hands the message on - see [LMTP](/protocols/lmtp).
 
 ### SPF
 
@@ -93,7 +93,7 @@ Start with `p=none` to collect reports, then move to `quarantine` and
 
 ### PTR
 
-The reverse record is set by whoever controls the IP range — your hosting
+The reverse record is set by whoever controls the IP range - your hosting
 provider or cloud console, not your domain's zone:
 
 ```
@@ -136,8 +136,8 @@ that answers them and the `_autodiscover._tcp` record.
 
 The records above live on authoritative nameservers, and those are a single
 point of failure that is easy to overlook. If the only nameserver for
-`example.com` is down — host maintenance, a provider outage, a DDoS on the
-DNS host — every lookup above fails at once. Inbound mail queues at the
+`example.com` is down - host maintenance, a provider outage, a DDoS on the
+DNS host - every lookup above fails at once. Inbound mail queues at the
 sender, outbound mail is rejected for a missing SPF or PTR match, and clients
 cannot even resolve `mail.example.com` to log in. The mail server itself may
 be perfectly healthy.
@@ -150,7 +150,7 @@ count: both names fail together.
 A secondary nameserver keeps a live copy of the zone through AXFR zone
 transfers and keeps answering while the primary is unavailable. It can be a
 second server you operate in a different network, or a hosted secondary DNS
-service that pulls the zone from your primary — see
+service that pulls the zone from your primary - see
 [DNS redundancy and secondary nameservers](https://seconddns.com/docs/guides/dns-redundancy)
 for how zone transfers and SOA refresh timers keep the copies in sync.
 
@@ -165,7 +165,7 @@ dig @ns2.example.com example.com SOA +short
 ```
 
 Both SOA answers must return the same serial. A lagging serial means zone
-transfers are not reaching the secondary — see
+transfers are not reaching the secondary - see
 [Understanding AXFR zone transfers](https://seconddns.com/docs/guides/axfr-zone-transfer)
 for how a transfer is requested and where it typically fails.
 :::

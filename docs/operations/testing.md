@@ -7,14 +7,14 @@ question. They are not alternatives.
 
 | | question it answers | how it is run |
 |:---|:---|:---|
-| [`app/smoketest`](https://github.com/yarilomail/yarilo/tree/main/app/smoketest) | is *this deployment* serving correctly? | against a live cluster, per rollout — `smoke.yml`, or by hand |
-| [`app/smoketest-e2e`](https://github.com/yarilomail/yarilo/tree/main/app/smoketest-e2e) | does mail get in and out at all? | against any yarilo — local binary, compose, or staging |
+| [`app/smoketest`](https://github.com/yarilomail/yarilo/tree/main/app/smoketest) | is *this deployment* serving correctly? | against a live cluster, per rollout - `smoke.yml`, or by hand |
+| [`app/smoketest-e2e`](https://github.com/yarilomail/yarilo/tree/main/app/smoketest-e2e) | does mail get in and out at all? | against any yarilo - local binary, compose, or staging |
 
 **`app/smoketest`** is the per-rollout gate: telemetry `/healthz` and `/readyz`,
 the POP3S greeting, ManageSieve, Sieve execution, quota and ACL, FTS, and the
 JMAP checks including the header forms. It checks a deployment.
 
-**`app/smoketest-e2e`** drives the whole happy path in one pass — Submission
+**`app/smoketest-e2e`** drives the whole happy path in one pass - Submission
 AUTH over STARTTLS, LMTP delivery, then reading the same message back over both
 IMAPS and POP3S, with each protocol's native and SASL authentication. It checks
 that the parts fit together, which the per-rollout checks do not: each of those
@@ -73,7 +73,7 @@ docker run --rm dovecot/imaptest \
 
 Most `app/smoketest` checks are enabled by the flag that configures them:
 `-fts-user` enables the FTS search check, `-jmap` enables the JMAP ones. A
-check the run was not given credentials for is **skipped, not dropped** — it
+check the run was not given credentials for is **skipped, not dropped** - it
 stays in the report by name, with the flag that would enable it:
 
 ```
@@ -99,8 +99,8 @@ diffing the skipped list by hand on each rollout:
 | `-require-all` | a check disabled by a missing flag is a failure |
 | `-require-all-except=<areas>` | comma-separated areas `-require-all` does not demand |
 
-Every check belongs to an area — `telemetry`, `smtp`, `pop3s`, `pop3`,
-`lmtp-login`, `managesieve`, `sieve`, `imap`, `director`, `jmap` — and an exemption names
+Every check belongs to an area - `telemetry`, `smtp`, `pop3s`, `pop3`,
+`lmtp-login`, `managesieve`, `sieve`, `imap`, `director`, `jmap` - and an exemption names
 areas, so `-require-all -require-all-except=jmap` demands everything the
 deployment runs while forgiving a service it does not.
 
@@ -116,7 +116,7 @@ Three properties are worth knowing before relying on it:
   alone it reads as "demand everything except this" while demanding nothing.
 
 `components.jmap` ships disabled, which is why the JMAP checks are the
-usual exemption — and why `-require-all` is off by default. Which areas a
+usual exemption - and why `-require-all` is off by default. Which areas a
 deployment owes is an operator decision, not a property of the binary.
 
 ### Where the gate injects mail
@@ -140,8 +140,8 @@ fail with that message rather than with anything about Sieve or search:
 - imap FTS (SEARCH BODY/TEXT/HEADER/FROM): lmtp deliver: EHLO: 500 5.5.1 ...
 ```
 
-A deployment whose only ingress is `yarilo-lmtp-login` — which is what the
-chart ships — therefore runs both checks like this:
+A deployment whose only ingress is `yarilo-lmtp-login` - which is what the
+chart ships - therefore runs both checks like this:
 
 ```sh
 smoketest -host mail.example.com \
@@ -170,21 +170,21 @@ the storage-name escaping path is not exercised by any routine rollout gate.
 This is deliberate, and it is written here so the gap is not later mistaken for
 an oversight and patched with a second mechanism.
 
-The escaping path — and the NFC-against-escaping interaction, a form-preserving
-property — is covered by unit tests that assert on
+The escaping path - and the NFC-against-escaping interaction, a form-preserving
+property - is covered by unit tests that assert on
 computed strings, plus one end-to-end IMAP test with a `t.Skip` precondition:
 it needs a filesystem that does not compose names on creation, so it skips on
 macOS (APFS) and carries the weight on the CI runners (self-hosted Linux, which
 production also is). CI covers exactly what the gate no longer does.
 
-This is the same shape as two earlier blind spots — a build tag the compiler
-never sees, a deployment flag the tests never run — a config key that is off by
+This is the same shape as two earlier blind spots - a build tag the compiler
+never sees, a deployment flag the tests never run - a config key that is off by
 default, so the enabled path is walked nowhere routine. The resolution is the
 same: the discipline lives where the path is actually taken, which for escaping
 is the CI unit and skip-guarded integration tests, not the sandbox gate.
 
 If deployment-level coverage is ever wanted, the cheap way is not to enable
-escaping in the committed values — it changes on-disk names for every folder —
+escaping in the committed values - it changes on-disk names for every folder -
 but to add one gate run with `--set storage.mailbox_list_storage_escape_char=^`
 alongside the default run.
 
@@ -246,7 +246,7 @@ CPU limit.
 ### Measuring a language other than English
 
 The generator emits English, and the English stopword list was the one already
-correct — 174 words matching its source exactly, unchanged by the stopword changes.
+correct - 174 words matching its source exactly, unchanged by the stopword changes.
 A sandbox run therefore shows **nothing** for those changes, by construction
 rather than by measurement.
 
@@ -262,16 +262,16 @@ kubectl apply -f hack/loadtest/lmtp-mbox-job.yaml
 
 **The function words come from the server's own stopword lists**, so the corpus
 and the server cannot disagree about what a stopword is. The content words are
-pairs of function words run together — deterministic, valid UTF-8 in the same
+pairs of function words run together - deterministic, valid UTF-8 in the same
 script, and not in the list. That is deliberate: what is being measured is how
 many tokens survive filtering and what they cost to stem, and inventing prose
 would put an unstated word-frequency distribution into a number that is supposed
-to be about the filter. The ratio is stated rather than incidental —
+to be about the filter. The ratio is stated rather than incidental -
 `STOPWORD_RATIO` of every ten words, four by default, which is roughly what
 running text carries.
 
 Two limits worth knowing before you meet them: a **ConfigMap holds about 1 MiB**,
-and **SMTP carries at most 1000 octets per line** including the CRLF — a server
+and **SMTP carries at most 1000 octets per line** including the CRLF - a server
 given a longer one rejects the whole transaction, so one unwrapped line fails
 every delivery in the run. The generator wraps at nine words; the loader refuses
 a file that breaks the limit and names the message, line and length.
@@ -280,7 +280,7 @@ a file that breaks the limit and names the message, line and length.
 
 The summary has an `errors` column and a `cancel` column. **`errors` means the
 server did something wrong; `cancel` counts operations the run cut off when
-`-duration` expired** — roughly one per client, so a clean run reports something
+`-duration` expired** - roughly one per client, so a clean run reports something
 like `0 errors, 8 cancelled at the deadline`. Any non-zero `errors` is a
 finding.
 
@@ -298,7 +298,7 @@ reports a per-message cost no real deployment sees.
 server rather than the corpus.
 
 **Recipients span `u1..u150`**, which covers all three mailbox types in the
-sandbox — mdbox `u1-50`, maildir `u51-100`, sdbox `u101-150`. A run confined to
+sandbox - mdbox `u1-50`, maildir `u51-100`, sdbox `u101-150`. A run confined to
 one type measures that type.
 
 **`-msgs` is a steady state, not a total.** Without it the mailboxes grow
@@ -308,7 +308,7 @@ start. `-msgs=0` turns it off, which is what the search-only Job needs.
 **POP3 opens and closes a session per iteration**, which is the protocol rather
 than a shortcut: the server locks the maildrop for the length of a session, so a
 generator that held its connections would measure its own lock contention and
-report it as the server's. `-delete` stays off — it consumes the mailboxes every
+report it as the server's. `-delete` stays off - it consumes the mailboxes every
 other run measures against.
 
 **`-mailboxes-per-user=4`** produces the condition worth testing against a
@@ -319,7 +319,7 @@ wanting a pass at the same time.
 
 **Do this first, every time.** A container at its CPU limit produces latencies
 that look exactly like a defect in the code, and no amount of profiling the code
-will find them — the profile shows the work spread over wall-clock time that the
+will find them - the profile shows the work spread over wall-clock time that the
 scheduler took away.
 
 This is not hypothetical. JMAP read latency was measured at 5085 ms median and
@@ -342,7 +342,7 @@ nr_periods 2226 · nr_throttled 1806 · throttled_usec 286912352
 
 A fifteen-fold difference from a value in `values.yaml`.
 
-Read it from inside the container — cgroup v2 exposes it directly:
+Read it from inside the container - cgroup v2 exposes it directly:
 
 ```sh
 kubectl -n <ns> exec <pod> -c <container> -- cat /sys/fs/cgroup/cpu.stat
@@ -360,7 +360,7 @@ kubectl get --raw "/api/v1/nodes/<node>/proxy/metrics/cadvisor" \
 ```
 
 **But nothing scrapes it.** The cluster runs metrics-server only, with no
-Prometheus, so this is available on demand and not in history — there is no
+Prometheus, so this is available on demand and not in history - there is no
 answering "was it throttled during yesterday's run" after the fact. Take the
 reading while the run is going, or record it with the result.
 
@@ -375,7 +375,7 @@ kubectl -n yarilo-sb port-forward yarilo-backend-0 8085:8085   # the fts contain
 go tool pprof -http=: "http://localhost:8085/debug/pprof/profile?seconds=30"
 ```
 
-Take the profile while the Job is running, not after — an idle process profiles
+Take the profile while the Job is running, not after - an idle process profiles
 its idle loop, which is a picture of nothing.
 
 And read `cpu.stat` in the same window. A profile taken through throttling

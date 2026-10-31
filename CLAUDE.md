@@ -1,17 +1,17 @@
-# yarilo-docs — documentation conventions
+# yarilo-docs - documentation conventions
 
 Extends the workspace-level `/CLAUDE.md`. All global rules apply.
 
 This repo (`yarilomail/documentation`) is the **source of truth for all public
 Yarilo documentation**, published at https://doc.yarilomail.org via GitHub
 Pages (VitePress 1.6, `srcDir: docs`, images in `docs/public/`). Never edit
-`docs/` in the yarilo repo — it no longer exists there.
+`docs/` in the yarilo repo - it no longer exists there.
 
 All documentation is written in **English only**.
 
 ---
 
-## Writing style — follow doc.dovecot.org
+## Writing style - follow doc.dovecot.org
 
 The style model is the Dovecot documentation (`dovecot/documentation` on
 GitHub). Apply these conventions to every page:
@@ -21,11 +21,11 @@ GitHub). Apply these conventions to every page:
 - **Topic-named headings**, noun or gerund phrases: "Creating the first
   user", "Listening ports", "Waiting for the certificate". A heading names one
   topic and nothing else:
-  - no dash joining two names ("yarilo-locks — design", "`--all` — cross-replica
+  - no dash joining two names ("yarilo-locks - design", "`--all` - cross-replica
     view"): pick the topic ("Write locking", "Cross-replica view");
   - no issue or PR numbers ("(#753)", "PR #581");
   - no section numbers ("3.1", "7.1a", "Part A");
-  - no config key glued to the topic ("Ring mTLS — `director_service.…`"): the
+  - no config key glued to the topic ("Ring mTLS - `director_service.…`"): the
     key belongs in its settings card or in the text. A heading that *is* one
     name, such as a Sieve extension (`` `vnd.yarilo.pipe` ``), is fine.
 - **No issue numbers in the text either.** Readers cannot open them. Say what
@@ -42,9 +42,9 @@ GitHub). Apply these conventions to every page:
 - **Every code block gets a one-line imperative lead-in** ending with a colon
   ("Seed a user:"). When a command's effect is not obvious, explain it
   *after* the block as a bullet list ("This sequence: …").
-- **Callouts**: VitePress containers `::: tip`, `::: note`, `::: warning` —
+- **Callouts**: VitePress containers `::: tip`, `::: note`, `::: warning` -
   never blockquotes (`>`). A titled variant is fine: `::: tip Production`.
-- **Bold sparingly** — only for things that carry meaning (component names in
+- **Bold sparingly** - only for things that carry meaning (component names in
   a first mention, hard warnings). Not for decoration or whole phrases.
 - **Tables** stay simple, few columns, left-aligned (`|:---|`). Explanations
   live in surrounding prose, not in cells.
@@ -60,7 +60,7 @@ GitHub). Apply these conventions to every page:
 ## VitePress build gotchas
 
 - Placeholder tokens like `<tag>`, `<service>` in **prose** must be escaped
-  (`\<tag>`) or backticked — the Vue compiler treats them as HTML elements.
+  (`\<tag>`) or backticked - the Vue compiler treats them as HTML elements.
   Inside code spans and fences they are safe, **except** when a line *starts*
   with `<token>`: CommonMark parses that as an HTML block even inside a
   multi-line code span. Rewrap the line instead of escaping.
@@ -69,38 +69,38 @@ GitHub). Apply these conventions to every page:
   plain Markdown link; `scripts/check-nofollow.mjs`, run on every PR, fails
   on an external link without it.
 - Links to yarilo source code use full GitHub URLs
-  (`https://github.com/yarilomail/yarilo/tree/main/...`) — repo-relative
+  (`https://github.com/yarilomail/yarilo/tree/main/...`) - repo-relative
   paths are dead links here and fail the build.
 - `npm run docs:build` must pass before every commit; it fails on dead links
   and Vue parse errors.
 
 ## How changes reach the site
 
-Every change goes through a pull request — direct pushes to `main` are
+Every change goes through a pull request - direct pushes to `main` are
 blocked by branch protection:
 
 1. Branch from fresh `main` (`feat/...`, `docs/...`, `chore/...`).
-2. Edit pages; run `npm run docs:build` locally — it must pass.
+2. Edit pages; run `npm run docs:build` locally - it must pass.
 3. Push the branch and open a PR (title and description in English).
 4. The user reviews and merges. Never merge yourself.
 5. Merge to `main` triggers the `Deploy docs` GitHub Actions workflow, which
-   rebuilds https://doc.yarilomail.org/main/ — no manual deploy step exists.
+   rebuilds https://doc.yarilomail.org/main/ - no manual deploy step exists.
 
 ## Versions
 
 Every version of the docs lives under its own prefix:
 
-- `/main/` — built from `main`: the next, unreleased version. Kept out of
+- `/main/` - built from `main`: the next, unreleased version. Kept out of
   search results (`noindex`), with its canonical on the same page in
   `/latest/`.
-- `/2.4.5/` — built from the docs tag `v2.4.5`, pushed when Yarilo 2.4.5 is
+- `/2.4.5/` - built from the docs tag `v2.4.5`, pushed when Yarilo 2.4.5 is
   released. Prerelease tags (`v2.4.5-dev.4`) publish nothing.
-- `/latest/` — the newest release, rebuilt when its tag is pushed. Until the
+- `/latest/` - the newest release, rebuilt when its tag is pushed. Until the
   first release tag exists it follows `main`. Releases link their canonical
   here, and only `latest` is in `sitemap.xml`.
 
 The `gh-pages` branch is the published site: one directory per version, plus
-the root files `scripts/site-root.mjs` writes — `versions.json` (read by the
+the root files `scripts/site-root.mjs` writes - `versions.json` (read by the
 version switcher), the redirect from `/` to `/latest/`, and the redirects
 from the pre-versioning URLs (`/AUTH_OAUTH2` → `/latest/auth/oauth2.html`).
 The deploy workflow rebuilds only its own version, then publishes the whole
@@ -111,7 +111,7 @@ branch. Never edit `gh-pages` by hand.
 
 ## Structure
 
-- `docs/<section>/*.md` — the pages, one directory per sidebar group
+- `docs/<section>/*.md` - the pages, one directory per sidebar group
   (`installation`, `architecture`, `protocols`, `auth`, `storage`,
   `features`, `operations`); file names are lowercase with underscores, and
   a section's overview is its `index.md`. Sidebar groups and nav live in
@@ -121,11 +121,11 @@ branch. Never edit `gh-pages` by hand.
   sidebar or in-page, that names no heading.
 - Renaming or moving a published page breaks its URL in every release
   already out. Avoid it; when unavoidable, keep the old path working.
-- `site-root/` — files served from the site root, outside any version
+- `site-root/` - files served from the site root, outside any version
   (`CNAME`, `robots.txt`, the IndexNow key, `legacy-pages.json`).
-- `data/settings.yaml` — every documented `yarilo.yaml` setting, keyed by its
+- `data/settings.yaml` - every documented `yarilo.yaml` setting, keyed by its
   full path (`general.ssl.ssl_min_protocol`). See "Settings" below.
-- `docs/index.md` — landing page; keep it `layout: doc` style (sidebar
+- `docs/index.md` - landing page; keep it `layout: doc` style (sidebar
   visible), not a hero page.
 
 ## Settings

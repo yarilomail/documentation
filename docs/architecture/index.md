@@ -2,17 +2,17 @@
 
 This document is the **authoritative reference** for yarilo's architecture.
 All development decisions must be consistent with what is written here.
-If something in the code contradicts this document — the code is wrong.
+If something in the code contradicts this document - the code is wrong.
 
 ---
 
 ## Core principles
 
-- **Security** — each component runs with minimum required permissions; all inter-component traffic is mTLS.
-- **Process lightness** — each component does one thing; goroutines per session within each process.
-- **Fault tolerance** — crash of one Pod does not affect others; k8s restarts failed Pods automatically.
-- **Scalability** — stateless components scale horizontally via HPA; stateful components use director affinity.
-- **Isolation** — one non-root, read-only security context for every pod, internal mTLS with a role per component, and a NetworkPolicy per internal listener; only the backend mounts mail storage.
+- **Security** - each component runs with minimum required permissions; all inter-component traffic is mTLS.
+- **Process lightness** - each component does one thing; goroutines per session within each process.
+- **Fault tolerance** - crash of one Pod does not affect others; k8s restarts failed Pods automatically.
+- **Scalability** - stateless components scale horizontally via HPA; stateful components use director affinity.
+- **Isolation** - one non-root, read-only security context for every pod, internal mTLS with a role per component, and a NetworkPolicy per internal listener; only the backend mounts mail storage.
 
 ---
 
@@ -22,7 +22,7 @@ A run of defects through the ACL, namespace and folder-name code all had one
 shape. Closing them taught two rules worth stating so the next reader starts
 from the right question rather than rediscovering them. The examples name things
 that **were removed** in the course of those fixes, not code you will find
-today — that is the point of the first rule.
+today - that is the point of the first rule.
 
 ### One idea, one implementation
 
@@ -32,14 +32,14 @@ NFC normalisation (a driver step and the path builder); no single entry per ACL
 identifier; two definitions of "owner" (by namespace type and by person); two
 meanings of the insert right (IMAP vs delivery); two write paths for an ACL
 (a client read-modify-write and the server). None was a logic error in either
-copy — each was defensible alone; the bug was that they drifted.
+copy - each was defensible alone; the bug was that they drifted.
 
 **When you find a defect here, do not ask which branch is wrong. Ask where the
 two implementations of one idea are.** Then close the gap one of two ways:
 
 - **remove one of them**, when there can be a single implementation;
 - **make one an owner and guard the rest**, when the idea has many call sites
-  that cannot collapse into one function — `mailbox.NormalizeName` is called
+  that cannot collapse into one function - `mailbox.NormalizeName` is called
   from every namespace resolver and stays the only place NFC happens, held there
   not by deletion but by an AST guard that fails if a resolver forgets it. Reach
   for a guard only when removal is genuinely impossible; a guard is a promise the
@@ -48,29 +48,29 @@ two implementations of one idea are.** Then close the gap one of two ways:
 The fixes that closed the *class* rather than the *instance* each did one of
 these, never a reconciliation of the two copies:
 
-- `insertRight(spec)` was **deleted**, not corrected — the predicate that chose
+- `insertRight(spec)` was **deleted**, not corrected - the predicate that chose
   the right by namespace type was itself the defect; IMAP now always requires
   the insert right.
-- `FolderSubpathForm`'s NFC parameter was **removed**, not typed — a path
+- `FolderSubpathForm`'s NFC parameter was **removed**, not typed - a path
   builder must not decide the name form; normalisation moved to the one owner,
   `mailbox.NormalizeName`, at the name-entry boundary.
-- `adminCheckPRc` was **deleted** — it carried the admin path's own, weaker
+- `adminCheckPRc` was **deleted** - it carried the admin path's own, weaker
   resolution of the `a` right, and the fix was a call to the same
   `requireAdminOn` the IMAP path uses, not a repair of its logic. It is the
   sharpest case, and the one to remember: the second implementation was not
-  merely drifting, it was **letting a peer escalate** — `SETACL` in a shared
+  merely drifting, it was **letting a peer escalate** - `SETACL` in a shared
   namespace was ungated because its private owner-check compared the session
   user against themselves. Two implementations of one idea are not always a
   cosmetic cost.
-- the CLI's `get`→edit→`set` helpers were **erased**, not canonicalised —
+- the CLI's `get`→edit→`set` helpers were **erased**, not canonicalised -
   leaving them would keep a second, unlocked way to write an ACL, and the next
   author reaches for what already exists.
 
 A corollary, made checkable: "one implementation" means *complete*, not merely
 *single*. A shared constructor with fewer fields than the one it did not absorb
 is worse than two explicit ones, because it looks authoritative. `NamespaceUserInfo`
-first omitted `Groups`/`ACLUser`/`ACLGroups` — exactly the fields the LMTP
-construction carried — so wiring LMTP to it, the obvious next step, would have
+first omitted `Groups`/`ACLUser`/`ACLGroups` - exactly the fields the LMTP
+construction carried - so wiring LMTP to it, the obvious next step, would have
 **silently switched group ACLs off at delivery**. The check is: compare the
 field set against the *most complete* of the constructions you are absorbing,
 not the first.
@@ -90,7 +90,7 @@ never hit the tail the server mishandled.
 one input that separates the two behaviours, and make the non-distinguishing
 case visible rather than absent.** The rule holds on the *assertion* as much as
 the input: `if ui.indexDir(composed) != ui.indexDir(composed)` shipped in a test
-whose fixture four lines above already guarded that the two spellings differ —
+whose fixture four lines above already guarded that the two spellings differ -
 the lesson applied to the input and not to the comparison, which staticcheck
 (SA4000) caught because the expression is identical on both sides. Watch the
 assertion as closely as the fixture.
@@ -99,11 +99,11 @@ The mechanisms now in the tree are three shapes of this:
 
 - the `wasa` column in the ACL evaluator matrix records what the old code
   answered, so a row where `wasa == want` is visibly proving nothing;
-- a fixture that cannot distinguish in one environment declares it — the
+- a fixture that cannot distinguish in one environment declares it - the
   end-to-end normalisation test carries a `t.Skip` when the filesystem composes
   names, rather than vanishing from the CI runners where it works;
 - where a rule is enforced by hand across many sites, an AST guard turns "N
-  things to remember" into one that fails — the folder-normalisation guard over
+  things to remember" into one that fails - the folder-normalisation guard over
   the admin decode boundaries, the dispatch-normalisation guard, and the
   `FolderSubpath`-signature guard that keeps the removed NFC parameter from
   returning.
@@ -120,7 +120,7 @@ yarilo is a **multi-binary** system. Each component is a separate compiled binar
 k8s workload (Deployment for stateless components, StatefulSet for sticky-routed and peer-syncing components).
 There is no monolithic binary. There is no master process.
 
-Each binary handles its role via goroutines — one goroutine per connection/session within the process.
+Each binary handles its role via goroutines - one goroutine per connection/session within the process.
 
 **Infrastructure topology is defined in [Deployment](/installation/deployment) and the SVG schemas
 below.** Those are the source of truth for k8s resource types, scaling, sharding, and
@@ -141,7 +141,7 @@ inter-component coordination.
 > **Note:** the diagrams draw `yarilo-warden` as a single shared service for
 > clarity. Its replica count is a config value, not a fixed topology: with
 > `state_backend: redis` warden runs N replicas behind the same ClusterIP (all state
-> — penalty, sessions, kick bus — in shared Redis), and with `state_backend: memory`
+> - penalty, sessions, kick bus - in shared Redis), and with `state_backend: memory`
 > it stays a single pod. See *Scaling `yarilo-warden`* in
 > [Deployment](/installation/deployment).
 
@@ -174,7 +174,7 @@ The logical request flow (login → session → shared services → storage):
 |  yarilo-warden          |  |  Redis (dict / locks)  |
 +------------------------+  +------------------------+
          |
-         | NFS PV (RWX) — shared by all session pods in a tag
+         | NFS PV (RWX) - shared by all session pods in a tag
          v
   [ Mailbox + Index files ]
 ```
@@ -223,31 +223,31 @@ app/
   yarilo-warden/main.go
   yarilo-director/main.go
 internal/
-  login/imap/      — TLS accept + SASL + TCP proxy goroutine
+  login/imap/      - TLS accept + SASL + TCP proxy goroutine
   login/pop3/
   login/submission/
-  imap/            — IMAP session server (goroutines per connection)
+  imap/            - IMAP session server (goroutines per connection)
   pop3/
   submission/
   lmtp/
-  auth/            — passdb/userdb chain
-  warden/           — connection accounting
-  director/        — consistent hash ring, user→pod routing
+  auth/            - passdb/userdb chain
+  warden/           - connection accounting
+  director/        - consistent hash ring, user→pod routing
 pkg/
-  mailbox/         — MailboxBackend + IndexBackend interfaces
-  config/          — YAML config via koanf
-helm/              — one chart, one release per installation
+  mailbox/         - MailboxBackend + IndexBackend interfaces
+  config/          - YAML config via koanf
+helm/              - one chart, one release per installation
   Chart.yaml
   values.yaml
   templates/
-    statefulset-backend.yaml    — co-located backend: every protocol container, fts, backend-api, backend-reg
-    deployment-<component>.yaml — auth, warden, locks, dict, director, the login proxies, quota-status
-    deployment-imap.yaml, …     — per-protocol backends, rendered only with backend.coLocated: false
-    secret-internal-tls.yaml    — per-role internal mTLS certificates
-    statefulset-redis.yaml      — bundled Redis (redis.bundled)
+    statefulset-backend.yaml    - co-located backend: every protocol container, fts, backend-api, backend-reg
+    deployment-<component>.yaml - auth, warden, locks, dict, director, the login proxies, quota-status
+    deployment-imap.yaml, …     - per-protocol backends, rendered only with backend.coLocated: false
+    secret-internal-tls.yaml    - per-role internal mTLS certificates
+    statefulset-redis.yaml      - bundled Redis (redis.bundled)
     service-*.yaml, secret-*.yaml, configmap*.yaml
 helm_values/
-  values-sandbox.yaml           — the sandbox stand
+  values-sandbox.yaml           - the sandbox stand
 ```
 
 ---
@@ -451,19 +451,19 @@ Rules that must never be violated:
 
 ## Service communication (mTLS RPC)
 
-Components talk over **mTLS TCP** through k8s Services (not classic IPC over pipes or Unix sockets — this is RPC),
+Components talk over **mTLS TCP** through k8s Services (not classic IPC over pipes or Unix sockets - this is RPC),
 the data plane between a login proxy and a backend pod included. Which role each port accepts is the
 [peer roles](/installation/deployment#peer-roles) table; the NetworkPolicies say the same on the network layer.
 
 | From | To | Transport | Protocol |
 |:---|:---|:---|:---|
-| `*-login` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited AUTH/CONT/CANCEL — SASL bytes relayed, mechanism runs in the service → session token |
+| `*-login` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited AUTH/CONT/CANCEL - SASL bytes relayed, mechanism runs in the service → session token |
 | `*-login` | `yarilo-warden` | mTLS TCP :9101 | TAB-delimited (connection counting) |
 | `*-login` | `yarilo-director` | mTLS TCP :9102 | TAB-delimited LOOKUP |
 | `*-login` | backend pod (imap/pop3/submission/managesieve) | mTLS TCP, the protocol's backend port | YARILO preamble (address, session, token, user), then raw protocol bytes (proxy) |
-| `yarilo-imap/pop3/submission/managesieve/lmtp` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited VERIFY(token, user=) — token + username binding check → userdb fields |
-| `yarilo-imap/pop3/submission/lmtp/managesieve/jmap` | `yarilo-dict` | mTLS TCP :9107 | TAB-delimited dict verbs, the dict named on the wire (`pkg/dict/proxy`) — engines live only in the service |
-| `yarilo-fts`, `yarilo-quota-status` | `yarilo-auth` | mTLS TCP :9102 (master) | TAB-delimited USER — **userdb lookup** for callers that hold no session token |
+| `yarilo-imap/pop3/submission/managesieve/lmtp` | `yarilo-auth` | mTLS TCP :9100 | TAB-delimited VERIFY(token, user=) - token + username binding check → userdb fields |
+| `yarilo-imap/pop3/submission/lmtp/managesieve/jmap` | `yarilo-dict` | mTLS TCP :9107 | TAB-delimited dict verbs, the dict named on the wire (`pkg/dict/proxy`) - engines live only in the service |
+| `yarilo-fts`, `yarilo-quota-status` | `yarilo-auth` | mTLS TCP :9102 (master) | TAB-delimited USER - **userdb lookup** for callers that hold no session token |
 | `yarilo-lmtp-login` | backend pod (lmtp) | mTLS TCP :10024 | YARILO preamble per recipient, then raw LMTP bytes |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-locks-<tag>` | mTLS TCP :9104 | TAB-delimited (LOCK/UNLOCK/RENEW) |
 | `yarilo-imap/pop3/submission/lmtp` | `yarilo-warden` | mTLS TCP :9101 | TAB-delimited (SESSION events) |
@@ -494,9 +494,9 @@ When yarilo needs a feature from `github.com/emersion/go-imap/v2` (or any
 upstream Go library) that has not yet shipped, we maintain a fork at
 `github.com/0kaba0hub/<lib>` with a two-branch layout:
 
-- **upstream-mirror branch** (e.g. `v2`) — verbatim mirror of upstream.
+- **upstream-mirror branch** (e.g. `v2`) - verbatim mirror of upstream.
   Fast-forward only.
-- **`yarilo-patches`** — mirror + cherry-picked downstream commits. yarilo's
+- **`yarilo-patches`** - mirror + cherry-picked downstream commits. yarilo's
   `go.mod` `replace` directive pins to a specific commit on this branch.
 
 The fork's `YARILO_PATCHES.md` (default branch view) documents the layout,
@@ -508,10 +508,10 @@ drop the `replace` directive and the patches branch.
 | Library | Reason | Tracking PR |
 |:---|:---|:---|
 | `github.com/emersion/go-imap/v2` | Server-side CONDSTORE + QRESYNC (RFC 7162) | [emersion/go-imap#756](https://github.com/emersion/go-imap/pull/756) (open) |
-| `github.com/emersion/go-imap/v2` | Server-side METADATA (RFC 5464) | [emersion/go-imap#717](https://github.com/emersion/go-imap/pull/717) — closed upstream without a merge, so the patch stays on the fork |
-| `github.com/emersion/go-sasl` | Server-side mechanisms upstream does not ship: LOGIN, SCRAM-SHA-256/-1 with `-PLUS`, XOAUTH2 | none — permanent patches |
-| `github.com/emersion/go-smtp` | XCLIENT on both sides of a proxy, and the reply texts operators and MTAs expect | none — permanent patches |
-| `github.com/foxcpp/go-sieve` | Sieve interpreter patches | — |
+| `github.com/emersion/go-imap/v2` | Server-side METADATA (RFC 5464) | [emersion/go-imap#717](https://github.com/emersion/go-imap/pull/717) - closed upstream without a merge, so the patch stays on the fork |
+| `github.com/emersion/go-sasl` | Server-side mechanisms upstream does not ship: LOGIN, SCRAM-SHA-256/-1 with `-PLUS`, XOAUTH2 | none - permanent patches |
+| `github.com/emersion/go-smtp` | XCLIENT on both sides of a proxy, and the reply texts operators and MTAs expect | none - permanent patches |
+| `github.com/foxcpp/go-sieve` | Sieve interpreter patches | - |
 
 `go.mod` keeps the upstream import path so storage-layer code reads
 naturally; only the `replace` line points elsewhere. The exit plan above
@@ -522,8 +522,8 @@ applies to patches that track an upstream PR; the permanent ones stay.
 ## Dict abstraction
 
 `pkg/dict` is yarilo's general key-value store. Every feature that needs
-durable per-user or per-mailbox metadata — RFC 5464 METADATA, quota
-counters, ACL state, sieve script indices, future replication cursors —
+durable per-user or per-mailbox metadata - RFC 5464 METADATA, quota
+counters, ACL state, sieve script indices, future replication cursors -
 sits on top of this contract instead of inventing its own storage.
 
 A single interface (`Dict` + `Tx` + `Iterator`) is implemented by
@@ -543,8 +543,8 @@ engines moved out). The exceptions that open an engine themselves are the
 services that own one anyway: `yarilo-auth`, `yarilo-backend-api`,
 `yarilo-quota-status`.
 
-**The `file` driver opens where it is used.** It links no engine — it
-reads and writes one JSON document on the mail volume — so a session
+**The `file` driver opens where it is used.** It links no engine - it
+reads and writes one JSON document on the mail volume - so a session
 opens it directly instead of asking a service to open a file it can
 reach itself. This is the default for annotations (`dicts.metadata`,
 `path: "%h/yarilo-metadata.json"`): a file per user in that user's home,
@@ -574,7 +574,7 @@ read reloads when the file's stamp has moved. Reads take no lock.
 | Op-settings | `OpSettings.Username` / `HomeDir` / `ExpireSecs` / `NoSlownessWarning` / `HideLogValues` |
 
 Helpers in the same package: `Escape` / `Unescape` for `'/'` and `'%'`
-inside key path components, and `MemoryTx` — a buffered transaction
+inside key path components, and `MemoryTx` - a buffered transaction
 for drivers without native atomic multi-key writes.
 
 ### Drivers (in-tree)
@@ -589,7 +589,7 @@ for drivers without native atomic multi-key writes.
 
 Driver authors implement the three interfaces and call `dict.Register(name, init)`
 from their package's `init()`. The `pkg/dict/drivers/all` package
-blank-imports all in-tree drivers — binaries that want them all just
+blank-imports all in-tree drivers - binaries that want them all just
 `import _ "github.com/yarilomail/yarilo/v2/pkg/dict/drivers/all"`.
 
 ### Path expansion
@@ -606,7 +606,7 @@ path / prefix strings used by dict drivers:
 | `%i` | numeric uid as text |
 | `%%` | literal `%` |
 
-Callers expand templates BEFORE `dict.Open` — Open takes literal paths
+Callers expand templates BEFORE `dict.Open` - Open takes literal paths
 for the file driver and literal prefixes for redis/sql.
 
 ### Config
@@ -703,7 +703,7 @@ or public folders get an additional per-accessing-user dimension in
 the dict key so users cannot read each other's private annotations
 on a shared folder.
 
-See [Namespaces — IMAP NAMESPACE (RFC 2342 / RFC 9051 §6.3.10)](/storage/namespace) for the operator-facing
+See [Namespaces - IMAP NAMESPACE (RFC 2342 / RFC 9051 §6.3.10)](/storage/namespace) for the operator-facing
 YAML schema and current limitations.
 
 ---
@@ -715,11 +715,11 @@ exposes:
 
 | Plane | Binary | Port | Surface |
 |:---|:---|:---|:---|
-| **Director** | `yarilo-director` | `:9103` `/api/director/...` | ring / backends / users / peers — routing topology |
-| **Backend**  | `yarilo-backend-api` | `:9105` `/api/backend/<service>/...` | `dict`, `acl`, `quota`, `folder`, `message`, `user`, `subscriptions`, `specialuse`, `metadata`, `index`, `fts`, `mdbox`, `sessions`, `who`, `warden`, `health` — see [BACKEND-API](/architecture/backend_api) |
+| **Director** | `yarilo-director` | `:9103` `/api/director/...` | ring / backends / users / peers - routing topology |
+| **Backend**  | `yarilo-backend-api` | `:9105` `/api/backend/<service>/...` | `dict`, `acl`, `quota`, `folder`, `message`, `user`, `subscriptions`, `specialuse`, `metadata`, `index`, `fts`, `mdbox`, `sessions`, `who`, `warden`, `health` - see [BACKEND-API](/architecture/backend_api) |
 
 Both speak JSON over HTTPS with Bearer-token auth + IP allow-list.
-The `yarctl` CLI is a thin HTTP client over both — operator
+The `yarctl` CLI is a thin HTTP client over both - operator
 runs `yarctl director <command>` or
 `yarctl backend <service> <command>`. Each plane has its own URL + token
 (`--url`/`--token` vs `--backend-url`/`--backend-token`); their
@@ -732,7 +732,7 @@ Director state (ring, peers, user-to-backend mapping) lives in
 director's in-memory process state. Backend state (NFS-mounted
 maildir, on-disk indices, dict instances) lives in backend
 session-process pods. In a multi-pod backend deployment **these are
-physically different pods on different nodes** — they cannot share
+physically different pods on different nodes** - they cannot share
 one HTTP server. The separation also keeps each plane's lifecycle
 independent (rolling restart of director admin does not touch
 storage ops, and vice versa).
@@ -744,7 +744,7 @@ than magic.
 
 ### Future services per plane
 
-Each plane is a registry — services land under it as features
+Each plane is a registry - services land under it as features
 ship. Director can grow distributed-state services (e.g.
 `/api/director/dict/userdb_cache/...` once director uses dict for
 peer-sync) without changing the CLI shape; the same `dict`
@@ -752,10 +752,10 @@ subcommand sits under both planes when needed.
 
 ### Wire reference
 
-[yarilo-backend-api — backend-plane HTTP wire reference](/architecture/backend_api) — backend-plane
+[yarilo-backend-api - backend-plane HTTP wire reference](/architecture/backend_api) - backend-plane
 endpoints (dict surface today; ACL / quota / folder added in
-subsequent phases). [yarilo-director HTTP admin API](/architecture/director_api)
-— director plane.
+subsequent phases). [yarilo-director HTTP admin API](/architecture/director_api) -
+director plane.
 
 ---
 
@@ -763,8 +763,8 @@ subsequent phases). [yarilo-director HTTP admin API](/architecture/director_api)
 
 Maildir requires shared filesystem for `yarilo-imap`, `yarilo-pop3`, `yarilo-lmtp`:
 
-- **CephFS** (preferred) — distributed, no SPOF, native k8s CSI via `rook-ceph`
-- **NFS** — simpler, single NFS server
+- **CephFS** (preferred) - distributed, no SPOF, native k8s CSI via `rook-ceph`
+- **NFS** - simpler, single NFS server
 
 `yarilo-director` ensures user→pod affinity: the same user always routes to the same pod
 under normal operation. On pod failure, director reroutes to another pod that can access
@@ -791,7 +791,7 @@ SIGTERM received by pod
   └─ after killTimeout: k8s sends SIGKILL
 ```
 
-All timing parameters in `helm/values.yaml` — never hardcoded:
+All timing parameters in `helm/values.yaml` - never hardcoded:
 
 ```yaml
 shutdown:
@@ -811,7 +811,7 @@ terminationGracePeriodSeconds: {{ add .Values.shutdown.sessionGracePeriod .Value
 
 All processes write structured JSON via `log/slog` to stdout.
 k8s collects stdout and forwards to log aggregation (fluentd / loki).
-`LOG_LEVEL=debug` enables debug output — no code changes needed.
+`LOG_LEVEL=debug` enables debug output - no code changes needed.
 
 ### Guiding principle
 
@@ -838,7 +838,7 @@ Stored as plain base64 string in JSON (no angle brackets).
 | `user` | string | authenticated username (`alice@example.com`) |
 | `session` | string | session ID (base64) |
 | `method` | string | SASL mechanism: `PLAIN`, `LOGIN`, `OAUTH2` |
-| `rip` | string | effective remote IP — after HAProxy/XCLIENT resolution |
+| `rip` | string | effective remote IP - after HAProxy/XCLIENT resolution |
 | `rport` | int | effective remote port |
 | `lip` | string | effective local IP |
 | `lport` | int | effective local port |
@@ -893,7 +893,7 @@ Stored as plain base64 string in JSON (no angle brackets).
 
 Login process: create `slog.With("rip", ..., "lip", ..., "tls", ...)` at accept time.
 Session process: create `slog.With("user", ..., "session", ...)` after auth.
-Every log call uses the base logger — never log without connection/session context.
+Every log call uses the base logger - never log without connection/session context.
 
 ---
 
@@ -901,8 +901,8 @@ Every log call uses the base logger — never log without connection/session con
 
 **Lock only writes, only where writes meet, through the kernel.** A flag
 change or an expunge in maildir is a rename or an unlink and takes no lock.
-The two places where two writers can meet — the uidlist row and the index
-journal group — take a kernel file lock (`pkg/filelock`:
+The two places where two writers can meet - the uidlist row and the index
+journal group - take a kernel file lock (`pkg/filelock`:
 `storage_lock_method: flock` by default, `fcntl`, or `dotlock` for a volume
 without lock arbitration). Reads take no lock: a reader builds its own view
 from the shared base image plus its private replay of the journal tail, up
@@ -919,7 +919,7 @@ to the last whole BOUNDARY record.
   its own siblings at start.
 - `pkg/locks` (the `yarilo-locks` service, mTLS `:9104`) stays for the
   director ring, sessions, delivery dedup, the mdbox map, subscriptions
-  and foreign-index adoption — never on the per-message mailbox write path.
+  and foreign-index adoption - never on the per-message mailbox write path.
 
 **A hold calls nothing above storage.** Under a folder hold the code
 unlinks and writes; it does not notify, count quota, write to the client
@@ -928,7 +928,7 @@ removes and returns what went, and the session tells FTS, quota and the
 client afterwards.
 
 - Why: a quota count inside the expunge hold re-opened the folder, which
-  asked for the same non-reentrant mutex — the session waited on itself for
+  asked for the same non-reentrant mutex - the session waited on itself for
   as long as the client stayed connected.
 - Guard: `TestTheHoldOpensNoFolder`, plus an end-to-end row with a session
   that has no counted usage and a quota clone on.
@@ -968,8 +968,8 @@ truncates the log with the expunge floor stamped first.
 ## Durability
 
 `mail_fsync` has three modes and defaults to `optimized`: the message body
-is synced before the delivery is answered — maildir in `tmp/` before the
-name, mdbox before the map record — and so is the uidlist row; `always` adds
+is synced before the delivery is answered - maildir in `tmp/` before the
+name, mdbox before the map record - and so is the uidlist row; `always` adds
 the index journal and the directory entry; `never` syncs nothing, the row
 included. The cost is one `fsync` per delivery, paid outside any lock in
 the code and inside the filesystem journal all the same: on ext4 the commits
@@ -995,14 +995,14 @@ decision, not a throughput one.
   tags for a topology; session binaries stay `CGO_ENABLED=0` static.
 - **The session-binary shape lives in one place.** Every session process
   behind a login proxy calls `config.KeepOnlySessionListener(cfg, role)`
-  first — it keeps the one listener it serves and drops the rest, the
+  first - it keeps the one listener it serves and drops the rest, the
   TLS-terminating ones included, because the client certificate is mounted
-  in the login pods and not here — and takes listener TLS from
+  in the login pods and not here - and takes listener TLS from
   `config.ListenerTLS`. `pkg/config/session_shape_test.go` fails on a second
   call, a `cfg.Services.*` write, or a `BuildTLSConfig(cfg.General.SSL)` in
   any of the five binaries.
-- **A new service component lands in three places at once** — the image
-  build, the entrypoint dispatch, and the chart with its certificate — and
+- **A new service component lands in three places at once** - the image
+  build, the entrypoint dispatch, and the chart with its certificate - and
   each has a guard row in `app/guard`: every `YARILO_COMPONENT` value in the
   chart has an entrypoint case, and every workload rendered under
   `internal_tls` mounts the secret.

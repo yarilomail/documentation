@@ -62,7 +62,7 @@ in order, all default-deny:
 
 Mode 2 reuses `general.xclient.trusted_nets`, the same list that already decides
 whether a forwarded client IP is believed for XCLIENT and `IMAP ID
-x-originating-ip` — `Forwarded` is the HTTP member of that family, not a new
+x-originating-ip` - `Forwarded` is the HTTP member of that family, not a new
 mechanism.
 
 In mode 3 the listener still binds and answers `403` with a named cause, and the
@@ -130,7 +130,7 @@ stating because they are choices, not consequences of the RFC:
 
 **Core is not implicit.** A client must name every capability it relies on in
 `using`, including `urn:ietf:params:jmap:core`. A method whose capability is
-absent is answered with `unknownMethod` — the same answer as a method that does
+absent is answered with `unknownMethod` - the same answer as a method that does
 not exist (RFC 8620 §3.2). That is what lets the server gain capabilities
 without changing how an older client behaves.
 
@@ -139,8 +139,8 @@ base64 alphabet (RFC 8620 §1.2), so the account id encodes the login. Read it
 from the session's `primaryAccounts` (`urn:ietf:params:jmap:mail`), as every
 `accountId`, upload and download URL and push event uses it.
 
-**Failures have two levels.** A request-level fault — malformed JSON, a missing
-`methodCalls`, an unknown capability, an exceeded request limit — aborts the
+**Failures have two levels.** A request-level fault - malformed JSON, a missing
+`methodCalls`, an unknown capability, an exceeded request limit - aborts the
 batch and returns a problem document. A method-level fault becomes an `error`
 response for that one call, and the rest of the batch still runs; a client
 matches responses to calls by `callId`, never by position.
@@ -185,7 +185,7 @@ with `invalidProperties` on `parentId`.
 The body cap runs in the login pod so an oversized request is refused before it
 is proxied and no backend ever reads it. The backend keeps the same cap as a
 floor: a request arriving there oversized means the hop was bypassed. Every
-limit problem carries the `limit` member (§3.6.1) — "too big" is useless without
+limit problem carries the `limit` member (§3.6.1) - "too big" is useless without
 naming the bound.
 
 The clean refusal needs a declared length. A request whose `Content-Length`
@@ -193,7 +193,7 @@ exceeds the cap is answered with the `limit` problem before anything is read; a
 chunked body, or one that understates its length, is instead cut off by the
 reader as it is proxied, so that client sees a broken response rather than a
 problem document. The excess never reaches a backend either way, and a client
-sending `Content-Length` — which is every real JMAP client — always gets the
+sending `Content-Length` - which is every real JMAP client - always gets the
 parseable answer.
 
 ---
@@ -206,7 +206,7 @@ not served over JMAP. See [Changing mailboxes](#changing-mailboxes) for
 
 | JMAP member | Source |
 |:---|:---|
-| `id` | the folder GUID from the index — stable across a rename, which the name is not |
+| `id` | the folder GUID from the index - stable across a rename, which the name is not |
 | `name` | the leaf name; hierarchy travels in `parentId`, so a client never learns the delimiter |
 | `role` | IMAP special-use, per-user overrides layered over `imap_special_use_defaults`; `INBOX` is `inbox` without carrying an attribute |
 | `totalEmails` / `unreadEmails` | the folder's own counters, the same ones `STATUS` reports |
@@ -227,7 +227,7 @@ backend refuses to start without a locks client for that reason.
 `Mailbox/get` returns `state` and `Mailbox/query` returns `queryState`; both are
 a digest of the mailbox set. They tell a client that something moved, never
 what. `canCalculateChanges` is `false` and stays false until `Mailbox/changes`
-lands, so a client refetches rather than diffing — the same non-incremental
+lands, so a client refetches rather than diffing - the same non-incremental
 contract `Email/query` will start with.
 
 ### What is refused rather than approximated
@@ -242,20 +242,20 @@ to know.
 
 ## Emails
 
-`Email/get` answers by id — a null `ids` is refused, since it
+`Email/get` answers by id - a null `ids` is refused, since it
 would select every message the account has and no limit would bound the cost.
 
 | JMAP member | Source |
 |:---|:---|
-| `id`, `blobId` | the message GUID — the same identity IMAP reports as `EMAILID` (RFC 8474), so one message is one object whichever protocol reaches it |
-| `threadId` | the conversation the message belongs to — the id of its first message, so it survives the message being moved, expunged and redelivered, or migrated. On an account the [thread backfill](/installation/migration#thread-backfill-conversations-for-existing-accounts) has not reached, a message is its own conversation and this is its own id |
+| `id`, `blobId` | the message GUID - the same identity IMAP reports as `EMAILID` (RFC 8474), so one message is one object whichever protocol reaches it |
+| `threadId` | the conversation the message belongs to - the id of its first message, so it survives the message being moved, expunged and redelivered, or migrated. On an account the [thread backfill](/installation/migration#thread-backfill-conversations-for-existing-accounts) has not reached, a message is its own conversation and this is its own id |
 | `mailboxIds`, `keywords`, `size`, `receivedAt` | the index |
 | envelope fields, body parts, `preview` | the message itself, parsed on demand |
-| `keywords` | IMAP system flags translated to the JMAP vocabulary — `\Seen` is `$seen` |
+| `keywords` | IMAP system flags translated to the JMAP vocabulary - `\Seen` is `$seen` |
 
 ### A message that cannot be parsed still exists
 
-Malformed MIME headers are ordinary in real mail — spam, broken clients,
+Malformed MIME headers are ordinary in real mail - spam, broken clients,
 truncated delivery. Such a message is returned with the properties the index
 carries (`id`, `mailboxIds`, `keywords`, `size`, `receivedAt`) and with the
 header-derived ones empty. It is **not** reported as `notFound`: `Email/query`
@@ -263,16 +263,16 @@ lists it, download serves its bytes and IMAP shows it, so calling it absent
 would leave a client unable to reconcile its own view of the account.
 
 A message whose file cannot be read at all is the other condition and keeps its
-own answer — there the store cannot produce it, download answers `404` too, and
+own answer - there the store cannot produce it, download answers `404` too, and
 the methods agree that it is absent. The distinction is what keeps the three
 consistent: they disagree about how much of a message can be rendered, never
 about whether it is there.
 
 ### The message is opened only when it is needed
 
-A request naming only index-backed properties — `id`, `mailboxIds`, `keywords`,
-`size`, `receivedAt` — never opens the message. Everything else comes from the
-parsed message, so naming any of them reads it — except the envelope fields
+A request naming only index-backed properties - `id`, `mailboxIds`, `keywords`,
+`size`, `receivedAt` - never opens the message. Everything else comes from the
+parsed message, so naming any of them reads it - except the envelope fields
 listed below, which are served from the index cache once something has parsed
 them. A request naming no properties gets the full default set, which reads
 the message.
@@ -298,8 +298,8 @@ What it covers, and what it does not:
 | `references` | no |
 | `headers`, `header:*` | no |
 
-The covered set is exactly what a mailbox listing asks for — `id`, `subject`,
-`from`, `receivedAt` — which is the request a client repeats most.
+The covered set is exactly what a mailbox listing asks for - `id`, `subject`,
+`from`, `receivedAt` - which is the request a client repeats most.
 
 **A request that mixes covered and uncovered properties opens the message.**
 Serving one message's answer from two sources costs the complexity of both
@@ -309,8 +309,8 @@ served from the cache, and `subject` with `references` is parsed whole.
 **Why the cache holds a parsed envelope rather than the raw header block.**
 Raw headers would cover everything above, including `references` and
 `header:*`. The choice is asymmetric: a parsed envelope can gain a raw-header
-field later — the format carries a field table, so a new field is an
-addition — while starting from raw headers makes "parse from memory" the
+field later - the format carries a field table, so a new field is an
+addition - while starting from raw headers makes "parse from memory" the
 base semantics for both protocols, and going back to parsed values means
 migrating what is already stored. The reference caches parsed values too, and
 our format is byte-compatible with that model. Uncovered properties parse
@@ -336,7 +336,7 @@ returned body bytes  <=  jmap_max_objects_in_get x jmap_max_body_value_bytes
                      =   500 x 256K  =  128M   (at the defaults)
 ```
 
-Reading and parsing the raw messages is **not** bounded by the ceiling — that
+Reading and parsing the raw messages is **not** bounded by the ceiling - that
 cost is proportional to the messages themselves. It is the same cost an IMAP
 `FETCH BODY[]` of the same messages incurs, so no new surface appears: an
 authenticated user is reading their own mail either way. What the ceiling bounds
@@ -355,13 +355,13 @@ breaks every tie, so two runs of the same query agree and a client paging with
 **Full-text conditions are answered from the search index.** `text`, `body`,
 `subject`, `from`, `to`, `cc`, `bcc` and `header` are resolved by asking
 yarilo-fts once per mailbox in scope. Without a search service configured they
-are still refused by name — `unsupportedFilter` listing the offending
+are still refused by name - `unsupportedFilter` listing the offending
 conditions, so a client can drop exactly those and retry rather than receive a
 confidently wrong result set.
 
 A candidate the engine can only over-approximate is confirmed against the
 message before it reaches the client, the same invariant IMAP `SEARCH` holds,
-and with the same substring semantics — so the two surfaces agree on what a
+and with the same substring semantics - so the two surfaces agree on what a
 match is.
 
 ### How wide a search may go
@@ -370,8 +370,8 @@ match is.
 only the mailboxes a full-text condition would search: a query without one does
 not fan out and never sees the limit.
 
-Exceeding it is `invalidArguments` naming both numbers — the count and the
-limit — so a client knows how far to narrow `inMailbox`. The alternative,
+Exceeding it is `invalidArguments` naming both numbers - the count and the
+limit - so a client knows how far to narrow `inMailbox`. The alternative,
 searching the first 64 and answering, would return part of an account's mail in
 a shape indistinguishable from all of it.
 
@@ -392,8 +392,8 @@ Three outcomes, deliberately distinct, because a client is entitled to treat
 | The lookup failed, or a mailbox has no GUID | `serverFail` | Retry will not help. |
 
 A lagging mailbox is queued for priority indexing when `fts_search_add_missing`
-is set, and the query waits — one budget for the whole request, not one per
-mailbox — before answering `serverUnavailable`.
+is set, and the query waits - one budget for the whole request, not one per
+mailbox - before answering `serverUnavailable`.
 
 ::: warning fts_search_read_fallback does not apply here
 On IMAP that setting falls back to an exact scan when the index cannot answer.
@@ -409,7 +409,7 @@ and the filter they were found with.
 
 The search engine reports no term positions, so the highlighting is produced by
 the server: the message is read again and whole tokens whose expansion meets the
-query's are wrapped in `<mark>`. Whole tokens, never substrings — the terms are
+query's are wrapped in `<mark>`. Whole tokens, never substrings - the terms are
 stems, and marking whatever begins with one would cut unrelated words in half.
 
 The `preview` is a window around the first hit, not the head of the message: a
@@ -419,7 +419,7 @@ boundary and carries `…` at whichever end is not the message's own.
 
 Either field may be `null`, per field rather than per message: a hit in the
 subject returns a highlighted subject and a `null` preview. That is what RFC
-8621 §5.1 allows and it is the honest answer — an invented fragment would claim
+8621 §5.1 allows and it is the honest answer - an invented fragment would claim
 a match that is not in it.
 
 The fragment is escaped **before** the markup is added, so a message carrying
@@ -428,8 +428,8 @@ preview is taken from `text/plain`, or from HTML with its tags stripped;
 matching still searches every text part, since a hit may be anywhere the index
 looked.
 
-The id count is bounded by `jmap_max_objects_in_get` — every id costs a message
-read, which is the budget that key already names — and exceeding it is
+The id count is bounded by `jmap_max_objects_in_get` - every id costs a message
+read, which is the budget that key already names - and exceeding it is
 `requestTooLarge`.
 
 ### Result size
@@ -444,12 +444,12 @@ applied, which is what tells a client to page with `position`.
 
 `queryState` is a digest of everything that determines the result:
 
-- the filter and the sort — two queries with different arguments describe
+- the filter and the sort - two queries with different arguments describe
   different lists and must not share a state a client could cache one against
   the other;
-- the **composition** of the folder set in scope — creating or deleting a
+- the **composition** of the folder set in scope - creating or deleting a
   folder changes the result without moving any surviving folder's modseq;
-- each in-scope folder's `UIDVALIDITY` and `HIGHESTMODSEQ` — these move on
+- each in-scope folder's `UIDVALIDITY` and `HIGHESTMODSEQ` - these move on
   delivery, flag change and expunge.
 
 A filter naming one mailbox reads only that mailbox, so a delivery elsewhere
@@ -468,7 +468,7 @@ decoded content, so an attachment comes back as the bytes that were attached.
 
 The blob is resolved against the authenticated user's own mail **before**
 anything is opened, so a blobId belonging to somebody else is a `404` that never
-touched their file — ownership is a precondition, not a check applied to an open
+touched their file - ownership is a precondition, not a check applied to an open
 handle. Another account's blob and a nonexistent one answer identically, so the
 response confirms nothing a caller guessed.
 
@@ -565,23 +565,23 @@ A renamed mailbox keeps its id and its access rights.
 
 | Capability | RFC | State |
 |:---|:---|:---|
-| Core — session | RFC 8620 §2 | served |
-| Core — request envelope, back-references, `Core/echo` | RFC 8620 §3–§4 | served |
-| Mail — `Mailbox/get`, `Mailbox/query`, `Mailbox/set` | RFC 8621 §2 | served |
-| Mail — `Email/get` (envelope, bodies, preview) | RFC 8621 §4 | served |
-| Mail — `Email/query` (index and full-text conditions) | RFC 8621 §4.4 | served |
-| Core — blob upload and download | RFC 8620 §6 | served |
-| Mail — `Email/import` | RFC 8621 §4.8 | served |
-| Mail — `SearchSnippet/get` | RFC 8621 §5 | served |
-| Mail — `Thread/get`, `Thread/changes` | RFC 8621 §3 | served from the account's threading state; a merge is reported in `Email/changes` as well, since a client groups by the `threadId` it holds |
-| Mail — `Mailbox/changes` | RFC 8621 §2 | served |
-| Mail — `Email/changes` | RFC 8621 §4 | served |
-| Mail — `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
-| Mail — `Email/set` | RFC 8621 §4.6 | served: create, keywords, `mailboxIds`, destroy |
-| Quota — `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
-| Sieve — `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
-| Vacation — `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
-| Submission — `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured |
+| Core - session | RFC 8620 §2 | served |
+| Core - request envelope, back-references, `Core/echo` | RFC 8620 §3–§4 | served |
+| Mail - `Mailbox/get`, `Mailbox/query`, `Mailbox/set` | RFC 8621 §2 | served |
+| Mail - `Email/get` (envelope, bodies, preview) | RFC 8621 §4 | served |
+| Mail - `Email/query` (index and full-text conditions) | RFC 8621 §4.4 | served |
+| Core - blob upload and download | RFC 8620 §6 | served |
+| Mail - `Email/import` | RFC 8621 §4.8 | served |
+| Mail - `SearchSnippet/get` | RFC 8621 §5 | served |
+| Mail - `Thread/get`, `Thread/changes` | RFC 8621 §3 | served from the account's threading state; a merge is reported in `Email/changes` as well, since a client groups by the `threadId` it holds |
+| Mail - `Mailbox/changes` | RFC 8621 §2 | served |
+| Mail - `Email/changes` | RFC 8621 §4 | served |
+| Mail - `Mailbox/queryChanges`, `Email/queryChanges` | RFC 8620 §5.6 | registered; answers `cannotCalculateChanges` |
+| Mail - `Email/set` | RFC 8621 §4.6 | served: create, keywords, `mailboxIds`, destroy |
+| Quota - `Quota/get`, `Quota/changes`, `Quota/query`, `Quota/queryChanges` | RFC 9425 | served, read-only |
+| Sieve - `SieveScript/get`, `/set`, `/query`, `/validate` | RFC 9661 | served |
+| Vacation - `VacationResponse/get`, `/set` | RFC 8621 §8 | served with Sieve scripts when `sieve_vacation_enabled` is on and `sieve_extensions` allows `vacation` |
+| Submission - `Identity/get`, `/changes`, `/set`; `EmailSubmission/get`, `/changes`, `/query`, `/queryChanges`, `/set` | RFC 8621 §6–§7 | served when a relay is configured |
 | Push over EventSource | RFC 8620 §7.3 | served; see [Push](#push) |
 | JMAP over WebSocket, with push | RFC 8887 | served; see [WebSocket](#websocket) |
 | Push subscriptions (Web Push) | RFC 8620 §7.2 | not implemented |
@@ -808,13 +808,13 @@ a save is actually judged against, and `warnLimit` is the nearest configured
 `quota_warning` threshold below it.
 
 Nothing is reported when the quota engine is off, when `quota_hidden` is set, or
-when the user has no limits and `quota_ignore_unlimited` is set — the same three
+when the user has no limits and `quota_ignore_unlimited` is set - the same three
 gates IMAP `GETQUOTA` answers on. A limit nobody enforces is not announced.
 
 `used` is the same count `GETQUOTA` reports, from the same sweep of the
 account's folders: two accountings would be two answers to one question. The
-units differ because the protocols do — RFC 9208 counts kibibytes, RFC 9425
-octets — and the smoke check converts one to the other rather than tolerating a
+units differ because the protocols do - RFC 9208 counts kibibytes, RFC 9425
+octets - and the smoke check converts one to the other rather than tolerating a
 difference.
 
 ### State and changes
@@ -988,14 +988,14 @@ The checks:
    blob it names downloads as a non-empty `application/octet-stream`;
 8. a download for another account's blob is refused with `404`;
 9. a delivered message is found by a `text` condition and read back, and a
-   marker that was never delivered finds nothing — the second half is what
+   marker that was never delivered finds nothing - the second half is what
    makes the first mean the condition was applied;
 10. a round trip through a JMAP client library: a message is uploaded and
     imported, marked read, moved to a new mailbox and destroyed, and a second
     client sees each step in `Email/changes`.
 
 Check 7 needs at least one message in the account. Check 9 needs `-fts-user`,
-which states that full-text search is configured, and delivery flags —
+which states that full-text search is configured, and delivery flags -
 `-delivery-host`, `-delivery-port`, `-delivery-proto`; see
 [Testing](/operations/testing).
 

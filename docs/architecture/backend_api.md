@@ -4,7 +4,7 @@
 
 The `yarctl` CLI is a thin HTTP client over this API: every endpoint below has a `yarctl backend <family> <command>` counterpart, named under each section. See [yarctl](/operations/yarilo_admin) for the CLI itself.
 
-For the director's own admin endpoints (ring, backends, users) see [Director API](/architecture/director_api) — different binary, different port, different token.
+For the director's own admin endpoints (ring, backends, users) see [Director API](/architecture/director_api) - different binary, different port, different token.
 
 ## Transport
 
@@ -20,7 +20,7 @@ For the director's own admin endpoints (ring, backends, users) see [Director API
 | Listen | `:9105` |
 | Request body | 1 MiB |
 | Read timeout | 60 s |
-| Write timeout | 60 s — the effective cap on any single call, streaming included |
+| Write timeout | 60 s - the effective cap on any single call, streaming included |
 | Dict operation context | 30 s; 5 min for `iterate`, `expire-scan` and `commit-batch` |
 
 A streamed `iterate` therefore ends at 60 s even though its context allows 5 minutes.
@@ -89,7 +89,7 @@ one-element array. `found: false` → `values` is omitted/empty.
 
 ### `POST /api/backend/dict/{name}/iterate`
 
-Streaming endpoint. Response `Content-Type: application/x-ndjson` —
+Streaming endpoint. Response `Content-Type: application/x-ndjson` -
 one JSON object per line. A `{"error": "..."}` line MAY appear
 mid-stream when iteration fails after some rows have been emitted;
 clients MUST check every line for the `error` key.
@@ -111,11 +111,11 @@ clients MUST check every line for the `error` key.
 
 | Bit | Value | Meaning |
 |:---|:---|:---|
-| 0 | 1 | `Recurse` — descend into sub-hierarchies |
+| 0 | 1 | `Recurse` - descend into sub-hierarchies |
 | 1 | 2 | `SortByKey` |
 | 2 | 4 | `SortByValue` |
-| 3 | 8 | `NoValue` — omit values from rows |
-| 4 | 16 | `ExactKey` — return all values for one exact key (no recursion) |
+| 3 | 8 | `NoValue` - omit values from rows |
+| 4 | 16 | `ExactKey` - return all values for one exact key (no recursion) |
 
 ### `POST /api/backend/dict/{name}/set`
 
@@ -141,7 +141,7 @@ is the human-readable mirror used by the CLI.
 { "result": 1, "status": "ok" }
 ```
 
-Unsetting a missing key is not an error — `status: ok`.
+Unsetting a missing key is not an error - `status: ok`.
 
 ### `POST /api/backend/dict/{name}/atomic-inc`
 
@@ -231,7 +231,7 @@ CLI: `yarctl backend folder list <user> [--namespace NS]`
 ### `POST /api/backend/folder/info`
 
 Folder metadata. `guid` is the 16-byte rename-stable identifier
-stamped at folder creation — survives RENAME and is used as the
+stamped at folder creation - survives RENAME and is used as the
 ACL/metadata key namespace.
 
 ```json
@@ -260,7 +260,7 @@ CLI: `yarctl backend folder info <user> <folder>`
 
 ### `POST /api/backend/folder/guid`
 
-Convenience extraction of `guid` from the info payload — useful for
+Convenience extraction of `guid` from the info payload - useful for
 piping into ACL / METADATA CLIs that need the GUID directly.
 
 ```json
@@ -327,10 +327,10 @@ Response (200):
 ```
 
 When the folder is created but `special_use` registration fails,
-the response is 200 with a `special_use_error` field — the folder
+the response is 200 with a `special_use_error` field - the folder
 exists, the operator just needs to follow up to set the attr.
 
-**Authorisation:** admin path — bypasses ACL. backend-api itself is gated
+**Authorisation:** admin path - bypasses ACL. backend-api itself is gated
 by the bearer token, `allowed_nets` and, with internal TLS, mTLS; see
 [Transport](#transport).
 
@@ -341,7 +341,7 @@ CLI: `yarctl backend folder create <user> <folder> [--namespace NS] [--special-u
 Removes a folder, its index state, and any `yarilo-acl` file +
 namespace-wide list entries pointing at it. The mailbox blob
 storage handles the on-disk teardown; per-mailbox ACL cleanup is
-non-fatal — when it fails the operation still returns 200 with a
+non-fatal - when it fails the operation still returns 200 with a
 warning logged so the admin can correlate.
 
 ```json
@@ -397,7 +397,7 @@ Response (200):
 ```
 
 404 on missing folder. Per-message removal errors are logged at
-Warn and the operation continues with the next message — partial
+Warn and the operation continues with the next message - partial
 expunge is surfaced via the returned `expunged` list (count may be
 smaller than requested).
 
@@ -415,7 +415,7 @@ plus the fields named below. An entry is `{ "identifier": "bob@x.com", "rights":
 
 | Endpoint | Extra request fields | Reply |
 |:---|:---|:---|
-| `/api/backend/acl/list` | — | `{"entries": [{"mailbox", "identifier", "rights"}, …]}` |
+| `/api/backend/acl/list` | - | `{"entries": [{"mailbox", "identifier", "rights"}, …]}` |
 | `/api/backend/acl/get` | `root` | `{"folder", "acl": [entry, …]}` |
 | `/api/backend/acl/set` | `acl` (whole list), `root` | `{"status": "ok"}` |
 | `/api/backend/acl/apply` | `identifier`, `rights`, `mode`, `root` | `{"status": "ok"}` |
@@ -427,8 +427,8 @@ A change that targets the mailbox owner's own rights, or the `owner` keyword, an
 
 CLI: `yarctl backend acl {list|get|set|delete|rebuild|materialise} …`
 
-**The namespace root** — the ACL a shared namespace needs before anyone can
-create a mailbox in it — is addressed with `--root` on the CLI and
+**The namespace root** - the ACL a shared namespace needs before anyone can
+create a mailbox in it - is addressed with `--root` on the CLI and
 `"root": true` on the wire, never by omitting the folder. Folder is required
 everywhere else, so a dropped argument fails instead of becoming a grant on
 the whole namespace.
@@ -436,12 +436,12 @@ the whole namespace.
 **A named folder must exist.** `get`, `set` and `delete` answer `404 folder
 not found` for a mailbox that is not there, matching what the IMAP ACL
 commands have answered since 2.3.62. Previously a misspelt name was written
-as given, and the store created the directory on the way — a typo became a
+as given, and the store created the directory on the way - a typo became a
 mailbox with permissions and no messages. `--root` names no folder, so it is
 not affected.
 
 **`apply` changes one entry atomically.** `POST /api/backend/acl/apply`
-(`yarctl backend acl set`) modifies a single identifier — `"mode": "add" |
+(`yarctl backend acl set`) modifies a single identifier - `"mode": "add" |
 "remove" | "replace"`, default replace, empty rights with replace removes the
 entry (RFC 4314 §3.1). The read-modify-write runs on the server inside the
 folder lock, so a concurrent IMAP `SETACL` between the read and the write
@@ -455,40 +455,40 @@ genuinely mean to write the whole file.
 (`yarctl backend acl materialise <user> <folder>…`) writes what each mailbox
 inherits into its own ACL, for mailboxes created before inheritance was
 materialised at creation. It is a **dry run unless `"apply": true`**, it only
-ever adds — an entry already in the file is left exactly as it is and reported
-under `skipped` — and a second run adds nothing. It is not automatic on
+ever adds - an entry already in the file is left exactly as it is and reported
+under `skipped` - and a second run adds nothing. It is not automatic on
 purpose: a mailbox orphaned by the old rule and one whose ACL deliberately
 omits an identifier are the same file on disk. Both lists name the rights as
-well as the identifier — the operator is being asked to tell a repair from a
+well as the identifier - the operator is being asked to tell a repair from a
 widening, and bare identifiers print the two the same. The mailboxes are named
 explicitly; there is no namespace-wide sweep, so widening a whole namespace is
 not one keystroke.
 
 **`rebuild` is the exception, deliberately.** It reseeds the index from files
 already on disk, creates nothing, and is run precisely when the state is
-already inconsistent — refusing the whole batch over one stale name would
+already inconsistent - refusing the whole batch over one stale name would
 fail on the state it repairs. It reports instead: `folders` counts the
 mailboxes actually reseeded, and `skipped` lists the rest with a reason
 (`folder not found` or `no ACL`). A batch whose names are all typos answers
 `200` with an empty `rebuilt`, which is the honest answer to "reseed nothing".
 
 **`rebuild` merges; `rebuild --all` replaces.** A named folder list reseeds
-exactly those folders and leaves every other folder's index rows untouched —
+exactly those folders and leaves every other folder's index rows untouched -
 repairing one mailbox must not delete the index for the rest. Passing
 `"all": true` (CLI `--all`) instead addresses every folder in the namespace and
 *replaces* the index, which is the only form that clears rows for folders that
 no longer exist. `all` and `folders` are alternatives (`400` together), and the
 reply echoes `"all"` so the mode that ran is visible. `--all` is also the answer
-to drift the operator cannot enumerate — the drifted index was what would have
+to drift the operator cannot enumerate - the drifted index was what would have
 told them which folders to name.
 
 **`--all` includes the namespace root, and reports it separately.** The root
 carries its own ACL (`yarilo-acl-root`) and its own index rows, and it is not a
-folder — no folder listing contains it. A replace built from folders alone would
+folder - no folder listing contains it. A replace built from folders alone would
 delete the bootstrap grant a shared namespace cannot work without, so `--all`
 addresses the root explicitly. In the reply, `rebuilt` lists **folders** (and
 `folders` counts them) while the index was replaced from *all of them plus the
-root*; the root's own outcome is the `root` boolean — `false` there means the
+root*; the root's own outcome is the `root` boolean - `false` there means the
 root simply holds no ACL, never "not found", since it has no name to look up.
 A namespace with no folders is not a special case: `--all` then hands the
 replace a genuinely complete set (the root alone) and every other row is
@@ -499,16 +499,16 @@ a *failed* enumeration would be the hazard, and that answers `500` first.
 same walk and diffs it against the index: per folder, `missing` (in the file,
 not the index), `stale` (in the index, not the file) and `mismatched` (both,
 different rights), with `in_sync` summarising. Scope follows the write it
-previews — a named subset compares those folders, `--all` compares everything.
+previews - a named subset compares those folders, `--all` compares everything.
 This is the answer to "did my deployment drift, and where", which was
-otherwise answerable only by comparing `list` against `get` folder by folder —
+otherwise answerable only by comparing `list` against `get` folder by folder -
 presuming the folder list the drifted index was supposed to provide.
 
 **The namespace root is a first-class address everywhere.** `"root": true`
 works on `get`, `set`, `apply` and `delete` alike (CLI `--root` on each). On
 the request side it must be a field: after JSON decoding an absent `folder`
 and `folder: ""` are the same empty string, so the intent has no other
-spelling. On the reply side there is no such ambiguity — **an empty `mailbox`
+spelling. On the reply side there is no such ambiguity - **an empty `mailbox`
 (or `folder` in the drift report) IS the namespace root**: that is its name
 in the store, no folder can be called `""`, and this sentence is its
 definition. The root's rows are the ones that inherit to every
@@ -520,7 +520,7 @@ The owner-discovery registry: a dict in the reference's shared-boxes
 key space, synced wherever the `yarilo-acl-list` index is written. `list`
 answers "which owners may this caller discover" for the bare user plus
 `anyone` grants (group grants resolve against the session identity, which the
-admin plane does not have — the reply says so). `rebuild` reprojects one
+admin plane does not have - the reply says so). `rebuild` reprojects one
 owner's rows from their namespace index; `acl rebuild --all` does the same as
 a side effect, since the registry hangs off the index write. Both answer 400
 when `acl_sharing_map` is not configured.
@@ -544,7 +544,7 @@ Usage and limits. Limits come from the user's `quota_rule` in userdb when `backe
 
 ### `POST /api/backend/quota/recalc`
 
-Rescans every folder and rewrites the stored counters — the repair for a counter that has drifted. Body: `{ "user", "namespace" }`. Reply: `{ "user", "storage_bytes", "messages" }`. `404` when the user has no mail home yet; an unknown namespace is `400`, as on every other route.
+Rescans every folder and rewrites the stored counters - the repair for a counter that has drifted. Body: `{ "user", "namespace" }`. Reply: `{ "user", "storage_bytes", "messages" }`. `404` when the user has no mail home yet; an unknown namespace is `400`, as on every other route.
 
 ### `GET /api/backend/quota/clone/list` and `GET /api/backend/quota/clone/get?backend=NAME&user=USER`
 
@@ -557,7 +557,7 @@ CLI: `yarctl backend quota {show|recalc|clone list|clone get} …`
 
 ### `POST /api/backend/user/info`
 
-Returns what backend-api resolves locally — the username, the template-resolved home, the effective mail and INBOX paths, and every configured namespace with whether its on-disk root exists — plus the `userdb` block when `backend_api.auth_master_addr` is configured.
+Returns what backend-api resolves locally - the username, the template-resolved home, the effective mail and INBOX paths, and every configured namespace with whether its on-disk root exists - plus the `userdb` block when `backend_api.auth_master_addr` is configured.
 
 ```json
 {
@@ -650,7 +650,7 @@ Regenerates the fileindex for one folder from the on-disk storage
 (driver-specific `Scan`). The new index preserves every UID that
 the old index already knew for the same filename and assigns fresh
 UIDs (from the current `next_uid`) to filenames the index has not
-seen — so client UID caches stay valid for everything they could
+seen - so client UID caches stay valid for everything they could
 already see.
 
 Driver support:
@@ -658,7 +658,7 @@ Driver support:
 | Driver | Behaviour |
 |:---|:---|
 | `maildir` | Walks `cur/` + `new/`, parses flags + size from filename. Flags from disk win over the previous index (the filename is the source of truth for maildir). |
-| `sdbox` | Walks `u.<seq>` files, reads GUID + size + Received date from the per-file trailer. Flags are left empty in the scan — the rebuild keeps prior index flags. |
+| `sdbox` | Walks `u.<seq>` files, reads GUID + size + Received date from the per-file trailer. Flags are left empty in the scan - the rebuild keeps prior index flags. |
 | `mdbox` | Returns `501`: its storage is folder-agnostic. Use `index/rebuild-storage`. |
 
 ```json
@@ -677,7 +677,7 @@ Driver support:
 }
 ```
 
-Optional `"reset_uids": true` is rejected with `501` today —
+Optional `"reset_uids": true` is rejected with `501` today -
 nuking UIDs forces every client to full resync via UIDVALIDITY
 bump, so the v1 path is `DELETE + CREATE` via IMAP. Will land
 once the design for UIDVALIDITY semantics is locked.
@@ -716,7 +716,7 @@ CLI: `yarctl backend index rebuild-guid-store <user> [--namespace NS]`
 
 ### `POST /api/backend/index/optimize`
 
-Compacts the index log into the base index. No semantic change — records, UIDs and modseqs stay identical; only the on-disk layout shrinks. A fast no-op when the log holds only its header.
+Compacts the index log into the base index. No semantic change - records, UIDs and modseqs stay identical; only the on-disk layout shrinks. A fast no-op when the log holds only its header.
 
 ```json
 // request
@@ -740,11 +740,11 @@ the records live messages point at, and reclaims the rest. The reply carries
 
 CLI: `yarctl backend index cache-purge <user> <folder> [--namespace NS]`.
 
-> **The cache only grows on its own — purging is an operator action in v1.**
+> **The cache only grows on its own - purging is an operator action in v1.**
 > The file is append-only: every envelope or body structure a client asks for
 > is parsed once and appended, and expunging the message leaves its record
 > behind. There is no automatic trigger yet (the reference purges on
-> thresholds — deleted-record count, size); the only automatic bound is the
+> thresholds - deleted-record count, size); the only automatic bound is the
 > format's own offset ceiling, which refuses further appends rather than
 > corrupting anything, so a folder that reaches it simply stops caching until
 > purged. Run this after a large expunge, or periodically on busy folders.
@@ -752,14 +752,14 @@ CLI: `yarctl backend index cache-purge <user> <folder> [--namespace NS]`.
 > **A generation is only ever left by entering the next one.** That holds for
 > the failure paths too: an unreadable cache is dropped *and* the generation
 > moved, because stamps left in the index would otherwise apply to whatever is
-> written at those offsets next — a fully decodable record belonging to
+> written at those offsets next - a fully decodable record belonging to
 > another message, which no validity check can catch. Generations are seeded
 > from the clock rather than counted, since a rebuild reapplies the default
 > extensions and would otherwise hand back a number already used.
 >
 > **A purge is a new generation, never an edit.** Survivors are written to a
 > new file with a new `file_seq`, and the index's `cache` extension has its
-> `reset_id` moved to match in one write — which invalidates every stale
+> `reset_id` moved to match in one write - which invalidates every stale
 > offset at once, with no walk over records. Every crash point lands on a
 > state readers already treat as "no cache, rebuild lazily", so an interrupted
 > purge costs a reparse, never a wrong answer. It takes the same per-mailbox
@@ -793,7 +793,7 @@ CLI: `yarctl backend mailbox message get {mime|raw} <user> <folder> {--uid N | -
 ## Subscriptions endpoints
 
 Per-user IMAP SUBSCRIBE state. Reuses
-`internal/userstate/subs.Store` — same on-disk format (sorted folder
+`internal/userstate/subs.Store` - same on-disk format (sorted folder
 names, tmp+rename atomicity) and the same `locks.SubscriptionsKey`
 as IMAP, so concurrent sessions see admin writes immediately.
 
@@ -816,12 +816,12 @@ Those rows were written into the **owner's** store, and every one names a mailbo
 in the owner's own space, so folding restores the owner's subscriptions exactly;
 the owner also inherits any a peer created, all pointing at mailboxes they
 already see. Authorship was never recorded, so a peer's subscription cannot be
-returned to the peer — peers re-subscribe themselves. Deleting the file instead
+returned to the peer - peers re-subscribe themselves. Deleting the file instead
 would have removed the owner's own subscriptions silently.
 
 Idempotent: the sources are removed only after every row is in the destination,
 so a failure leaves the run repeatable, and a second run finds nothing. Both
-historical names are read — the current one and the older path form.
+historical names are read - the current one and the older path form.
 
 Reply: `sources` (files read), `folded` (keys added), `already` (keys the
 destination held).
@@ -831,10 +831,10 @@ CLI: `yarctl backend subscriptions migrate <user> --namespace NS [--apply]`
 ## SpecialUse endpoints
 
 Per-user RFC 6154 special-use overrides. Reuses
-`internal/userstate/specialuse.Store` — same on-disk format and
+`internal/userstate/specialuse.Store` - same on-disk format and
 the same lock key as IMAP `CREATE (USE ...)`.
 
-Only the personal namespace carries special-use — RFC 6154
+Only the personal namespace carries special-use - RFC 6154
 `\Sent` / `\Drafts` / etc. do not extend to shared or public.
 
 | Endpoint | Request | Response |
@@ -886,7 +886,7 @@ CLI: `yarctl backend metadata {list|get|set|delete} <user> [<folder>] --entry /p
 
 ### `POST /api/backend/who`
 
-Active-session listing. Data source is `yarilo-warden` — backend-api dials it per request, runs `WHO`, then closes.
+Active-session listing. Data source is `yarilo-warden` - backend-api dials it per request, runs `WHO`, then closes.
 
 ```json
 // request (all fields optional)
@@ -932,7 +932,7 @@ breakdown dimension.
 // response
 { "total": 1, "service": "imap", "user": "alice@x.com" }
 
-// request — breakdown by protocol
+// request - breakdown by protocol
 { "by": "protocol" }
 
 // response
@@ -941,7 +941,7 @@ breakdown dimension.
   "by_protocol": { "imap": 3, "pop3": 1, "submission": 1 }
 }
 
-// request — breakdown by user
+// request - breakdown by user
 { "by": "user" }
 
 // response

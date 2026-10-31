@@ -27,9 +27,9 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 `spamtest` / `spamtestplus` / `virustest` (RFC 5235) are backed by a configured status header (see `sieve_spamtest_status_header` / `sieve_virustest_status_header` below); with no header configured the tests report "not scanned".
 
-`imapsieve` (RFC 6785) runs Sieve scripts on **IMAP events** — message `APPEND`, `COPY`/`MOVE`, and flag change (`STORE`) — not just LMTP delivery. A script is bound to a mailbox through the IMAP METADATA annotation `/shared/imapsieve/script` (`SETMETADATA "<mailbox>" (/shared/imapsieve/script "<name>")`), or server-wide under INBOX; the value names a script in `imapsieve_script_dir`. Admin `imapsieve_global_before` / `imapsieve_global_after` scripts wrap the bound one. Bound scripts live in `imapsieve_script_dir`; in the Helm chart, set `sieve.imapsieve_scripts` (a `name: content` map) and a ConfigMap is rendered and mounted read-only at `imapsieve_script_dir` in the IMAP pods. Scripts require `["imapsieve", "environment"]` and branch on the event via `environment "imap.cause"` (`APPEND` / `COPY` / `FLAG`); the RFC 6785 items `imap.mailbox`, `imap.email`, `imap.user`, `imap.changedflags` and the vendor `vnd.yarilo.mailbox-from` / `vnd.yarilo.mailbox-to` (COPY source/destination) are also available. Enable it with `imapsieve_enabled`; all three causes — `APPEND`, `COPY` and `FLAG` — are wired.
+`imapsieve` (RFC 6785) runs Sieve scripts on **IMAP events** - message `APPEND`, `COPY`/`MOVE`, and flag change (`STORE`) - not just LMTP delivery. A script is bound to a mailbox through the IMAP METADATA annotation `/shared/imapsieve/script` (`SETMETADATA "<mailbox>" (/shared/imapsieve/script "<name>")`), or server-wide under INBOX; the value names a script in `imapsieve_script_dir`. Admin `imapsieve_global_before` / `imapsieve_global_after` scripts wrap the bound one. Bound scripts live in `imapsieve_script_dir`; in the Helm chart, set `sieve.imapsieve_scripts` (a `name: content` map) and a ConfigMap is rendered and mounted read-only at `imapsieve_script_dir` in the IMAP pods. Scripts require `["imapsieve", "environment"]` and branch on the event via `environment "imap.cause"` (`APPEND` / `COPY` / `FLAG`); the RFC 6785 items `imap.mailbox`, `imap.email`, `imap.user`, `imap.changedflags` and the vendor `vnd.yarilo.mailbox-from` / `vnd.yarilo.mailbox-to` (COPY source/destination) are also available. Enable it with `imapsieve_enabled`; all three causes - `APPEND`, `COPY` and `FLAG` - are wired.
 
-`mboxmetadata` / `servermetadata` (RFC 5490 §4) expose IMAP METADATA (RFC 5464) annotations to scripts: `metadata "<mailbox>" "<entry>" "<value>"` / `metadataexists "<mailbox>" "<entry>"...` read per-mailbox annotations, and `servermetadata "<entry>" "<value>"` / `servermetadataexists "<entry>"...` read server-scoped ones. Entry names are the wire-format `/private/…` or `/shared/…` paths; values come from the same dict the IMAP `GETMETADATA`/`SETMETADATA` commands use, so a script sees exactly what a client set. Delivery-time lookups are scoped to the recipient's personal namespace. `extlists` is **not** advertised yet — its backing data source is not wired.
+`mboxmetadata` / `servermetadata` (RFC 5490 §4) expose IMAP METADATA (RFC 5464) annotations to scripts: `metadata "<mailbox>" "<entry>" "<value>"` / `metadataexists "<mailbox>" "<entry>"...` read per-mailbox annotations, and `servermetadata "<entry>" "<value>"` / `servermetadataexists "<entry>"...` read server-scoped ones. Entry names are the wire-format `/private/…` or `/shared/…` paths; values come from the same dict the IMAP `GETMETADATA`/`SETMETADATA` commands use, so a script sees exactly what a client set. Delivery-time lookups are scoped to the recipient's personal namespace. `extlists` is **not** advertised yet - its backing data source is not wired.
 
 ## Configuration
 
@@ -145,8 +145,8 @@ A failed run delivers the message to INBOX (implicit keep) and logs why.
 
 When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
 
-- **`redirect`** — forwards the original message verbatim to the redirect address, preserving the original envelope-from (RFC 5228 §4.2).
-- **`vacation`** — sends an RFC 5230 auto-reply to the original sender with a null envelope-from (`<>`) to prevent mail loops.
+- **`redirect`** - forwards the original message verbatim to the redirect address, preserving the original envelope-from (RFC 5228 §4.2).
+- **`vacation`** - sends an RFC 5230 auto-reply to the original sender with a null envelope-from (`<>`) to prevent mail loops.
 
 ### Vacation replies
 
@@ -182,12 +182,12 @@ Vacation replies are skipped when:
 The `duplicate` test records tracking IDs with the action's TTL. The backend is
 chosen by **`sieve_duplicate_driver`**:
 
-- **`file`** (default) — a per-user file in the home directory (name:
+- **`file`** (default) - a per-user file in the home directory (name:
   `sieve_duplicate_file`, default `.yarilo.sieve-duplicate`). The whole
   check-and-record runs under the per-home Sieve lock, so it is atomic; on
   shared storage the file is **cross-pod**.
-- **`memory`** — per-process; single-node / dev only.
-- **`redis`** — the dict named `sieve_duplicate` in `dicts:` (also cross-pod),
+- **`memory`** - per-process; single-node / dev only.
+- **`redis`** - the dict named `sieve_duplicate` in `dicts:` (also cross-pod),
   keyed by `priv/<user>/sieve/duplicate/<handle>/<sha256(id)>`.
 
 Defaults follow RFC 7352: the tracking id is the `Message-ID` header (absent →
@@ -198,7 +198,7 @@ clamped; `0` = no limit).
 
 ### Notifications (RFC 5435 `enotify`)
 
-The `enotify` extension (RFC 5435) allows scripts to send notifications via an external method URI. Yarilo supports the `mailto:` method — the notification is sent as an email via the same `sieve_submission_host` as redirect and vacation.
+The `enotify` extension (RFC 5435) allows scripts to send notifications via an external method URI. Yarilo supports the `mailto:` method - the notification is sent as an email via the same `sieve_submission_host` as redirect and vacation.
 
 ```sieve
 require ["enotify"];
@@ -290,7 +290,7 @@ Exposed as `vnd.yarilo.config.tenant` and `vnd.yarilo.config.region`.
 
 ### `vnd.yarilo.pipe`
 
-Feeds the full RFC 5322 message to an external program. The program receives no output — exit code determines success. Useful for archiving, indexing, or side-effect triggering.
+Feeds the full RFC 5322 message to an external program. The program receives no output - exit code determines success. Useful for archiving, indexing, or side-effect triggering.
 
 ```sieve
 require ["vnd.yarilo.pipe"];
@@ -298,8 +298,8 @@ pipe "archive-mail" ["--folder" "inbox"];
 ```
 
 **Program resolution** (tried in order):
-1. Unix socket `<sieve_pipe_socket_dir>/<name>` — if the path is a socket file, yarilo connects and writes the message; socket output is discarded.
-2. Executable `<sieve_pipe_bin_dir>/<name>` — launched as a subprocess.
+1. Unix socket `<sieve_pipe_socket_dir>/<name>` - if the path is a socket file, yarilo connects and writes the message; socket output is discarded.
+2. Executable `<sieve_pipe_bin_dir>/<name>` - launched as a subprocess.
 
 World-writable executables are refused.
 
@@ -345,7 +345,7 @@ Runs a program with optional stdin and makes its stdout available to the script.
 ```sieve
 require ["vnd.yarilo.execute", "variables"];
 if execute :input "check" "quota-check" [] {
-    # exit 0 — quota OK
+    # exit 0 - quota OK
 } else {
     reject "Quota exceeded";
 }

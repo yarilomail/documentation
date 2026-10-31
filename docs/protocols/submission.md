@@ -4,8 +4,8 @@ Yarilo runs two submission listeners. MX inbound (port 25) is handled by an exte
 
 | Service key | Port | Role |
 |:---|:---|:---|
-| `submission` | `587` | Outbound submission — AUTH required, STARTTLS. |
-| `submissions` | `465` | Outbound submission — AUTH required, implicit TLS. |
+| `submission` | `587` | Outbound submission - AUTH required, STARTTLS. |
+| `submissions` | `465` | Outbound submission - AUTH required, implicit TLS. |
 
 See [Services configuration](/architecture/services) for listener-level settings (`port`, `ssl_mode`, `haproxy_protocol`, `auth_allow_cleartext`).
 
@@ -101,4 +101,4 @@ A relay inside the cluster usually holds a certificate from an internal CA. To v
 2.4.3 and earlier delivered a reply a step behind after AUTH through the login, so a client could not send through Submission.
 :::
 
-The pre-beta short names — `host`, `port`, `user`, `password`, `ssl`, `ssl_verify`, `trusted`, `connect_timeout`, `command_timeout` — are still accepted.
+The pre-beta short names - `host`, `port`, `user`, `password`, `ssl`, `ssl_verify`, `trusted`, `connect_timeout`, `command_timeout` - are still accepted.

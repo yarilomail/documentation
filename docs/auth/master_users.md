@@ -1,7 +1,7 @@
 # Master users
 
 A master user is an administrative identity allowed to log into another
-user's mailbox with its own password — the target's password is never
+user's mailbox with its own password - the target's password is never
 involved. Typical uses: mailbox migrations, support access, automated
 per-user maintenance.
 
@@ -32,7 +32,7 @@ auth:
 `masterdb` is a dedicated passdb chain for master credentials, with the same drivers and fields as `auth.passdb` (`sql`, `passwd-file`, …).
 
 Grants come from either of two places: a hit in `masterdb`, or a true
-`master_user` field (`master_user=yes`) on an ordinary passdb answer — a
+`master_user` field (`master_user=yes`) on an ordinary passdb answer - a
 column alias in `passdb_sql_query`, a bare key in a passwd-file line. A user
 found in neither is refused as a master regardless of its password.
 
@@ -71,7 +71,7 @@ names the target, the second the master:
 AUTHENTICATE PLAIN base64(target \0 master \0 master-password)
 ```
 
-**Separator form** — for clients that cannot send an authzid (older Outlook,
+**Separator form** - for clients that cannot send an authzid (older Outlook,
 some mobile MUAs, and POP3's `USER`/`PASS`, which has no authzid at all):
 
 ```
@@ -80,7 +80,7 @@ USER target*master        (POP3)
 ```
 
 Both resolve to the same thing: the session authenticates with the master's
-credentials and then acts entirely as the target — the director routes by the
+credentials and then acts entirely as the target - the director routes by the
 target, connection accounting counts the target, and an administrative kick
 for the target finds the session.
 
@@ -93,7 +93,7 @@ authzid whenever the client can send it.
 
 ## Isolation
 
-A master session sees exactly the target's mailbox — the master has no
+A master session sees exactly the target's mailbox - the master has no
 mailbox of its own. Writes land in the target's state: a flag set by the
 master is visible to the target's own next login.
 
