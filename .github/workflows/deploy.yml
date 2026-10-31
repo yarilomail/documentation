@@ -23,6 +23,7 @@ jobs:
     outputs:
       latest: ${{ steps.register.outputs.latest }}
       artifact_id: ${{ steps.pages.outputs.artifact_id }}
+      published: ${{ steps.publish.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,6 +68,7 @@ jobs:
           cp -R .vitepress/dist site/latest
       - run: node scripts/site-root.mjs root site
       - name: Commit the published site
+        id: publish
         # Build output: one orphan commit, so the fetch stays small.
         run: |
           cd site
@@ -76,6 +78,7 @@ jobs:
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
               commit -qm "Publish $DOCS_VERSION from ${GITHUB_SHA::7}"
           git push -f origin HEAD:gh-pages
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/configure-pages@v5
       - id: pages
         uses: actions/upload-pages-artifact@v3
@@ -89,13 +92,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Pages keeps the first deployment of a version, and a release tag sits on the
-      # commit main already deployed: each run deploys under a version of its own.
+      # Pages keeps the first deployment of a commit, and a release tag sits on the one main
+      # already deployed; the version must be a commit, so it is the one this run published.
       - id: deployment
         env:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
-          VERSION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          VERSION: ${{ needs.build.outputs.published }}
         run: |
           auth() { printf 'Authorization: Bearer %s\n' "$1"; }
           api() {
@@ -108,7 +111,8 @@ jobs:
           export OIDC_TOKEN
           DEPLOYMENT=$(jq -nc --argjson a "$ARTIFACT_ID" \
             '{artifact_id: $a, pages_build_version: env.VERSION, oidc_token: env.OIDC_TOKEN}' |
-            api -X POST --data @- "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages/deployments")
+            api -X POST --data @- "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages/deployments") ||
+            { echo "::error::Pages deployment $VERSION not created: $DEPLOYMENT"; exit 1; }
           ID=$(jq -er .id <<<"$DEPLOYMENT")
           echo "page_url=$(jq -er .page_url <<<"$DEPLOYMENT")" >> "$GITHUB_OUTPUT"
           for _ in $(seq 120); do
