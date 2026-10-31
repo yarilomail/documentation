@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       latest: ${{ steps.register.outputs.latest }}
+      artifact_id: ${{ steps.pages.outputs.artifact_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,7 +77,8 @@ jobs:
               commit -qm "Publish $DOCS_VERSION from ${GITHUB_SHA::7}"
           git push -f origin HEAD:gh-pages
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - id: pages
+        uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
@@ -87,8 +89,38 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Pages keeps the first deployment of a version, and a release tag sits on the
+      # commit main already deployed: each run deploys under a version of its own.
       - id: deployment
-        uses: actions/deploy-pages@v4
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+          VERSION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          auth() { printf 'Authorization: Bearer %s\n' "$1"; }
+          api() {
+            curl -sS --fail-with-body -H @<(auth "$GH_TOKEN") \
+              -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "$@"
+          }
+          OIDC_TOKEN=$(curl -sS --fail -H @<(auth "$ACTIONS_ID_TOKEN_REQUEST_TOKEN") \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -er .value)
+          echo "::add-mask::$OIDC_TOKEN"
+          export OIDC_TOKEN
+          DEPLOYMENT=$(jq -nc --argjson a "$ARTIFACT_ID" \
+            '{artifact_id: $a, pages_build_version: env.VERSION, oidc_token: env.OIDC_TOKEN}' |
+            api -X POST --data @- "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages/deployments")
+          ID=$(jq -er .id <<<"$DEPLOYMENT")
+          echo "page_url=$(jq -er .page_url <<<"$DEPLOYMENT")" >> "$GITHUB_OUTPUT"
+          for _ in $(seq 120); do
+            STATUS=$(api "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages/deployments/$ID" | jq -r .status)
+            case "$STATUS" in
+              succeed) echo "Deployed $VERSION"; exit 0 ;;
+              deployment_failed|deployment_perms_error|deployment_content_failed|deployment_cancelled|deployment_lost)
+                echo "::error::Pages deployment $VERSION: $STATUS"; exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "::error::Pages deployment $VERSION still $STATUS after 10 minutes"; exit 1
 
   indexnow:
     needs: [build, deploy]
