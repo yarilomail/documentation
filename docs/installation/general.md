@@ -163,6 +163,26 @@ The IMAP, POP3, Submission and JMAP keys are listed with their protocols; LMTP a
 
 <!-- @settings protocol.lmtp.mail_max_userip_connections protocol.managesieve.mail_max_userip_connections -->
 
+### Per address and per user {#connection-limits-per-user}
+
+Two limits hold one user's connections, both counted for each protocol apart:
+
+| Limit | Counts | Set by | Guards against |
+|:---|:---|:---|:---|
+| `mail_max_userip_connections` | the user's connections from one IP | `general.limits`, `protocol.<name>`, or the user's userdb field | one client opening too many connections |
+| `mail_max_user_connections` | the user's connections from every IP together | the user's userdb field only | one account used from many places at once, such as a leaked password |
+
+A connection is refused as soon as either is reached. With
+`mail_max_userip_connections=10` and `mail_max_user_connections=15` in a
+user's userdb, that user may hold at most 10 IMAP connections from one
+address, and at most 15 from all addresses together, even when each address
+holds fewer than 10.
+
+A userdb `mail_max_userip_connections` replaces the configured limit for that
+user; `0` lifts it. Without a `mail_max_user_connections` field the user is
+not capped across addresses. See
+[Userdb / passdb extra fields](/auth/#userdb-passdb-extra-fields).
+
 ::: warning Upgrading
 Before 2.4.6 one limit covered every protocol together. A client may now hold
 up to the limit on each protocol, so the total from one address can be
