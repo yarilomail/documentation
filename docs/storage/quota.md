@@ -49,6 +49,10 @@ value is computed from the mailbox index.
    only, no enforcement** (the reference's `imap_quota` plugin registers only the
    commands). Toggle it independently of the engine - you can enforce without
    advertising the extension, or advertise it without enforcing.
+   A `QUOTA` response lists `STORAGE` and `MESSAGE` only when the user has a
+   limit for them: a user without limits gets the root with an empty list,
+   `* QUOTA "User quota" ()`, the accounts JMAP `Quota/get` lists nothing for.
+   A limit of `0` would tell a client the mailbox is full.
 
 In the chart the engine is off by default (`quota.enabled: false`) and the extension on
 (`protocol.imap.imap_quota: true`).
