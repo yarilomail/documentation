@@ -1,13 +1,13 @@
 ---
-description: "One-host YariloMail install: login proxies on the mail ports, a session backend per protocol on loopback, auth, warden and locks over Unix sockets, each process as its own account, run by systemd."
+description: "One-host YariloMail install: login proxies on the mail ports, a session backend per protocol on loopback, auth, warden, locks and dict over Unix sockets, users and metadata in SQLite, MySQL or PostgreSQL, each process as its own account."
 ---
 
 # One host
 
 Every process on the host reads the same file. The login proxies take the mail
 ports and terminate TLS, and a session backend per protocol serves the mail
-behind them on loopback. `yarilo-auth`, `yarilo-warden` and `yarilo-locks` are
-reached over Unix sockets.
+behind them on loopback. `yarilo-auth`, `yarilo-warden`, `yarilo-locks` and
+`yarilo-dict` are reached over Unix sockets.
 
 Each process runs as an account that holds only what it needs. The units,
 users and directories for systemd are in the repository's
@@ -27,6 +27,7 @@ Single-host, not highly available. For HA or multi-node, use
 | `yarilo-locks` | `yarilo` | `/run/yarilo/locks/locks.sock` |
 | `yarilo-auth` | `yarilo-auth` | `/run/yarilo/auth/auth-client.sock`, `/run/yarilo/auth/auth-master.sock` |
 | `yarilo-warden` | `yarilo-auth` | `/run/yarilo/auth/warden.sock` |
+| `yarilo-dict` | `yarilo` | `/run/yarilo/dict/dict.sock` |
 | `yarilo-imap`, `-pop3`, `-submission`, `-lmtp`, `-managesieve` | `yarilo` | `127.0.0.1:10143`, `10110`, `10587`, `10024`, `14190` |
 | `yarilo-imap-login` | `yarilo-login` | `993`, `143` |
 | `yarilo-pop3-login` | `yarilo-login` | `995`, `110` |
@@ -34,8 +35,8 @@ Single-host, not highly available. For HA or multi-node, use
 | `yarilo-managesieve-login` | `yarilo-login` | `4190` |
 | `yarilo-lmtp-login` | `yarilo-delivery` | `127.0.0.1:24`, for the local MTA |
 
-Start `yarilo-locks`, `yarilo-auth` and `yarilo-warden` first, then the
-backends, then the login proxies. Every process reads the file named by
+Start `yarilo-locks` first, then `yarilo-auth`, `yarilo-warden` and
+`yarilo-dict`, then the backends, then the login proxies. Every process reads the file named by
 `CONFIG`, `/etc/yarilo/yarilo.yaml` when it is unset.
 
 Each process also serves health and metrics on `telemetry.listen`, `:8080` by
@@ -48,7 +49,7 @@ process; it is not a key in the file.
 
 | Account | Groups | Holds |
 |:---|:---|:---|
-| `yarilo` | `yarilo-auth`, `yarilo-master` | the mail in `/var/mail/vhosts`, the state in `/var/lib/yarilo/state`, the lock socket |
+| `yarilo` | `yarilo-auth`, `yarilo-master` | the mail in `/var/mail/vhosts`, the state in `/var/lib/yarilo/state`, the lock and dict sockets |
 | `yarilo-auth` | `yarilo-master` | the user database in `/var/lib/yarilo/auth`; owns the auth and warden sockets |
 | `yarilo-login` | `yarilo-auth` | the TLS key; reaches the auth client and warden sockets only |
 | `yarilo-delivery` | `yarilo-auth`, `yarilo-master` | nothing on disk; reaches the master socket to deliver |
@@ -65,6 +66,59 @@ user.
 The login proxies bind ports below 1024 without root: the systemd units give
 them `CAP_NET_BIND_SERVICE` and nothing else, and every other unit has no
 capabilities at all.
+
+## Databases
+
+Two databases sit behind the mail, each opened by one process:
+
+| Database | Opened by | Default | Keys |
+|:---|:---|:---|:---|
+| Users and passwords | `yarilo-auth` | SQLite, `/var/lib/yarilo/auth/users.db` | [`auth.passdb`](/auth/) |
+| IMAP METADATA and the Sieve metadata extensions | `yarilo-dict` | SQLite, `/var/lib/yarilo/state/metadata.db` | [`dicts.metadata`](/storage/dict), driver `sql` |
+
+Either can be MySQL or PostgreSQL instead, on this host or another; the
+drivers are built in, so this is a change to the file only. The sessions
+never open the metadata database: they reach `yarilo-dict` on its socket and
+name the dict.
+
+The file is readable by every yarilo process, so a database password does not
+go in it. The DSN names a variable, and the service manager sets it for that
+one process from a file only root reads:
+
+```yaml
+auth:
+  passdb:
+    - driver: postgres
+      dsn: "postgres://yarilo:${YARILO_AUTH_DB_PASSWORD}@127.0.0.1:5432/yarilo?sslmode=disable"
+dicts:
+  metadata:
+    driver: sql
+    settings:
+      driver: mysql
+      dsn: "yarilo:${YARILO_DICT_DB_PASSWORD}@tcp(127.0.0.1:3306)/yarilo"
+      namespace: metadata
+```
+
+| Password | File | Seen by |
+|:---|:---|:---|
+| `YARILO_AUTH_DB_PASSWORD` | `/etc/yarilo/auth.env` | `yarilo-auth` |
+| `YARILO_DICT_DB_PASSWORD` | `/etc/yarilo/dict.env` | `yarilo-dict` |
+
+Each file holds `NAME=value` lines, owned by root with mode `0600`:
+
+```sh
+install -o root -m 0600 /dev/null /etc/yarilo/auth.env
+echo 'YARILO_AUTH_DB_PASSWORD=...' >> /etc/yarilo/auth.env
+```
+
+systemd loads it with `EnvironmentFile` in that unit alone. On FreeBSD rc.d
+reads `/usr/local/etc/yarilo/auth.env` and `dict.env` as root for that
+component alone, and a file not owned by root with mode `0600` stops that
+component's start. With SQLite there is no password and no file.
+
+For the SQLite user database, see
+[Creating the first user](/installation/docker_compose#creating-the-first-user)
+for the table, and keep the file `0600` and owned by `yarilo-auth`.
 
 ## Running with systemd
 
@@ -97,13 +151,13 @@ install -o root -g root -m 0644 cert.pem /etc/yarilo/tls/cert.pem
 systemctl enable --now yarilo.target
 ```
 
-This starts the processes in order: each of `yarilo-locks`, `yarilo-auth` and
-`yarilo-warden` counts as started once its socket exists, so the units after
-it do not race it.
+This starts the processes in order: each of `yarilo-locks`, `yarilo-auth`,
+`yarilo-warden` and `yarilo-dict` counts as started once its socket exists, so
+the units after it do not race it.
 
 - `systemctl restart yarilo-imap` restarts one component.
 - `systemctl stop yarilo.target` stops them in reverse order.
-- `yarilo-dict`, `yarilo-jmap`, `yarilo-jmap-login`, `yarilo-quota-status`,
+- `yarilo-jmap`, `yarilo-jmap-login`, `yarilo-quota-status`,
   `yarilo-sasl-login` and `yarilo-backend-api` join the target with
   `systemctl enable`.
 - Logs go to the journal: `journalctl -u 'yarilo-*'`.
@@ -113,10 +167,6 @@ the data and the accounts. Purging it removes the configuration and the state
 in `/var/lib/yarilo`, but never the mail or the certificates: while
 `/var/mail/vhosts` or `/etc/yarilo/tls` holds anything, it stays, and so do the
 accounts that own it.
-
-The user database is SQLite in `/var/lib/yarilo/auth/users.db`; see
-[Creating the first user](/installation/docker_compose#creating-the-first-user)
-for the table, and keep the file `0600` and owned by `yarilo-auth`.
 
 ## Running on FreeBSD
 
@@ -172,20 +222,20 @@ service yarilo start
 ```
 
 The script starts the processes in the order of `yarilo_components` and stops
-them in reverse. It waits for the lock, auth and warden sockets before it
-starts what follows them.
+them in reverse. It waits for the lock, auth, warden and dict sockets before
+it starts what follows them.
 
 | rc.conf variable | Default |
 |:---|:---|
 | `yarilo_enable` | `NO` |
 | `yarilo_config` | `/usr/local/etc/yarilo/yarilo.yaml` |
-| `yarilo_components` | `locks auth warden imap pop3 lmtp submission managesieve imap-login pop3-login lmtp-login submission-login managesieve-login` |
+| `yarilo_components` | `locks auth warden dict imap pop3 lmtp submission managesieve imap-login pop3-login lmtp-login submission-login managesieve-login` |
 | `yarilo_log_level` | `info` |
 | `yarilo_stop_timeout` | `60` seconds |
 
 - `service yarilo restart imap` restarts one component, and `service yarilo
   status` lists each.
-- `dict`, `fts`, `jmap`, `jmap-login`, `quota-status`, `sasl-login` and
+- `fts`, `jmap`, `jmap-login`, `quota-status`, `sasl-login` and
   `backend-api` join the set when added to `yarilo_components`.
 - Each component gets a fixed telemetry port on loopback, from
   `127.0.0.1:18080` for `locks` to `18099` for `backend-api`, whatever the
@@ -216,7 +266,8 @@ are members of the `yarilo-auth` group.
 | Certificate and key | `/etc/yarilo/tls` | `/usr/local/etc/yarilo/tls` |
 | Sockets | `/run/yarilo` | `/var/run/yarilo` |
 | User database | `/var/lib/yarilo/auth` | `/var/db/yarilo/auth` |
-| State | `/var/lib/yarilo/state` | `/var/db/yarilo/state` |
+| State, metadata database | `/var/lib/yarilo/state` | `/var/db/yarilo/state` |
+| Database passwords | `/etc/yarilo/auth.env`, `dict.env` | `/usr/local/etc/yarilo/auth.env`, `dict.env` |
 | Mail | `/var/mail/vhosts` | `/var/mail/vhosts` |
 | Logs | the journal | `/var/log/yarilo` |
 
@@ -321,6 +372,11 @@ services:
     enabled: true
     port: 4190
     ssl_mode: starttls
+  jmap_login:
+    enabled: true
+    port: 8443
+    ssl_mode: ssl
+    auth_allow_cleartext: false
 
   ## The session backends, behind the proxies; an empty address is 127.0.0.1.
   imap:
@@ -348,6 +404,11 @@ services:
     port: 14190
     ssl_mode: "no"
     xclient_protocol: true
+  jmap:
+    enabled: true
+    port: 10443
+    ssl_mode: "no"
+    xclient_protocol: true
 
 imap_login_service:
   backend_addr: 127.0.0.1:10143
@@ -359,6 +420,11 @@ lmtp_login_service:
   backend_addr: 127.0.0.1:10024
 managesieve_login_service:
   backend_addr: 127.0.0.1:14190
+## WebSocket push needs websocket_ticket_key, a secret of your own.
+jmap_login_service:
+  backend_addr: 127.0.0.1:10443
+jmap_service:
+  auth_master_addr: unix:/run/yarilo/auth/auth-master.sock
 
 auth_service:
   listen: unix:/run/yarilo/auth/auth-client.sock
@@ -384,10 +450,21 @@ locks_client:
   mode: embedded
   socket: /run/yarilo/locks/locks.sock
 
+## yarilo-dict opens the dict databases; the sessions reach it over this socket.
+dict_service:
+  dict_listen: unix:/run/yarilo/dict/dict.sock
+  dict_addr: unix:/run/yarilo/dict/dict.sock
+  socket_group: yarilo
+
+## SQLite, or MySQL or PostgreSQL with the password in /etc/yarilo/auth.env.
 auth:
   passdb:
     - driver: sqlite
       dsn: /var/lib/yarilo/auth/users.db
+    # - driver: mysql
+    #   dsn: "yarilo:${YARILO_AUTH_DB_PASSWORD}@tcp(127.0.0.1:3306)/yarilo"
+    # - driver: postgres
+    #   dsn: "postgres://yarilo:${YARILO_AUTH_DB_PASSWORD}@127.0.0.1:5432/yarilo?sslmode=disable"
 
 storage:
   mail_driver: maildir
@@ -397,6 +474,8 @@ storage:
 
 ## Submission and Sieve send through the local MTA.
 protocol:
+  jmap:
+    jmap_base_url: "https://mail.example.org:8443"
   submission:
     relay:
       submission_relay_host: 127.0.0.1
@@ -406,11 +485,14 @@ sieve:
   sieve_scripts_driver: fs
   sieve_submission_host: 127.0.0.1:25
 
+## SQLite, or MySQL or PostgreSQL with the password in /etc/yarilo/dict.env.
 dicts:
   metadata:
-    driver: file
+    driver: sql
     settings:
-      path: /var/lib/yarilo/state/metadata.dict
+      driver: sqlite
+      dsn: /var/lib/yarilo/state/metadata.db
+      namespace: metadata
 ```
 
 The shipped file lists every Sieve extension except `vnd.yarilo.execute`,
