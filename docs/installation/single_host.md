@@ -138,8 +138,8 @@ alone.
 
 The port is developed in
 [yarilomail/freebsd-ports](https://github.com/yarilomail/freebsd-ports)
-before it goes into the ports tree. It builds the 2.4.5 tag with a patch for
-the FreeBSD file-time helpers, which 2.4.6 makes unnecessary. Once the port is
+before it goes into the ports tree. It builds the 2.4.6 release, the first
+that runs on FreeBSD with these accounts and the peer check. Once the port is
 accepted into the tree, this step becomes `pkg install yarilo`.
 
 Add the port's accounts to the ports tree, copy the port in and build it:
