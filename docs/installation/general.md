@@ -74,10 +74,16 @@ general:
     ssl_server_alt_cert_file: /etc/ssl/yarilo/ecdsa.pem   # optional
     ssl_server_alt_key_file:  /etc/ssl/yarilo/ecdsa.key
     ssl_min_protocol: TLS1.2
-    ssl_prefer_server_ciphers: false
 ```
 
 `${ENV_VAR}` substitution is supported in all path values - no secrets in config files.
+
+### Removed in 2.4.6
+
+`ssl_prefer_server_ciphers`, and its older name `prefer_server_ciphers`, in
+`general.ssl` or in a listener's own `ssl:`, stops the start. Go's TLS picks
+the cipher suite itself and has no switch for the server's order, so the
+setting cannot be honoured. Delete the line.
 
 ---
 

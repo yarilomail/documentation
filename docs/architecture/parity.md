@@ -137,3 +137,10 @@ converting it.
 
 Where a row above says **no**, a configuration that relies on that feature has
 no equivalent here yet, and the linked issue is the honest state of the plan.
+
+One TLS setting of the reference has no equivalent and never will:
+`ssl_prefer_server_ciphers`. Go's TLS chooses the cipher suite itself and offers
+no switch between the server's order and the client's, so yarilo refuses the
+key at start rather than accept a setting it cannot honour. A migrated
+configuration drops the line; see
+[`general.ssl`](/installation/general#removed-in-2-4-6).

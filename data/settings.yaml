@@ -59,13 +59,6 @@ general.ssl.ssl_min_protocol:
   description: |
     Minimum TLS version a client may negotiate.
 
-general.ssl.ssl_prefer_server_ciphers:
-  type: boolean
-  default: false
-  aliases: [prefer_server_ciphers]
-  description: |
-    Use the server's cipher-suite preference order instead of the client's.
-
 general.haproxy.timeout:
   type: integer
   unit: seconds
