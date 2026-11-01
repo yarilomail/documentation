@@ -11,7 +11,9 @@ reached over Unix sockets.
 
 Each process runs as an account that holds only what it needs. The units,
 users and directories for systemd are in the repository's
-[`deploy/systemd`](https://github.com/yarilomail/yarilo/tree/main/deploy/systemd).
+[`deploy/systemd`](https://github.com/yarilomail/yarilo/tree/main/deploy/systemd);
+FreeBSD runs the same set from a port, see
+[Running on FreeBSD](#running-on-freebsd).
 
 ::: warning
 Single-host, not highly available. For HA or multi-node, use
@@ -115,6 +117,152 @@ accounts that own it.
 The user database is SQLite in `/var/lib/yarilo/auth/users.db`; see
 [Creating the first user](/installation/docker_compose#creating-the-first-user)
 for the table, and keep the file `0600` and owned by `yarilo-auth`.
+
+## Running on FreeBSD
+
+The FreeBSD port `mail/yarilo` runs the same processes under the same accounts,
+started by an rc.d script instead of units.
+
+### Platforms
+
+FreeBSD is fully supported. `yarilo-auth` reads the peer's uid on the master
+socket, so the check against `auth_service.master_session_users` holds as it
+does on Linux.
+
+NetBSD and OpenBSD build, and the gate runs `go vet` for both, but the
+service has not been run end to end on either. Neither gives the peer's
+credentials on a Unix socket, so there the master socket rests on its group
+alone.
+
+### Installing from the port
+
+The port is developed in
+[yarilomail/freebsd-ports](https://github.com/yarilomail/freebsd-ports)
+before it goes into the ports tree. It builds the 2.4.6 release, the first
+that runs on FreeBSD with these accounts and the peer check. Once the port is
+accepted into the tree, this step becomes `pkg install yarilo`.
+
+Add the port's accounts to the ports tree, copy the port in and build it:
+
+```sh
+git clone https://github.com/yarilomail/freebsd-ports.git
+cat freebsd-ports/UIDs.add >> /usr/ports/UIDs
+cat freebsd-ports/GIDs.add >> /usr/ports/GIDs
+cp -R freebsd-ports/mail/yarilo /usr/ports/mail/
+cd /usr/ports/mail/yarilo && make install clean
+```
+
+- `FTS`, on by default, builds `yarilo-fts` on Xapian.
+- `REDIS` pulls in Redis for state shared across hosts.
+- `make config` changes either before the build.
+
+Installing creates the accounts and the directories, and starts nothing.
+
+### Starting and stopping
+
+Start from the sample configuration, put the certificate and key in place and
+enable the service:
+
+```sh
+cp /usr/local/etc/yarilo/yarilo.yaml.sample /usr/local/etc/yarilo/yarilo.yaml
+install -o root -g yarilo-login -m 0640 key.pem /usr/local/etc/yarilo/tls/key.pem
+install -o root -g wheel -m 0644 cert.pem /usr/local/etc/yarilo/tls/cert.pem
+sysrc yarilo_enable=YES
+service yarilo start
+```
+
+The script starts the processes in the order of `yarilo_components` and stops
+them in reverse. It waits for the lock, auth and warden sockets before it
+starts what follows them.
+
+| rc.conf variable | Default |
+|:---|:---|
+| `yarilo_enable` | `NO` |
+| `yarilo_config` | `/usr/local/etc/yarilo/yarilo.yaml` |
+| `yarilo_components` | `locks auth warden imap pop3 lmtp submission managesieve imap-login pop3-login lmtp-login submission-login managesieve-login` |
+| `yarilo_log_level` | `info` |
+| `yarilo_stop_timeout` | `60` seconds |
+
+- `service yarilo restart imap` restarts one component, and `service yarilo
+  status` lists each.
+- `dict`, `fts`, `jmap`, `jmap-login`, `quota-status`, `sasl-login` and
+  `backend-api` join the set when added to `yarilo_components`.
+- Each component gets a fixed telemetry port on loopback, from
+  `127.0.0.1:18080` for `locks` to `18099` for `backend-api`, whatever the
+  list holds.
+
+### Accounts on FreeBSD
+
+The accounts are the ones in [Accounts](#accounts), with fixed ids from the
+port:
+
+| Account | UID | GID |
+|:---|:---|:---|
+| `yarilo` | 803 | 803 |
+| `yarilo-auth` | 804 | 804 |
+| `yarilo-login` | 805 | 805 |
+| `yarilo-delivery` | 809 | 809 |
+
+`yarilo-master` is a group alone, GID 810, with `yarilo`, `yarilo-delivery`
+and `yarilo-auth` as members. `yarilo`, `yarilo-login` and `yarilo-delivery`
+are members of the `yarilo-auth` group.
+
+### Paths
+
+| | Linux | FreeBSD |
+|:---|:---|:---|
+| Binaries | `/usr/libexec/yarilo` | `/usr/local/libexec/yarilo` |
+| Configuration | `/etc/yarilo/yarilo.yaml` | `/usr/local/etc/yarilo/yarilo.yaml` |
+| Certificate and key | `/etc/yarilo/tls` | `/usr/local/etc/yarilo/tls` |
+| Sockets | `/run/yarilo` | `/var/run/yarilo` |
+| User database | `/var/lib/yarilo/auth` | `/var/db/yarilo/auth` |
+| State | `/var/lib/yarilo/state` | `/var/db/yarilo/state` |
+| Mail | `/var/mail/vhosts` | `/var/mail/vhosts` |
+| Logs | the journal | `/var/log/yarilo` |
+
+### Ports below 1024
+
+FreeBSD has no per-process capability for low ports. The login proxies bind
+them as `yarilo-login` and `yarilo-delivery` through mac_portacl(4), and
+nothing runs as root.
+
+Load the module and grant each account its ports:
+
+```sh
+sysrc -f /boot/loader.conf mac_portacl_load=YES
+kldload mac_portacl
+cat >> /etc/sysctl.conf <<'CONF'
+net.inet.ip.portrange.reservedhigh=0
+security.mac.portacl.suser_exempt=1
+security.mac.portacl.rules=uid:809:tcp:24,uid:805:tcp:110,uid:805:tcp:143,uid:805:tcp:465,uid:805:tcp:587,uid:805:tcp:993,uid:805:tcp:995
+CONF
+service sysctl restart
+```
+
+This sequence:
+
+- hands the decision on ports below 1024 to mac_portacl, with root still
+  allowed every port;
+- lets `yarilo-delivery` (809) bind 24, and `yarilo-login` (805) bind 110,
+  143, 465, 587, 993 and 995.
+
+Without the rules, `service yarilo start` names the missing piece and does not
+start the login proxy.
+
+### Logs
+
+Each process writes `/var/log/yarilo/<component>.log`. newsyslog rotates them
+daily and keeps seven, from `/usr/local/etc/newsyslog.conf.d/yarilo.conf`, and
+`service yarilo reopen` makes the processes write to the new files.
+
+### Delivery from Postfix
+
+`yarilo-lmtp-login` takes local delivery on `127.0.0.1:24`. Point Postfix at
+it:
+
+```sh
+postconf -e virtual_transport=lmtp:inet:127.0.0.1:24
+```
 
 ## The file
 
