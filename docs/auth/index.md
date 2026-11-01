@@ -505,8 +505,8 @@ the stamped one left in place. Both are logged.
 
 | Field | Meaning |
 |:---|:---|
-| `mail_max_userip_connections` | Max concurrent connections per user+IP. |
-| `mail_max_user_connections` | Max concurrent connections per user. |
+| `mail_max_userip_connections` | This user's connections per IP for each protocol, in place of the configured limit; `0` lifts it. |
+| `mail_max_user_connections` | This user's connections of each protocol from every IP together; `0` or no field, no cap. |
 
 **Misc**
 
