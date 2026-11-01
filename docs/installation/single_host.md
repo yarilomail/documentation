@@ -1,13 +1,17 @@
 ---
-description: "One-host YariloMail install from a single yarilo.yaml: login proxies on the mail ports, the yarilo binary behind them, auth, warden and locks over Unix sockets."
+description: "One-host YariloMail install: login proxies on the mail ports, a session backend per protocol on loopback, auth, warden and locks over Unix sockets, each process as its own account, run by systemd."
 ---
 
 # One host
 
 Every process on the host reads the same file. The login proxies take the mail
-ports and terminate TLS; the single `yarilo` binary serves the sessions behind
-them on loopback; `yarilo-auth`, `yarilo-warden` and `yarilo-locks` are reached
-over Unix sockets.
+ports and terminate TLS, and a session backend per protocol serves the mail
+behind them on loopback. `yarilo-auth`, `yarilo-warden` and `yarilo-locks` are
+reached over Unix sockets.
+
+Each process runs as an account that holds only what it needs. The units,
+users and directories for systemd are in the repository's
+[`deploy/systemd`](https://github.com/yarilomail/yarilo/tree/main/deploy/systemd).
 
 ::: warning
 Single-host, not highly available. For HA or multi-node, use
@@ -16,128 +20,262 @@ Single-host, not highly available. For HA or multi-node, use
 
 ## Processes
 
-| Process | Listens on |
-|:---|:---|
-| `yarilo-locks` | `/run/yarilo/locks.sock` |
-| `yarilo-auth` | `/run/yarilo/auth.sock`, `/run/yarilo/auth-master.sock` |
-| `yarilo-warden` | `/run/yarilo/warden.sock` |
-| `yarilo` | `127.0.0.1:10143`, `127.0.0.1:10587`, `127.0.0.1:10024` |
-| `yarilo-imap-login` | `993`, `143` |
-| `yarilo-submission-login` | `465`, `587` |
-| `yarilo-lmtp-login` | `127.0.0.1:24`, for the local MTA |
+| Process | Account | Listens on |
+|:---|:---|:---|
+| `yarilo-locks` | `yarilo` | `/run/yarilo/locks/locks.sock` |
+| `yarilo-auth` | `yarilo-auth` | `/run/yarilo/auth/auth-client.sock`, `/run/yarilo/auth/auth-master.sock` |
+| `yarilo-warden` | `yarilo-auth` | `/run/yarilo/auth/warden.sock` |
+| `yarilo-imap`, `-pop3`, `-submission`, `-lmtp`, `-managesieve` | `yarilo` | `127.0.0.1:10143`, `10110`, `10587`, `10024`, `14190` |
+| `yarilo-imap-login` | `yarilo-login` | `993`, `143` |
+| `yarilo-pop3-login` | `yarilo-login` | `995`, `110` |
+| `yarilo-submission-login` | `yarilo-login` | `465`, `587` |
+| `yarilo-managesieve-login` | `yarilo-login` | `4190` |
+| `yarilo-lmtp-login` | `yarilo-delivery` | `127.0.0.1:24`, for the local MTA |
 
-Start `yarilo-locks`, `yarilo-auth` and `yarilo-warden` first. Every process
-reads the file named by `CONFIG`, `/etc/yarilo/yarilo.yaml` when it is unset.
+Start `yarilo-locks`, `yarilo-auth` and `yarilo-warden` first, then the
+backends, then the login proxies. Every process reads the file named by
+`CONFIG`, `/etc/yarilo/yarilo.yaml` when it is unset.
 
 Each process also serves health and metrics on `telemetry.listen`, `:8080` by
 default, so on one host every process gets its own port from
-`TELEMETRY_LISTEN`, for example `127.0.0.1:8081` for `yarilo-locks`,
-`127.0.0.1:8082` for `yarilo-auth`, and so on. The service manager sets it per
+`TELEMETRY_LISTEN`. The units give `yarilo-locks` `127.0.0.1:18080`,
+`yarilo-auth` `127.0.0.1:18081`, and so on. The service manager sets it per
 process; it is not a key in the file.
 
-`/run/yarilo` belongs to the service user, with the `yarilo` group that the
-sockets are given; the service manager creates it before the first process
-starts.
+## Accounts
+
+| Account | Groups | Holds |
+|:---|:---|:---|
+| `yarilo` | `yarilo-auth`, `yarilo-master` | the mail in `/var/mail/vhosts`, the state in `/var/lib/yarilo/state`, the lock socket |
+| `yarilo-auth` | `yarilo-master` | the user database in `/var/lib/yarilo/auth`; owns the auth and warden sockets |
+| `yarilo-login` | `yarilo-auth` | the TLS key; reaches the auth client and warden sockets only |
+| `yarilo-delivery` | `yarilo-auth`, `yarilo-master` | nothing on disk; reaches the master socket to deliver |
+
+The auth master socket answers user lookups and issues sessions without a
+password, which is how `yarilo-lmtp-login` delivers. It belongs to the
+`yarilo-master` group, which the client login proxies are not in. On a socket,
+`yarilo-auth` also checks the peer's uid and issues a session only to the
+users in
+[`auth_service.master_session_users`](/architecture/services#auth_service.master_session_users).
+A compromised login proxy reaches neither the mail nor a session for another
+user.
+
+The login proxies bind ports below 1024 without root: the systemd units give
+them `CAP_NET_BIND_SERVICE` and nothing else, and every other unit has no
+capabilities at all.
+
+## Running with systemd
+
+`deploy/systemd` holds:
+
+- one unit per component and `yarilo.target`, which wants the processes above;
+- `sysusers.d/yarilo.conf`, the four accounts and their groups;
+- `tmpfiles.d/yarilo.conf`, the socket, state and mail directories with their
+  owners;
+- `yarilo.yaml`, the configuration on this page.
+
+Build a `.deb` from a checkout:
+
+```sh
+./hack/package/deb.sh
+```
+
+This builds the binaries into `dist/bin` and writes
+`dist/yarilo_<version>_amd64.deb`, which installs the binaries in
+`/usr/libexec/yarilo`, the units and the sample configuration. Installing it
+creates the accounts and directories and starts nothing.
+
+Install the package, put the certificate and key in `/etc/yarilo/tls`, and
+start the target:
+
+```sh
+apt install ./dist/yarilo_*_amd64.deb
+install -o root -g yarilo-login -m 0640 key.pem /etc/yarilo/tls/key.pem
+install -o root -g root -m 0644 cert.pem /etc/yarilo/tls/cert.pem
+systemctl enable --now yarilo.target
+```
+
+This starts the processes in order: each of `yarilo-locks`, `yarilo-auth` and
+`yarilo-warden` counts as started once its socket exists, so the units after
+it do not race it.
+
+- `systemctl restart yarilo-imap` restarts one component.
+- `systemctl stop yarilo.target` stops them in reverse order.
+- `yarilo-dict`, `yarilo-jmap`, `yarilo-jmap-login`, `yarilo-quota-status`,
+  `yarilo-sasl-login` and `yarilo-backend-api` join the target with
+  `systemctl enable`.
+- Logs go to the journal: `journalctl -u 'yarilo-*'`.
+
+Removing the package stops and disables the units and keeps the configuration,
+the data and the accounts. Purging it removes the configuration and the state
+in `/var/lib/yarilo`, but never the mail or the certificates: while
+`/var/mail/vhosts` or `/etc/yarilo/tls` holds anything, it stays, and so do the
+accounts that own it.
+
+The user database is SQLite in `/var/lib/yarilo/auth/users.db`; see
+[Creating the first user](/installation/docker_compose#creating-the-first-user)
+for the table, and keep the file `0600` and owned by `yarilo-auth`.
 
 ## The file
 
+The configuration the package installs as `/etc/yarilo/yarilo.yaml`, without
+its Sieve extension list:
+
 ```yaml
 ## /etc/yarilo/yarilo.yaml for one host; every process reads this file.
-hostname: mail.example.org
-
 general:
   ssl:
     ssl_server_cert_file: /etc/yarilo/tls/cert.pem
     ssl_server_key_file: /etc/yarilo/tls/key.pem
+    ssl_min_protocol: TLS1.2
+  xclient:
+    trusted_nets: ["127.0.0.1/32"]
+
+## The sockets carry no TLS: their permissions and the peer check are the boundary.
+internal_tls:
+  enabled: false
 
 services:
-  ## yarilo-imap-login
-  imaps_login:
-    enabled: true
-    port: 993
-    ssl_mode: ssl
+  ## The login proxies, on the mail ports.
   imap_login:
     enabled: true
     port: 143
     ssl_mode: starttls
-    auth_allow_cleartext: false
-  ## yarilo-submission-login
-  submissions_login:
+  imaps_login:
     enabled: true
-    port: 465
+    port: 993
+    ssl_mode: ssl
+  pop3_login:
+    enabled: true
+    port: 110
+    ssl_mode: starttls
+  pop3s_login:
+    enabled: true
+    port: 995
     ssl_mode: ssl
   submission_login:
     enabled: true
     port: 587
     ssl_mode: starttls
     auth_allow_cleartext: false
+  submissions_login:
+    enabled: true
+    port: 465
+    ssl_mode: ssl
+    auth_allow_cleartext: false
   ## yarilo-lmtp-login takes mail from the local MTA without a login.
   lmtp_login:
     enabled: true
-    address: 127.0.0.1
     port: 24
+    address: 127.0.0.1
     ssl_mode: "no"
-  ## The yarilo binary, behind the proxies; an empty address is 127.0.0.1.
+  managesieve_login:
+    enabled: true
+    port: 4190
+    ssl_mode: starttls
+
+  ## The session backends, behind the proxies; an empty address is 127.0.0.1.
   imap:
     enabled: true
     port: 10143
     ssl_mode: "no"
+    xclient_protocol: true
+  pop3:
+    enabled: true
+    port: 10110
+    ssl_mode: "no"
+    xclient_protocol: true
   submission:
     enabled: true
     port: 10587
     ssl_mode: "no"
+    xclient_protocol: true
   lmtp:
     enabled: true
     port: 10024
     ssl_mode: "no"
+    xclient_protocol: true
+  managesieve:
+    enabled: true
+    port: 14190
+    ssl_mode: "no"
+    xclient_protocol: true
 
 imap_login_service:
   backend_addr: 127.0.0.1:10143
+pop3_login_service:
+  backend_addr: 127.0.0.1:10110
 submission_login_service:
   backend_addr: 127.0.0.1:10587
 lmtp_login_service:
   backend_addr: 127.0.0.1:10024
+managesieve_login_service:
+  backend_addr: 127.0.0.1:14190
+
+auth_service:
+  listen: unix:/run/yarilo/auth/auth-client.sock
+  addr: unix:/run/yarilo/auth/auth-client.sock
+  master_listen: unix:/run/yarilo/auth/auth-master.sock
+  master_addr: unix:/run/yarilo/auth/auth-master.sock
+  socket_group: yarilo-auth
+  ## The backends and yarilo-delivery reach it; only yarilo-delivery issues sessions.
+  master_socket_group: yarilo-master
+  master_session_users: [yarilo-delivery]
+
+warden_service:
+  listen: unix:/run/yarilo/auth/warden.sock
+  addr: unix:/run/yarilo/auth/warden.sock
+  socket_group: yarilo-auth
+
+## One host: lock state in memory, on a socket only yarilo reaches.
+locks_service:
+  mode: embedded
+  socket: /run/yarilo/locks/locks.sock
+  socket_group: yarilo
+locks_client:
+  mode: embedded
+  socket: /run/yarilo/locks/locks.sock
 
 auth:
   passdb:
     - driver: sqlite
-      dsn: /var/lib/yarilo/users.db
-  penalty:
-    enabled: true
+      dsn: /var/lib/yarilo/auth/users.db
 
 storage:
   mail_driver: maildir
   maildir_root: /var/mail/vhosts
   mail_home: "%d/%u"
+  index: fileindex
 
-## The sockets carry no TLS: their permissions are the boundary.
-internal_tls:
-  enabled: false
+## Submission and Sieve send through the local MTA.
+protocol:
+  submission:
+    relay:
+      submission_relay_host: 127.0.0.1
+      submission_relay_port: 25
+sieve:
+  sieve_enabled: true
+  sieve_scripts_driver: fs
+  sieve_submission_host: 127.0.0.1:25
 
-auth_service:
-  listen: unix:/run/yarilo/auth.sock
-  socket_group: yarilo
-  ## The master listener answers userdb lookups without a password.
-  master_listen: unix:/run/yarilo/auth-master.sock
-  master_addr: unix:/run/yarilo/auth-master.sock
-  master_socket_mode: "0600"
-
-warden_service:
-  listen: unix:/run/yarilo/warden.sock
-  socket_group: yarilo
-
-locks_service:
-  mode: embedded
-  socket: /run/yarilo/locks.sock
-  socket_group: yarilo
-
-locks_client:
-  mode: embedded
-  socket: /run/yarilo/locks.sock
+dicts:
+  metadata:
+    driver: file
+    settings:
+      path: /var/lib/yarilo/state/metadata.dict
 ```
 
-The MTA delivers to `127.0.0.1:24` (`lmtp_login`) and authenticates its users,
-if it does, through `yarilo-sasl-login`, which is not in this file; see
+The shipped file lists every Sieve extension except `vnd.yarilo.execute`,
+`vnd.yarilo.pipe` and `vnd.yarilo.filter`, which run programs as the `yarilo`
+account; add them only with program directories you trust.
+
+The MTA delivers to `127.0.0.1:24` (`lmtp_login`). For Postfix:
+
+```sh
+postconf -e virtual_transport=lmtp:inet:127.0.0.1:24
+```
+
+It authenticates its users, if it does, through `yarilo-sasl-login`; see
 [Docker Compose](/installation/docker_compose) for the MTA side.
 
 See [Services](/architecture/services) for the listener keys and the Unix

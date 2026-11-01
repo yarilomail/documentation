@@ -2960,6 +2960,21 @@ auth_service.master_socket_group:
     Group name of a `unix:/path` master listener; empty keeps the process's
     group.
 
+auth_service.master_session_users:
+  type: list
+  default: [yarilo-delivery]
+  helm: components.auth.master_session_users
+  added: 2.4.6
+  description: |
+    Users, by name or numeric uid, whose processes may issue a session on a
+    `unix:/path` master listener: the master listener issues one for any
+    user without a password, which is how `yarilo-lmtp-login` delivers.
+    Every other peer gets `FAIL`, and so does a peer whose uid cannot be
+    read; an empty list lets none. An unknown name stops the start, and so
+    does an OS that gives no peer credentials on a Unix socket (NetBSD,
+    OpenBSD). Over TCP the internal TLS roles decide and this list is not
+    read.
+
 warden_service.addr:
   type: string
   default: ""

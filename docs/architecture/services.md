@@ -95,8 +95,12 @@ instead: a listen or dial address written `unix:/path` is a socket, and
 - `internal_tls` does not apply to a socket, on either side: its permissions
   are the boundary. With `internal_tls` on, the process logs that once per
   address.
+- The master listener issues sessions without a password. On a socket,
+  `yarilo-auth` reads the peer's uid from the kernel and issues one only to
+  the users in `auth_service.master_session_users`, so a login proxy that
+  can reach the socket still cannot issue itself a session.
 
-<!-- @settings auth_service.addr auth_service.master_listen auth_service.master_addr auth_service.socket_mode auth_service.socket_group auth_service.master_socket_mode auth_service.master_socket_group warden_service.addr warden_service.socket_mode warden_service.socket_group -->
+<!-- @settings auth_service.addr auth_service.master_listen auth_service.master_addr auth_service.socket_mode auth_service.socket_group auth_service.master_socket_mode auth_service.master_socket_group auth_service.master_session_users warden_service.addr warden_service.socket_mode warden_service.socket_group -->
 
 ---
 
