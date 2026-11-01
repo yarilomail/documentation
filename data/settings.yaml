@@ -89,9 +89,70 @@ general.limits.mail_max_userip_connections:
   type: integer
   default: 10
   description: |
-    Simultaneous connections per user and IP pair, counted across all IMAP and
-    POP3 listeners. `0` is unlimited. A userdb field of the same name overrides
-    it per user.
+    Simultaneous connections per user and IP pair, counted for each protocol
+    apart: a client may hold this many IMAP connections and as many JMAP ones.
+    A protocol's own `mail_max_userip_connections` overrides it, and a userdb
+    field of the same name overrides both for one user. `0` is unlimited.
+
+protocol.imap.mail_max_userip_connections:
+  type: integer
+  default_text: "`general.limits.mail_max_userip_connections`"
+  helm: protocol.imap.mail_max_userip_connections
+  added: 2.4.6
+  description: |
+    IMAP connections per user and IP pair, counted apart from the other
+    protocols. Unset takes `general.limits.mail_max_userip_connections`; `0`
+    is unlimited.
+
+protocol.pop3.mail_max_userip_connections:
+  type: integer
+  default_text: "`general.limits.mail_max_userip_connections`"
+  helm: protocol.pop3.mail_max_userip_connections
+  added: 2.4.6
+  description: |
+    POP3 connections per user and IP pair, counted apart from the other
+    protocols. Unset takes `general.limits.mail_max_userip_connections`; `0`
+    is unlimited.
+
+protocol.submission.mail_max_userip_connections:
+  type: integer
+  default_text: "`general.limits.mail_max_userip_connections`"
+  helm: protocol.submission.mail_max_userip_connections
+  added: 2.4.6
+  description: |
+    Submission connections per user and IP pair, counted apart from the other
+    protocols. Unset takes `general.limits.mail_max_userip_connections`; `0`
+    is unlimited.
+
+protocol.lmtp.mail_max_userip_connections:
+  type: integer
+  default_text: "`general.limits.mail_max_userip_connections`"
+  helm: protocol.lmtp.mail_max_userip_connections
+  added: 2.4.6
+  description: |
+    LMTP connections per user and IP pair, counted apart from the other
+    protocols. Unset takes `general.limits.mail_max_userip_connections`; `0`
+    is unlimited.
+
+protocol.managesieve.mail_max_userip_connections:
+  type: integer
+  default_text: "`general.limits.mail_max_userip_connections`"
+  helm: protocol.managesieve.mail_max_userip_connections
+  added: 2.4.6
+  description: |
+    ManageSieve connections per user and IP pair, counted apart from the other
+    protocols. Unset takes `general.limits.mail_max_userip_connections`; `0`
+    is unlimited.
+
+protocol.jmap.mail_max_userip_connections:
+  type: integer
+  default_text: "`general.limits.mail_max_userip_connections`"
+  helm: protocol.jmap.mail_max_userip_connections
+  added: 2.4.6
+  description: |
+    JMAP connections per user and IP pair, counted apart from the other
+    protocols. Unset takes `general.limits.mail_max_userip_connections`; `0`
+    is unlimited.
 
 general.startup_dial_retries:
   type: integer
