@@ -102,14 +102,24 @@ Builds the threading sidecar for accounts that already have mail. Threading is
 recorded **at delivery time**, so messages that arrived before the feature was
 enabled are in no conversation until this runs.
 
-There is deliberately **no lazy path**: an account is migrated by a command an
-operator runs, not on first read. A lazy rebuild would spread an
-account-sized fold across arbitrary requests and make "is this account
-migrated" unanswerable.
+An account is **migrated** by a command an operator runs, not on first read: a
+lazy rebuild would spread an account-sized fold across arbitrary requests and
+make "is this account migrated" unanswerable. A read never starts a sidecar.
 
-`--force` rebuilds a sidecar that already exists. Without it, an account that
-has one is skipped, so a rerun over a live deployment does not rewrite state
-the deliveries have been extending.
+Once an account has one, a single message can still miss it: a delivery or an
+`APPEND` that waits longer than its limit for the account's threading lock
+stores the message and logs `message saved but not threaded`. The next read
+that meets the message records it: `FETCH THREADID` and JMAP `Email/get` read
+its headers, take the lock for at most a second and add it to its
+conversation, up to 64 messages per read. A read that cannot take the lock
+answers as before (`NIL`, or the message's own id) and the next one tries
+again. The counters `yarilo_threads_save_not_recorded_total` and
+`yarilo_threads_recorded_on_read_total` show both sides.
+
+Without `--force`, a rerun on an account that has a sidecar adds the messages
+it has no record of, in the rebuild's order, and leaves every existing record
+as the deliveries made it; the summary reports them as `added`. `--force`
+rebuilds the sidecar from scratch.
 
 The store is addressed exactly as for `--guid-backfill`: `--config`, or
 `--driver` and `--root` together when there is none, with `--home-template`,
@@ -127,8 +137,9 @@ returns one message per thread, `FETCH THREADID` answers `NIL`, and JMAP's
 messages have conversations - which is the shape to expect, not a defect.
 
 **Effect:** writes the sidecar `threads` in the account's control root -
-`mail_control_path` when it is set, the home otherwise. Reads message headers
-only.
+`mail_control_path` when it is set, the home otherwise, or adds to it. Reads
+message headers only, and on a supplementing rerun only those of the messages
+the sidecar lacks.
 
 ## Two whole stories
 
