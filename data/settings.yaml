@@ -91,8 +91,8 @@ general.limits.mail_max_userip_connections:
   description: |
     Simultaneous connections per user and IP pair, counted for each protocol
     apart: a client may hold this many IMAP connections and as many JMAP ones.
-    A protocol's own `mail_max_userip_connections` overrides it. `0` is
-    unlimited.
+    A protocol's own `mail_max_userip_connections` overrides it, and a userdb
+    field of the same name overrides both for one user. `0` is unlimited.
 
 protocol.imap.mail_max_userip_connections:
   type: integer
