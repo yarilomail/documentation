@@ -106,6 +106,11 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | FTS: Solr, Elasticsearch | no | the engine is pluggable, no other engine is implemented |
 | Language handling, stemming | yes | per-language filters, tokeniser knobs |
 
+A search string with a part shorter than `fts_flatcurve_min_term_size` stays a
+substring match here: the index never holds that part, so it is left to a scan
+of the candidates, where the reference misses the message or returns its
+neighbours.
+
 ## Quota
 
 | Feature | yarilo | Notes |
