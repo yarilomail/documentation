@@ -82,8 +82,8 @@ rule.
 
 ### Unix sockets
 
-On one host, `yarilo-auth` and `yarilo-warden` can listen on Unix sockets
-instead: a listen or dial address written `unix:/path` is a socket, and
+On one host, `yarilo-auth`, `yarilo-warden` and `yarilo-dict` can listen on
+Unix sockets instead: a listen or dial address written `unix:/path` is a socket, and
 `yarilo-locks` in embedded mode uses one already.
 
 - The socket gets its mode and group after the bind, so the umask does not

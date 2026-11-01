@@ -45,7 +45,8 @@ one backing service through different prefixes/namespaces.
 ## The dict service
 
 `yarilo-dict` opens the `redis` and `sql` dicts and serves them over internal
-mTLS; the session processes link no engine and reach it by name. The `file`
+mTLS, or on one host over a Unix socket (see
+[Unix sockets](/architecture/services#unix-sockets)); the session processes link no engine and reach it by name. The `file`
 driver is the exception: the process that uses it opens it itself (see
 [file](#file)).
 
