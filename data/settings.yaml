@@ -1189,7 +1189,10 @@ sieve.sieve_report_user_agent:
 
 director_service.listen:
   type: string
-  default: ":9102"
+  default: "127.0.0.1:9102"
+  changed:
+    - version: 2.4.6
+      text: The default was `:9102`, every interface.
   helm: components.director.directorPort
   description: |
     Address for `LOOKUP` from the login pods and for the ring protocol between
@@ -1197,7 +1200,10 @@ director_service.listen:
 
 director_service.api.listen:
   type: string
-  default: ":9103"
+  default: "127.0.0.1:9103"
+  changed:
+    - version: 2.4.6
+      text: The default was `:9103`, every interface.
   helm: components.director.api.port
   see_also: [director_service.api.allowed_nets]
   description: |
@@ -2459,7 +2465,10 @@ quota.quota_hidden:
 
 quota_status.listen:
   type: string
-  default: ":12340"
+  default: "127.0.0.1:12340"
+  changed:
+    - version: 2.4.6
+      text: The default was `:12340`, every interface.
   description: |
     Policy listener. The chart sets it from
     `components.quotaStatus.containerPort`.
@@ -2560,6 +2569,20 @@ services.*.enabled:
   default: false
   description: |
     Start this listener on startup.
+
+services.*.address:
+  type: string
+  default_text: "`127.0.0.1` on a session backend; every interface on a login proxy and on `yarilo`"
+  added: 2.4.6
+  see_also: [services.*.port]
+  description: |
+    Host the listener binds. Empty leaves it to the process that binds it:
+    a session backend behind a login proxy (`yarilo-imap`, `yarilo-pop3`,
+    `yarilo-lmtp`, `yarilo-submission`, `yarilo-managesieve`, `yarilo-jmap`)
+    binds `127.0.0.1`, and a login proxy or the single `yarilo` binary binds
+    every interface. Each listener logs the address it bound and whether it
+    came from this key or from the role. The Helm chart and the compose
+    example set `0.0.0.0`, every interface.
 
 services.*.port:
   type: integer
@@ -2799,3 +2822,55 @@ components.director.api.allowed_nets:
   default: []
   description: |
     Allowed client CIDRs. Empty allows every address.
+
+auth_service.listen:
+  type: string
+  default: "127.0.0.1:9100"
+  helm: components.auth.listen
+  changed:
+    - version: 2.4.6
+      text: The default was `:9100`, every interface.
+  description: |
+    Client-protocol listener of `yarilo-auth`, where the login proxies check
+    passwords.
+
+warden_service.listen:
+  type: string
+  default: "127.0.0.1:9101"
+  helm: components.warden.service.listen
+  changed:
+    - version: 2.4.6
+      text: The default was `:9101`, every interface.
+  description: |
+    Listener of `yarilo-warden`, the per-IP authentication penalty service.
+
+backend_api.listen:
+  type: string
+  default: "127.0.0.1:9105"
+  helm: components.backendAPI.listen
+  changed:
+    - version: 2.4.6
+      text: The default was `:9105`, every interface. An empty value now refuses startup.
+  description: |
+    Listener of `yarilo-backend-api`, the per-account admin API that
+    `yarctl backend` talks to.
+
+fts.fts_listen:
+  type: string
+  default: "127.0.0.1:9106"
+  helm: fts.fts_listen
+  changed:
+    - version: 2.4.6
+      text: The default was `:9106`, every interface. An empty value now refuses startup.
+  description: |
+    Listener of `yarilo-fts`, which the backends call to index and search.
+
+sasl_login.listen:
+  type: string
+  default: "127.0.0.1:12345"
+  changed:
+    - version: 2.4.6
+      text: The default was `:12345`, every interface. An empty value now refuses startup.
+  description: |
+    Listener a fronting MTA names in `smtpd_sasl_path`. The chart sets it from
+    `components.saslLogin.containerPort`.

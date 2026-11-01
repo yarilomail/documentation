@@ -43,6 +43,22 @@ Two more listeners are internal, on the backend behind their login proxy, and pl
 
 ---
 
+## Internal services
+
+Outside k8s, the internal services listen on `127.0.0.1` unless the config
+names an address, and so does a session backend whose `address` is empty.
+A host install that reaches any of them from another host sets the address
+explicitly. The Helm chart sets every one of them, so a release listens as
+before. The director's ring and API
+([`director_service.listen`](/architecture/director#director_service.listen)) and
+the quota policy service
+([`quota_status.listen`](/storage/quota#quota_status.listen)) follow the same
+rule.
+
+<!-- @settings auth_service.listen warden_service.listen backend_api.listen fts.fts_listen sasl_login.listen -->
+
+---
+
 ## Examples
 
 ### Minimal: IMAPS only
