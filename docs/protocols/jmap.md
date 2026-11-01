@@ -961,7 +961,7 @@ A refusal by the relay that is final (5xx) answers `forbiddenToSend` with the re
 
 ### Limits
 
-Sending over JMAP is held to the same per-user-and-address connection limit as every protocol: `yarilo-jmap-login` counts each connection against `mail_max_userip_connections`, as `yarilo-submission-login` does for SMTP.
+Sending over JMAP is held to a per-user-and-address connection limit like every protocol: `yarilo-jmap-login` counts each connection against JMAP's own `mail_max_userip_connections`, apart from the other protocols, as `yarilo-submission-login` does for SMTP.
 
 ---
 

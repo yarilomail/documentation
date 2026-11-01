@@ -86,6 +86,7 @@ Version: **2.4.x line** (stable), from 2.4.1. Last reviewed 2026-10-04.
 | Password schemes | partial | `PLAIN`, `CLEARTEXT`, `CRYPT`, `BCRYPT`/`BLF-CRYPT`, `SHA512-CRYPT`, `SCRAM-SHA-1`, `SCRAM-SHA-256`. The older MD5 and SHA1 scheme families are not implemented |
 | Master users | yes | |
 | Auth policy / penalty (weakforced-style) | yes | |
+| Connections per user and IP | yes | counted for each protocol apart, with a per-protocol override of the general limit, as in the reference |
 
 ## Filtering and delivery
 

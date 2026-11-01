@@ -144,6 +144,31 @@ general:
     mail_max_userip_connections: 10
 ```
 
+`yarilo-warden` counts the connections of one user from one address for each
+protocol apart, as the reference does: a client may keep ten IMAP connections
+and a JMAP push connection at once. A protocol's own
+`mail_max_userip_connections` overrides the general one for that protocol,
+and `0` lifts its limit. IMAP at 10 and JMAP at 4:
+
+```yaml
+general:
+  limits:
+    mail_max_userip_connections: 10
+protocol:
+  jmap:
+    mail_max_userip_connections: 4
+```
+
+The IMAP, POP3, Submission and JMAP keys are listed with their protocols; LMTP and ManageSieve here:
+
+<!-- @settings protocol.lmtp.mail_max_userip_connections protocol.managesieve.mail_max_userip_connections -->
+
+::: warning Upgrading
+Before 2.4.6 one limit covered every protocol together. A client may now hold
+up to the limit on each protocol, so the total from one address can be
+several times the number set.
+:::
+
 ---
 
 ## `general.startup_dial_retries`
