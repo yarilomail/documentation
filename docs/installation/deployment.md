@@ -591,7 +591,7 @@ internal_tls:
   ca:   /etc/yarilo/tls/ca.crt
 ```
 
-<!-- @settings locks_service.mode locks_service.listen locks_service.redis locks_service.socket locks_client.mode locks_client.endpoints locks_client.socket -->
+<!-- @settings locks_service.mode locks_service.listen locks_service.redis locks_service.socket locks_service.socket_mode locks_service.socket_group locks_client.mode locks_client.endpoints locks_client.socket -->
 
 #### Redis password
 
