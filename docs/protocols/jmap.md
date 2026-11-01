@@ -19,8 +19,8 @@ JMAP runs as two binaries, not one. `yarilo-jmap-login` faces clients and
 
 | Service key | Port | Served by | Protocol |
 |:---|:---|:---|:---|
-| `jmap` | `8443` | `yarilo-jmap-login` | HTTPS, client-facing |
-| `jmap_be` | `10443` | `yarilo-jmap` | HTTP over internal mTLS |
+| `jmap_login` | `8443` | `yarilo-jmap-login` | HTTPS, client-facing |
+| `jmap` | `10443` | `yarilo-jmap` | HTTP over internal mTLS |
 
 `10443` sits in the backend data range next to `10143`/`10110`/`10587`/`10024`
 and deliberately clear of `8080`, which is the telemetry port on every
@@ -57,7 +57,7 @@ in order, all default-deny:
 | # | Configure | Anchor | Anything else |
 |:--|:---|:---|:---|
 | 1 | `internal_tls.enabled: true` | the peer's certificate | `403` |
-| 2 | `services.jmap_be.xclient_protocol: true` + `general.xclient.trusted_nets` | the peer's address | `403` |
+| 2 | `services.jmap.xclient_protocol: true` + `general.xclient.trusted_nets` | the peer's address | `403` |
 | 3 | neither | none | `403` on every request |
 
 Mode 2 reuses `general.xclient.trusted_nets`, the same list that already decides

@@ -4,8 +4,9 @@ Yarilo runs two submission listeners. MX inbound (port 25) is handled by an exte
 
 | Service key | Port | Role |
 |:---|:---|:---|
-| `submission` | `587` | Outbound submission - AUTH required, STARTTLS. |
-| `submissions` | `465` | Outbound submission - AUTH required, implicit TLS. |
+| `submission_login` | `587` | Outbound submission on `yarilo-submission-login` - AUTH required, STARTTLS. |
+| `submissions_login` | `465` | Outbound submission on `yarilo-submission-login` - AUTH required, implicit TLS. |
+| `submission` | `10587` | The backend, `yarilo-submission`, which the login proxy dials. |
 
 See [Services configuration](/architecture/services) for listener-level settings (`port`, `ssl_mode`, `haproxy_protocol`, `auth_allow_cleartext`).
 

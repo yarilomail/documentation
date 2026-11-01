@@ -6,7 +6,7 @@ description: "IMAP configuration for yarilo: IMAP4rev2 (RFC 9051) with IMAP4rev1
 
 Yarilo implements IMAP4rev2 (RFC 9051) with backward compatibility to IMAP4rev1 (RFC 3501).
 
-Listeners: `services.imaps` (implicit TLS, port 993) and `services.imap` (STARTTLS, port 143).
+Listeners: `services.imaps_login` (implicit TLS, port 993) and `services.imap_login` (STARTTLS, port 143) on `yarilo-imap-login`; the backend behind it listens on `services.imap`.
 See [Services configuration](/architecture/services) for listener-level settings (port, ssl_mode, haproxy_protocol, etc.).
 
 ---
