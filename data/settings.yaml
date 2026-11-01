@@ -2599,10 +2599,10 @@ services.*.address:
   see_also: [services.*.port]
   description: |
     Host the listener binds. Empty leaves it to the process that binds it:
-    a session backend (`yarilo-imap`, `yarilo-pop3`, `yarilo-lmtp`,
-    `yarilo-submission`, `yarilo-managesieve`, `yarilo-jmap`) and the single
-    `yarilo` binary bind `127.0.0.1`, since they take logins only through a
-    login proxy; a login proxy binds every interface. Each listener logs the address it bound and whether it
+    a session backend entry (`imap`, `pop3`, `submission`, `lmtp`,
+    `managesieve`, `jmap`) binds `127.0.0.1`, in its own binary and in the
+    single `yarilo` binary alike, since a backend takes logins only through a
+    login proxy; a login proxy's `*_login` entry binds every interface. Each listener logs the address it bound and whether it
     came from this key or from the role. The Helm chart and the compose
     example set `0.0.0.0`, every interface.
 

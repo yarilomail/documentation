@@ -6,7 +6,7 @@ description: "POP3 configuration for yarilo: RFC 1939 with STLS, UIDL, CAPA and 
 
 Yarilo implements POP3 (RFC 1939) with STLS (RFC 2595), UIDL, CAPA, and XCLIENT.
 
-Listeners: `services.pop3s` (implicit TLS, port 995) and `services.pop3` (STARTTLS, port 110).
+Listeners: `services.pop3s_login` (implicit TLS, port 995) and `services.pop3_login` (STARTTLS, port 110) on `yarilo-pop3-login`; the backend behind it listens on `services.pop3`.
 See [Services configuration](/architecture/services) for listener-level settings (port, ssl_mode, haproxy_protocol, etc.).
 
 ---

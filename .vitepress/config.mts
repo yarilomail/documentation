@@ -256,7 +256,8 @@ export default defineConfig({
           { text: 'Migration', link: '/installation/migration' },
           { text: 'General Configuration', link: '/installation/general' },
           { text: 'Deployment', link: '/installation/deployment' },
-          { text: 'Docker Compose', link: '/installation/docker_compose' }
+          { text: 'Docker Compose', link: '/installation/docker_compose' },
+          { text: 'One host', link: '/installation/single_host' }
         ]
       },
       {

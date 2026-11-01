@@ -23,7 +23,8 @@ See [Services configuration](/architecture/services) for listener-level settings
 
 <!-- @settings protocol.lmtp.login_greeting protocol.lmtp.lmtp_add_received_header protocol.lmtp.lmtp_save_to_detail_mailbox protocol.lmtp.lda_mailbox_autocreate protocol.lmtp.lda_mailbox_autosubscribe protocol.lmtp.lmtp_verbose_replies protocol.lmtp.lmtp_user_concurrency_limit protocol.lmtp.lmtp_max_recipients protocol.lmtp.read_timeout protocol.lmtp.write_timeout -->
 
-The backend's listen address and port are listener settings (`services.lmtp`, see
+The backend's listen address and port are listener settings (`services.lmtp`;
+`yarilo-lmtp-login` listens on `services.lmtp_login`, see
 [Services](/architecture/services)); the port the login service dials is
 `lmtp_login_service.backend_port` below.
 

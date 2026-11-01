@@ -1,6 +1,6 @@
 # Services configuration
 
-The `services` section controls which listeners are started and how each one behaves at the network level. Each service is a named block under `services:`. A missing key or `enabled: false` means the listener is not started.
+The `services` section controls which listeners are started and how each one behaves at the network level. Each entry is named after the process that reads it: the `*_login` entries are the login proxies', which alone terminate client TLS, and the bare names are the session backends', one plain listener each. A process reads its own entries only: one it needs that is missing stops its start, naming the key. `enabled: false` leaves the listener off.
 
 ---
 
@@ -20,26 +20,49 @@ A service may also carry `ssl`, a per-service SSL override with the same fields 
 
 ## Listeners
 
-The ports are the conventional ones, which the Helm chart uses; set `port` explicitly in a hand-written config.
+### Login proxies
 
-| Key | Port | ssl_mode | Protocol doc |
-|:---|:---|:---|:---|
-| `imaps` | `993` | `ssl` | [IMAP configuration](/protocols/imap) |
-| `imap` | `143` | `starttls` | [IMAP configuration](/protocols/imap) |
-| `submission` | `587` | `starttls` | [Submission configuration](/protocols/submission) |
-| `submissions` | `465` | `ssl` | [Submission configuration](/protocols/submission) |
-| `pop3` | `110` | `starttls` | [POP3 configuration](/protocols/pop3) |
-| `pop3s` | `995` | `ssl` | [POP3 configuration](/protocols/pop3) |
-| `lmtp` | `24` | `no` | [LMTP configuration](/protocols/lmtp) |
-| `managesieve` | `4190` | `starttls` | [SIEVE](/features/sieve) |
-| `jmap` | `8443` | `ssl` | [JMAP](/protocols/jmap) |
+The ports are the conventional ones; the Helm chart puts the login pods on the
+`10xxx` container ports behind their Services.
 
-Two more listeners are internal, on the backend behind their login proxy, and plain:
+| Key | Port | ssl_mode | Read by | Protocol doc |
+|:---|:---|:---|:---|:---|
+| `imaps_login` | `993` | `ssl` | `yarilo-imap-login` | [IMAP configuration](/protocols/imap) |
+| `imap_login` | `143` | `starttls` | `yarilo-imap-login` | [IMAP configuration](/protocols/imap) |
+| `submissions_login` | `465` | `ssl` | `yarilo-submission-login` | [Submission configuration](/protocols/submission) |
+| `submission_login` | `587` | `starttls` | `yarilo-submission-login` | [Submission configuration](/protocols/submission) |
+| `pop3s_login` | `995` | `ssl` | `yarilo-pop3-login` | [POP3 configuration](/protocols/pop3) |
+| `pop3_login` | `110` | `starttls` | `yarilo-pop3-login` | [POP3 configuration](/protocols/pop3) |
+| `lmtp_login` | `24` | `no` | `yarilo-lmtp-login` | [LMTP configuration](/protocols/lmtp) |
+| `managesieve_login` | `4190` | `starttls` | `yarilo-managesieve-login` | [SIEVE](/features/sieve) |
+| `jmap_login` | `8443` | `ssl` | `yarilo-jmap-login` | [JMAP](/protocols/jmap) |
 
-| Key | Port (chart) | ssl_mode | Serves |
-|:---|:---|:---|:---|
-| `managesieve_be` | `14190` | `no` | ManageSieve sessions from `yarilo-managesieve-login` |
-| `jmap_be` | `10443` | `no` | JMAP requests from `yarilo-jmap-login` |
+### Session backends
+
+One plain listener per backend, which its login proxy dials; the single
+`yarilo` binary reads these entries and none of the `*_login` ones.
+
+| Key | Port (chart) | Read by |
+|:---|:---|:---|
+| `imap` | `10143` | `yarilo-imap` |
+| `pop3` | `10110` | `yarilo-pop3` |
+| `submission` | `10587` | `yarilo-submission` |
+| `lmtp` | `10024` | `yarilo-lmtp` |
+| `managesieve` | `14190` | `yarilo-managesieve` |
+| `jmap` | `10443` | `yarilo-jmap` |
+
+### Removed in 2.4.6
+
+These keys stop the start, and the message names the key that replaced them:
+
+| Removed | Use |
+|:---|:---|
+| `imaps`, `pop3s`, `submissions` | `imaps_login`, `pop3s_login`, `submissions_login`; a backend has no implicit-TLS listener |
+| `managesieve_be` | `managesieve` |
+| `jmap_be` | `jmap` |
+
+Before 2.4.6, `imap`, `pop3`, `submission`, `lmtp`, `managesieve` and `jmap`
+were the login proxies' entries; they are the backends' now.
 
 ---
 
@@ -79,26 +102,19 @@ instead: a listen or dial address written `unix:/path` is a socket, and
 
 ## Examples
 
-### Minimal: IMAPS only
+A whole host, with every process reading one file, is in
+[One host](/installation/single_host).
+
+### IMAP login proxy behind HAProxy
 
 ```yaml
 services:
-  imaps:
-    enabled: true
-    port: 993
-    ssl_mode: ssl
-```
-
-### IMAP + IMAPS behind HAProxy
-
-```yaml
-services:
-  imaps:
+  imaps_login:
     enabled: true
     port: 993
     ssl_mode: ssl
     haproxy_protocol: true
-  imap:
+  imap_login:
     enabled: true
     port: 143
     ssl_mode: starttls
@@ -106,43 +122,30 @@ services:
     auth_allow_cleartext: false
 ```
 
-### Full mail server (IMAP + Submission + POP3)
+### Submission login proxy
 
 ```yaml
 services:
-  imaps:
-    enabled: true
-    port: 993
-    ssl_mode: ssl
-  imap:
-    enabled: true
-    port: 143
-    ssl_mode: starttls
-    auth_allow_cleartext: false
-  submission:
+  submission_login:
     enabled: true
     port: 587
     ssl_mode: starttls
     auth_allow_cleartext: false
-  submissions:
+  submissions_login:
     enabled: true
     port: 465
     ssl_mode: ssl
     auth_allow_cleartext: false
-  pop3s:
-    enabled: true
-    port: 995
-    ssl_mode: ssl
 ```
 
-### LMTP backend node (yarilo-lmtp)
+### LMTP backend (yarilo-lmtp)
 
 ```yaml
 services:
   lmtp:
     enabled: true
-    port: 24
-    ssl_mode: no
+    port: 10024
+    ssl_mode: "no"
 ```
 
 Accepts preamble connections from `yarilo-lmtp-login` only. See [LMTP configuration](/protocols/lmtp) for architecture and `lmtp_login_service` config.
@@ -153,7 +156,7 @@ Accepts preamble connections from `yarilo-lmtp-login` only. See [LMTP configurat
 
 ```yaml
 services:
-  imaps:
+  imaps_login:
     enabled: true
     port: 993
     ssl_mode: ssl
