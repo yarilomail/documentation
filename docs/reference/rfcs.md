@@ -47,7 +47,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 | [7888](https://www.rfc-editor.org/rfc/rfc7888) | LITERAL+ | yes | |
 | [8438](https://www.rfc-editor.org/rfc/rfc8438) | STATUS=SIZE | yes | after login |
 | [8474](https://www.rfc-editor.org/rfc/rfc8474) | OBJECTID | yes | after login: `MAILBOXID`, `EMAILID`, `THREADID` |
-| [9208](https://www.rfc-editor.org/rfc/rfc9208) | QUOTA | yes | after login, while `imap_quota` is on (the default) |
+| [9208](https://www.rfc-editor.org/rfc/rfc9208) | QUOTA | yes | after login, while `imap_quota` is on (the default); `STORAGE` and `MESSAGE` are listed only when they have a limit |
 | [3348](https://www.rfc-editor.org/rfc/rfc3348) | CHILDREN | no | not advertised |
 | [3502](https://www.rfc-editor.org/rfc/rfc3502) | MULTIAPPEND | no | |
 | [4467](https://www.rfc-editor.org/rfc/rfc4467) | URLAUTH | no | |
