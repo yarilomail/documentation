@@ -374,8 +374,30 @@ locks_service.redis:
 locks_service.socket:
   type: string
   default: ""
+  see_also: [locks_service.socket_mode, locks_service.socket_group]
   description: |
-    Unix socket yarilo-locks serves on in embedded mode.
+    Unix socket yarilo-locks serves on in embedded mode. A socket file left
+    by a process that is gone is replaced; one a running process answers on
+    is not, and the start fails.
+
+locks_service.socket_mode:
+  type: string
+  default: "0660"
+  helm: components.locks.service.socket_mode
+  added: 2.4.6
+  description: |
+    Octal mode of the embedded mode's socket, set after the bind, so the
+    umask does not decide it.
+
+locks_service.socket_group:
+  type: string
+  default: ""
+  helm: components.locks.service.socket_group
+  added: 2.4.6
+  description: |
+    Group name of the embedded mode's socket. Empty keeps the process's
+    group; a group that does not exist, or that the process may not give the
+    socket, stops the start.
 
 locks_client.mode:
   type: string
@@ -2572,15 +2594,15 @@ services.*.enabled:
 
 services.*.address:
   type: string
-  default_text: "`127.0.0.1` on a session backend; every interface on a login proxy and on `yarilo`"
+  default_text: "`127.0.0.1` on a session backend and on `yarilo`; every interface on a login proxy"
   added: 2.4.6
   see_also: [services.*.port]
   description: |
     Host the listener binds. Empty leaves it to the process that binds it:
-    a session backend behind a login proxy (`yarilo-imap`, `yarilo-pop3`,
-    `yarilo-lmtp`, `yarilo-submission`, `yarilo-managesieve`, `yarilo-jmap`)
-    binds `127.0.0.1`, and a login proxy or the single `yarilo` binary binds
-    every interface. Each listener logs the address it bound and whether it
+    a session backend (`yarilo-imap`, `yarilo-pop3`, `yarilo-lmtp`,
+    `yarilo-submission`, `yarilo-managesieve`, `yarilo-jmap`) and the single
+    `yarilo` binary bind `127.0.0.1`, since they take logins only through a
+    login proxy; a login proxy binds every interface. Each listener logs the address it bound and whether it
     came from this key or from the role. The Helm chart and the compose
     example set `0.0.0.0`, every interface.
 
@@ -2833,6 +2855,7 @@ auth_service.listen:
   description: |
     Client-protocol listener of `yarilo-auth`, where the login proxies check
     passwords.
+    `unix:/path` listens on a Unix socket.
 
 warden_service.listen:
   type: string
@@ -2843,6 +2866,7 @@ warden_service.listen:
       text: The default was `:9101`, every interface.
   description: |
     Listener of `yarilo-warden`, the per-IP authentication penalty service.
+    `unix:/path` listens on a Unix socket.
 
 backend_api.listen:
   type: string
@@ -2874,3 +2898,89 @@ sasl_login.listen:
   description: |
     Listener a fronting MTA names in `smtpd_sasl_path`. The chart sets it from
     `components.saslLogin.containerPort`.
+
+auth_service.addr:
+  type: string
+  default: ""
+  helm: components.auth.addr
+  description: |
+    Address the login proxies dial to reach `yarilo-auth`. Empty is
+    `auth_service.listen`. `unix:/path` dials a Unix socket.
+
+auth_service.master_listen:
+  type: string
+  default: ""
+  helm: components.auth.masterListen
+  see_also: [auth_service.master_socket_mode]
+  description: |
+    Master listener of `yarilo-auth`, which answers userdb lookups without a
+    password. Empty does not open it. `unix:/path` listens on a Unix socket.
+
+auth_service.master_addr:
+  type: string
+  default: ""
+  description: |
+    Address session processes dial for userdb lookups on the master listener.
+    `unix:/path` dials a Unix socket.
+
+auth_service.socket_mode:
+  type: string
+  default: "0660"
+  helm: components.auth.socket_mode
+  added: 2.4.6
+  description: |
+    Octal mode of a `unix:/path` client listener, set after the bind, so the
+    umask does not decide it.
+
+auth_service.socket_group:
+  type: string
+  default: ""
+  helm: components.auth.socket_group
+  added: 2.4.6
+  description: |
+    Group name of a `unix:/path` client listener. Empty keeps the process's
+    group; a group that does not exist, or that the process may not give the
+    socket, stops the start.
+
+auth_service.master_socket_mode:
+  type: string
+  default: "0660"
+  helm: components.auth.master_socket_mode
+  added: 2.4.6
+  description: |
+    Octal mode of a `unix:/path` master listener. It answers without a
+    password, so it has its own mode; `0600` keeps it to the auth user.
+
+auth_service.master_socket_group:
+  type: string
+  default: ""
+  helm: components.auth.master_socket_group
+  added: 2.4.6
+  description: |
+    Group name of a `unix:/path` master listener; empty keeps the process's
+    group.
+
+warden_service.addr:
+  type: string
+  default: ""
+  description: |
+    Address the login proxies and `yarilo-auth` dial to reach
+    `yarilo-warden`. Empty is `warden_service.listen`. `unix:/path` dials a
+    Unix socket.
+
+warden_service.socket_mode:
+  type: string
+  default: "0660"
+  helm: components.warden.service.socket_mode
+  added: 2.4.6
+  description: |
+    Octal mode of a `unix:/path` warden listener, set after the bind.
+
+warden_service.socket_group:
+  type: string
+  default: ""
+  helm: components.warden.service.socket_group
+  added: 2.4.6
+  description: |
+    Group name of a `unix:/path` warden listener; empty keeps the process's
+    group.

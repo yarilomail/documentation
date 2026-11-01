@@ -57,6 +57,24 @@ rule.
 
 <!-- @settings auth_service.listen warden_service.listen backend_api.listen fts.fts_listen sasl_login.listen -->
 
+### Unix sockets
+
+On one host, `yarilo-auth` and `yarilo-warden` can listen on Unix sockets
+instead: a listen or dial address written `unix:/path` is a socket, and
+`yarilo-locks` in embedded mode uses one already.
+
+- The socket gets its mode and group after the bind, so the umask does not
+  decide them. A group that does not exist, or that the process may not give
+  the socket, stops the start.
+- A socket file left by a process that is gone is replaced. One a running
+  process answers on is left to it and the start fails, so a second instance
+  cannot take it; a path that is not a socket is never removed.
+- `internal_tls` does not apply to a socket, on either side: its permissions
+  are the boundary. With `internal_tls` on, the process logs that once per
+  address.
+
+<!-- @settings auth_service.addr auth_service.master_listen auth_service.master_addr auth_service.socket_mode auth_service.socket_group auth_service.master_socket_mode auth_service.master_socket_group warden_service.addr warden_service.socket_mode warden_service.socket_group -->
+
 ---
 
 ## Examples
