@@ -912,7 +912,7 @@ In embedded mode the identical byte stream runs over the Unix socket `/run/yaril
 
 ```
 > VERSION\t1\n
-< VERSION\t1\tOK\n
+< VERSION\t1\tOK\t<generation>\n
 
 > LOCK\t<resource>\t<owner>\t<ttl_ms>[\t<site>]\n
 < OK\t<lock_id>\n           # acquired
@@ -937,6 +937,14 @@ In embedded mode the identical byte stream runs over the Unix socket `/run/yaril
 `<site>` names the code path taking the lock, so a `BUSY` reply says who holds it and where.
 `LOCK-SHARED` takes the same arguments as `LOCK`.
 
+`<generation>` names the lock state the server serves. A client keeps the one its handshakes
+named, and every lock it is granted carries it. When a handshake on any of its connections names
+another, the service came back with state that no longer has those locks and may already have
+granted them to someone else: every hold granted under the old generation ends at once, its work
+cancelled with `ErrLost`, instead of at its next renew. A server that names no generation answers
+`VERSION\t1\tOK` as before, and a client that sees none keeps its holds until a renew fails;
+an older client reads only the first three fields.
+
 `LOCK-WAIT` and `LOCK-SHARED-WAIT` take one more, a wait limit:
 `LOCK-WAIT\t<resource>\t<owner>\t<ttl_ms>\t<site>\t<wait_ms>`. Within that limit the caller
 waits in the server's queue - the order the backend keeps for every replica - and is answered
@@ -960,9 +968,13 @@ If anything hangs, the TTL releases the lock automatically.
 
 Redis (per backend deployment, or in the same namespace). Key: `lock:<resource>`,
 Value: `<owner>|<acquired_at>`, TTL: the one the caller asked for. Atomic acquisition via Lua `SET ... NX EX`.
+The generation is a key of its own beside them, created by the first server to start: it lives as
+long as the lock keys do, so a `yarilo-locks` restart over the same Redis keeps it and ends no
+hold, and only losing the keys changes it.
 
 Embedded mode keeps the same key/value shape in a local `map[string]lockState` with a
-background TTL sweeper - no external dependencies.
+background TTL sweeper - no external dependencies - and takes a new generation each time the
+process starts.
 
 ### HA (remote mode only)
 
@@ -970,8 +982,14 @@ background TTL sweeper - no external dependencies.
 - Stateless (state in Redis).
 - Local Redis, or shared with other components (warden, etc.).
 
-Embedded mode has no HA - state is ephemeral; on process crash every lock is lost. Acceptable
-for unit tests and CLI dev runs; not used in k8s deployments.
+Embedded mode has no HA - state is ephemeral; on process crash every lock is lost. The clients
+learn it at their first handshake with the restarted process and end the holds they had, so two
+holders do not write one resource while the old one waits for its renew.
+
+`yarilo_locks_client_holds_lost_total{resource,reason}` counts, in each client process, the holds
+that ended before their work did: `reason="generation"` for a service that came back with fresh
+state, `reason="renew"` for a renew the service refused. It is counted on the client because the
+service that lost its state lost its own counters with it.
 
 ### Liveness and readiness
 
