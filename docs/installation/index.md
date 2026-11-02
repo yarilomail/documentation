@@ -422,6 +422,7 @@ a Job against the login-proxy Services - see
 | `Certificate` stuck `Issuing` | Cloudflare API token missing/expired | `kubectl -n cert-manager describe order …`; recreate `cloudflare-api-token` |
 | login pod CrashLoopBackOff at startup | `YARILO_DB_DSN` resolves empty | check the SQL Secret's `dsn` key is populated and base64-encoded |
 | LoadBalancer stuck `<pending>` | no LB controller / metallb not enabled | enable metallb or set `service.type=NodePort` for the sandbox |
+| some client LoadBalancers `<pending>`, one has the address | they share one MetalLB address under `externalTrafficPolicy: Local` | set `externalTrafficPolicy: Cluster` on every Service sharing the address, or give each its own; see [client Services](/installation/deployment#client-services-address-families-and-the-client-address) |
 | Smoke test `tls: handshake failure` | DNS not yet at the LB, or cert still issuing | `dig` the host, `kubectl get certificate`, wait |
 | AUTH fails for the seeded user | wrong table/column or missing `{SCHEME}` prefix | MySQL: `mailbox` row has `active=1`; Postgres: `users` row has `active=TRUE`; verify the `{BCRYPT}` prefix |
 

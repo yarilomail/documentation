@@ -74,6 +74,14 @@ addresses. The cost of `Local`: only nodes that run a pod of the component
 accept its traffic, so the load balancer must send traffic to those nodes
 (cloud load balancers and MetalLB follow the health check node port).
 
+Services that share one load-balancer address must all be `Cluster`. MetalLB
+gives one address (`metallb.universe.tf/allow-shared-ip`) to several Services
+only when all of them are `Cluster` or all select the same pods, and the
+login components run in different pods; under `Local` the first Service keeps
+the address and the others stay `<pending>`. Either give each client Service
+its own address and keep `Local`, or share one address and set `Cluster` on
+every Service that shares it.
+
 ```yaml
 components:
   imapLogin:
