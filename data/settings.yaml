@@ -3068,6 +3068,19 @@ warden_service.addr:
     `yarilo-warden`. Empty is `warden_service.listen`. `unix:/path` dials a
     Unix socket.
 
+warden_service.fail_open:
+  type: boolean
+  default: false
+  helm: components.warden.service.fail_open
+  added: 2.4.6
+  description: |
+    What a login proxy does when it cannot reach `yarilo-warden` to count a
+    connection. `false` refuses the connection: IMAP answers
+    `NO [UNAVAILABLE]` and JMAP `503`. `true` lets it in uncounted, so the
+    connection limits are approximate until warden is back. A reached
+    connection limit is refused either way. See
+    [Connection limits](/protocols/jmap#connection-limit).
+
 warden_service.socket_mode:
   type: string
   default: "0660"
