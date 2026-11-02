@@ -996,12 +996,17 @@ The checks:
    makes the first mean the condition was applied;
 10. a round trip through a JMAP client library: a message is uploaded and
     imported, marked read, moved to a new mailbox and destroyed, and a second
-    client sees each step in `Email/changes`.
+    client sees each step in `Email/changes`;
+11. with `-jmap-conn-limit`, the deployment's JMAP connection limit, one
+    connection over it is refused with `429` and `Retry-After`, and a new one
+    passes once the held ones close.
 
 Check 7 needs at least one message in the account. Check 9 needs `-fts-user`,
 which states that full-text search is configured, and delivery flags -
 `-delivery-host`, `-delivery-port`, `-delivery-proto`; see
-[Testing](/operations/testing).
+[Testing](/operations/testing). A server without a search index refuses the
+`text` condition with `unsupportedFilter`, and check 9 then skips rather than
+fails.
 
 Check 4 sends `-jmap-max-size-request` + 1 bytes; pass the deployment's own
 value if it differs from the 10M default.

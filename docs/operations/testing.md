@@ -89,6 +89,14 @@ that lost a flag reported `11/11` green with fewer checks than the one before
 it. A count of what ran cannot describe what was not asked for, so the
 report always describes the whole intended gate.
 
+A check also skips, with the reason, when the server itself says it does not
+offer what the check needs: no `ACL` in the IMAP CAPABILITY, a Sieve extension
+missing from the ManageSieve `SIEVE` capability (only the sub-checks that need
+it skip), the JMAP `text` condition refused with `unsupportedFilter`, or no
+WebSocket ticket capability on the account. A feature the server offers and
+then gets wrong still fails. `-require-all` counts these skips as it counts
+the others.
+
 ### Demanding the whole gate
 
 A deployment that expects every check to be configured says so once, instead of
