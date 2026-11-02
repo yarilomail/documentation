@@ -354,10 +354,12 @@ breaks every tie, so two runs of the same query agree and a client paging with
 
 **Full-text conditions are answered from the search index.** `text`, `body`,
 `subject`, `from`, `to`, `cc`, `bcc` and `header` are resolved by asking
-yarilo-fts once per mailbox in scope. Without a search service configured they
-are still refused by name - `unsupportedFilter` listing the offending
-conditions, so a client can drop exactly those and retry rather than receive a
-confidently wrong result set.
+yarilo-fts once per mailbox in scope. Without a search service configured,
+`subject`, `from`, `to`, `cc`, `bcc` and `header` are answered by reading each
+candidate's header, as IMAP `SEARCH` answers them without it; only `text` and
+`body` are refused by name - `unsupportedFilter` listing them, so a client can
+drop exactly those and retry rather than receive a confidently wrong result
+set.
 
 A candidate the engine can only over-approximate is confirmed against the
 message before it reaches the client, the same invariant IMAP `SEARCH` holds,
