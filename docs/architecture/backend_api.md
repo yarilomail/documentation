@@ -867,7 +867,7 @@ Request envelope (every metadata endpoint accepts it):
 }
 ```
 
-- Empty `folder` targets server scope (vendor-prefixed under INBOX's GUID).
+- Empty `folder` targets server scope (vendor-prefixed under INBOX's GUID). A folder's list leaves that subtree out, and get, set or delete of an entry under `/private/vendor/yarilo/pvt/server/` on a folder answers `400`.
 - `scope` is `private` or `shared` for `list`; `get`/`set`/`delete`
   derive it from the leading `/private/` or `/shared/` in `entry`.
 - `as_user` matters for shared/public folders under `/private/`
