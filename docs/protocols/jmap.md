@@ -961,9 +961,11 @@ A refusal by the relay that is final (5xx) answers `forbiddenToSend` with the re
 
 `EmailSubmission/get` and `/query` read the records of what was sent, kept `jmap_submission_ttl_seconds` (default 86400) in the user's control directory and dropped when older. `0` keeps none: mail is still sent, and `get` finds nothing. Destroying a record does not touch the mail.
 
-### Limits
+### Limits {#connection-limit}
 
 Sending over JMAP is held to a per-user-and-address connection limit like every protocol: `yarilo-jmap-login` counts each connection against JMAP's own `mail_max_userip_connections`, apart from the other protocols, as `yarilo-submission-login` does for SMTP.
+
+A connection over the limit is answered `429 Too Many Requests` with a `Retry-After` of `jmap_limit_retry_after` seconds and a problem body, on the API, the session resource, EventSource and the WebSocket upgrade alike. The count is per connection, not per request: an idle keep-alive connection holds its slot until it closes, so a client should reuse its connections. `503` means `yarilo-warden` could not be reached; with `warden_service.fail_open` on, such a connection is let through, but a reached limit is refused either way.
 
 ---
 
