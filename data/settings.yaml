@@ -2272,8 +2272,9 @@ protocol.jmap.jmap_websocket_ticket_ttl:
   description: |
     How long a WebSocket ticket from `yarilo-jmap-login` is valid. A browser
     cannot send credentials on a WebSocket, so a web client that pushes only
-    over WebSocket takes a ticket first and opens the WebSocket with it. `0`
-    issues none and leaves the ticket capability out of the session. See
+    over WebSocket takes a ticket first and opens the WebSocket with it. `0`,
+    or no `jmap_login_service.websocket_ticket_key`, issues none and leaves the
+    ticket capability out of the session. See
     [Tickets for browser clients](/protocols/jmap#tickets-for-browser-clients).
 
 protocol.jmap.jmap_limit_retry_after:
