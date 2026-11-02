@@ -1386,7 +1386,11 @@ independently pick a pod and split a user's per-user writer.
   `director_domain_rebalance_percent` above the quietest, one domain moves down - but only
   when the move actually narrows the spread, and among such moves the one that
   disconnects the fewest sessions. A move ends that domain's sessions on the
-  backend it left, one user at a time through the confirmed kill.
+  backend it left, one user at a time through the confirmed kill. Nothing moves
+  while the busiest backend carries fewer than
+  `director_domain_rebalance_min_sessions` sessions: on a quiet tag two
+  sessions against none is already a 100 % spread, and the move would cut a
+  client off for a load that is not there.
 
   **What it does not do.** It does not split a domain: one large domain still
   fills the backend it was placed on, and the cure for that is spreading the
@@ -1412,7 +1416,7 @@ operation. Reference parity: the reference does hash + vhosts weighting only;
 
 ### Domain placement settings
 
-<!-- @settings director_service.director_domain_expire director_service.director_domain_rebalance_percent director_service.director_domain_rebalance_interval director_service.director_domain_rebalance_cooldown -->
+<!-- @settings director_service.director_domain_expire director_service.director_domain_rebalance_percent director_service.director_domain_rebalance_interval director_service.director_domain_rebalance_cooldown director_service.director_domain_rebalance_min_sessions -->
 
 ---
 

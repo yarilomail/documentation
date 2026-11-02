@@ -601,7 +601,7 @@ director_service.director_domain_rebalance_percent:
   type: integer
   default: 0
   helm: components.director.director_domain_rebalance_percent
-  see_also: [director_service.director_domain_rebalance_interval, director_service.director_domain_rebalance_cooldown]
+  see_also: [director_service.director_domain_rebalance_interval, director_service.director_domain_rebalance_cooldown, director_service.director_domain_rebalance_min_sessions]
   description: |
     Move one domain down when the busiest backend of a tag is this much above
     the quietest. `0` is off in the binary; the chart sets `20`, and a `0` in
@@ -623,6 +623,17 @@ director_service.director_domain_rebalance_cooldown:
   description: |
     How long a moved domain is left alone, so that two backends either side of
     the line do not trade it.
+
+director_service.director_domain_rebalance_min_sessions:
+  type: integer
+  default: 50
+  helm: components.director.director_domain_rebalance_min_sessions
+  added: 2.4.6
+  see_also: [director_service.director_domain_rebalance_percent]
+  description: |
+    Sessions the busiest backend of a tag must carry before a spread moves a
+    domain. A move cuts off the domain's clients, and on a quiet tag two
+    sessions against none is already a 100 % spread. `0` judges any load.
 
 director_service.user_expire:
   type: integer
