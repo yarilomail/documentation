@@ -48,7 +48,7 @@ fts:
 
   ## Search behaviour.
   fts_search_add_missing: body-search-only
-  fts_search_read_fallback: true    # IMAP reads the messages when the index cannot answer
+  fts_search_read_fallback: true    # read the messages (JMAP: headers only) when the index cannot answer
   fts_search_timeout: 30            # seconds - an integer; "30s" fails to load
   fts_search_first_index_grace: 10  # seconds to wait for a mailbox with nothing indexed yet
   fts_search_strict: false          # RFC substring verification of candidates
