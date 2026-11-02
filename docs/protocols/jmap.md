@@ -691,7 +691,10 @@ extension, `com:linagora:params:jmap:ws:ticket`, not an RFC; it is advertised
 while `jmap_websocket_ticket_ttl` is above `0` and `yarilo-jmap-login` has a
 `websocket_ticket_key`, at the session level and in the account's
 `accountCapabilities`, where that client looks for it. Without the key no
-ticket is issued, so none is offered. The account
+ticket is issued, so none is offered. While `yarilo-jmap-login` pods disagree on
+it, during a rollout that adds or removes the key or upgrades to 2.4.6, the
+session `state` alternates between requests and clients refetch the session a
+few times; it settles when the rollout does. The account
 then carries `urn:ietf:params:jmap:websocket` as well.
 
 ```json
