@@ -12,7 +12,7 @@ A search runs in these steps:
 
 - Text criteria are looked up in the index. Flags, dates, sizes and other criteria are evaluated from the mail index, and the two results are intersected.
 - When messages are not indexed yet and `fts_search_add_missing` allows it, they are queued first and the search waits for them, up to `fts_search_timeout`. If the index makes no progress for about two seconds, the search stops waiting.
-- When the index cannot answer, IMAP falls back to reading the messages (`fts_search_read_fallback`, on by default). JMAP has no such fallback: a lagging index answers `serverUnavailable` and a failed lookup `serverFail`. See [JMAP](/protocols/jmap).
+- When the index cannot answer, IMAP falls back to reading the messages (`fts_search_read_fallback`, on by default). JMAP falls back the same way for a filter of header conditions only, reading headers; with `text` or `body` a lagging index or an unreachable service answers `serverUnavailable`, and a lookup the service refuses `serverFail`. See [JMAP](/protocols/jmap).
 - With `fts_search_strict`, candidate messages are read again and checked against the RFC substring rule.
 
 A message that cannot be read or parsed is skipped, and indexing carries on with the next one. The skip is logged at `WARN` with the folder and the UID, counted in `fts_index_skipped_total{reason}`, and the folder is marked for repair.
@@ -48,7 +48,7 @@ fts:
 
   ## Search behaviour.
   fts_search_add_missing: body-search-only
-  fts_search_read_fallback: true    # IMAP reads the messages when the index cannot answer
+  fts_search_read_fallback: true    # read the messages (JMAP: headers only) when the index cannot answer
   fts_search_timeout: 30            # seconds - an integer; "30s" fails to load
   fts_search_first_index_grace: 10  # seconds to wait for a mailbox with nothing indexed yet
   fts_search_strict: false          # RFC substring verification of candidates

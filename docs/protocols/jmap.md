@@ -391,18 +391,18 @@ Three outcomes, deliberately distinct, because a client is entitled to treat
 |:---|:---|:---|
 | The index is behind the mailbox | `serverUnavailable` | Retry: indexing is catching up and will finish. |
 | No connection to yarilo-fts is free | `serverUnavailable` | Retry: the service is alive, the local pool is busy. |
-| The lookup failed, or a mailbox has no GUID | `serverFail` | Retry will not help. |
+| yarilo-fts cannot be reached | `serverUnavailable` | Retry: the service is down or restarting. |
+| The service refused the lookup, or a mailbox has no GUID | `serverFail` | Retry will not help. |
 
 A lagging mailbox is queued for priority indexing when `fts_search_add_missing`
 is set, and the query waits - one budget for the whole request, not one per
 mailbox - before answering `serverUnavailable`.
 
-::: warning fts_search_read_fallback does not apply here
-On IMAP that setting falls back to an exact scan when the index cannot answer.
-`Email/query` never reads message bodies, so there is no scan to fall back to:
-on this surface a failed lookup is refused whatever the setting says. See
-[FTS](/features/fts).
-:::
+With `fts_search_read_fallback` on (the default), a filter made only of header
+conditions (`from`, `to`, `cc`, `bcc`, `subject`, `header`) is answered by
+reading each message's header in any mailbox the index cannot answer, as IMAP
+scans; none of the outcomes above reaches the client then. `text` and `body`
+need the index and are answered as in the table. See [FTS](/features/fts).
 
 ## Search snippets
 
