@@ -100,7 +100,7 @@ Unix sockets instead: a listen or dial address written `unix:/path` is a socket,
   the users in `auth_service.master_session_users`, so a login proxy that
   can reach the socket still cannot issue itself a session.
 
-<!-- @settings auth_service.addr auth_service.master_listen auth_service.master_addr auth_service.socket_mode auth_service.socket_group auth_service.master_socket_mode auth_service.master_socket_group auth_service.master_session_users warden_service.addr warden_service.socket_mode warden_service.socket_group -->
+<!-- @settings auth_service.addr auth_service.master_listen auth_service.master_addr auth_service.socket_mode auth_service.socket_group auth_service.master_socket_mode auth_service.master_socket_group auth_service.master_session_users warden_service.addr warden_service.fail_open warden_service.socket_mode warden_service.socket_group -->
 
 ---
 
