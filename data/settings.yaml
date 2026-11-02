@@ -2276,6 +2276,19 @@ protocol.jmap.jmap_websocket_ticket_ttl:
     issues none and leaves the ticket capability out of the session. See
     [Tickets for browser clients](/protocols/jmap#tickets-for-browser-clients).
 
+protocol.jmap.jmap_limit_retry_after:
+  type: integer
+  unit: seconds
+  default: 10
+  helm: protocol.jmap.jmap_limit_retry_after
+  added: 2.4.6
+  see_also: [protocol.jmap.mail_max_userip_connections]
+  description: |
+    The `Retry-After` that `yarilo-jmap-login` sends with a `429` to a client
+    over its connection limit. A slot frees when one of the client's own
+    connections closes. `0` sends no `Retry-After`. See
+    [Limits](/protocols/jmap#connection-limit).
+
 protocol.jmap.jmap_cors_allow_origins:
   type: list
   default: []
