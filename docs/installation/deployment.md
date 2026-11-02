@@ -53,6 +53,36 @@ describes where it differs.
 7. Backend reads the preamble, calls yarilo-auth `VERIFY token` to confirm the session,
    and enters pre-authenticated state. No passdb round-trip on the backend side.
 
+#### Client Services: address families and the client address
+
+Every component whose client Service type is a value (`imapLogin`,
+`pop3Login`, `submissionLogin`, `jmapLogin`, `lmtpLogin`, `manageSieveLogin`,
+`saslLogin`, `quotaStatus`, `submission`) takes three more keys in its
+`service` block:
+
+| Key | Default | What it does |
+|:---|:---|:---|
+| `ipFamilyPolicy` | `PreferDualStack` | IPv4 and IPv6 on a dual-stack cluster, IPv4 only on a single-stack one |
+| `ipFamilies` | `[]` | family order; empty leaves it to the cluster and is not rendered |
+| `externalTrafficPolicy` | `Local` | rendered only when `type` is not `ClusterIP` |
+
+`Local` keeps the client address. With `Cluster`, kube-proxy replaces it with
+the node's address, and the chart does not turn on PROXY protocol, so on a
+multi-node cluster every client looks like a node: warden penalties and
+per-IP connection limits count all clients as one, and `allow_nets` sees node
+addresses. The cost of `Local`: only nodes that run a pod of the component
+accept its traffic, so the load balancer must send traffic to those nodes
+(cloud load balancers and MetalLB follow the health check node port).
+
+```yaml
+components:
+  imapLogin:
+    service:
+      type: LoadBalancer
+      ipFamilyPolicy: PreferDualStack
+      externalTrafficPolicy: Local
+```
+
 ### backend deployment (one per tag = one per NFS shard)
 Handles authenticated mail sessions, reading and writing mail + index data to NFS.
 

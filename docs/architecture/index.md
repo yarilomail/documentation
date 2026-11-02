@@ -307,7 +307,7 @@ As rendered with the director topology (the sandbox values).
 | `yarilo-imap-login` | Deployment | LoadBalancer :993 / :143 | 1+ | TLS terminator and proxy |
 | `yarilo-pop3-login` | Deployment | LoadBalancer :995 / :110 | 1+ | |
 | `yarilo-submission-login` | Deployment | LoadBalancer :587 | 1+ | |
-| `yarilo-managesieve-login` | Deployment | LoadBalancer :4190 | 1+ | |
+| `yarilo-managesieve-login` | Deployment | ClusterIP :4190 | 1+ | LoadBalancer through `service.type` to publish it |
 | `yarilo-jmap-login` | Deployment | LoadBalancer :443 | 1+ | |
 | `yarilo-lmtp-login` | Deployment | ClusterIP :24 | 1+ | MTA-facing |
 | `yarilo-sasl-login` | Deployment | ClusterIP :12345 | 1+ | SASL for an MTA; LoadBalancer only for an MTA outside the cluster |
