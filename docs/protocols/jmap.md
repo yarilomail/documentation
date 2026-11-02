@@ -688,8 +688,10 @@ A browser cannot send an `Authorization` header on a WebSocket. A web client
 that pushes only over WebSocket, and not over EventSource, takes a ticket over
 HTTP first and opens the WebSocket with it. This is that client's own
 extension, `com:linagora:params:jmap:ws:ticket`, not an RFC; it is advertised
-while `jmap_websocket_ticket_ttl` is above `0`, at the session level and in the
-account's `accountCapabilities`, where that client looks for it. The account
+while `jmap_websocket_ticket_ttl` is above `0` and `yarilo-jmap-login` has a
+`websocket_ticket_key`, at the session level and in the account's
+`accountCapabilities`, where that client looks for it. Without the key no
+ticket is issued, so none is offered. The account
 then carries `urn:ietf:params:jmap:websocket` as well.
 
 ```json
