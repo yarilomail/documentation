@@ -152,11 +152,15 @@ Settings:
 
 | Key | Type | Required | Default | Meaning |
 |:---|:---|:---|:---|:---|
-| `addr` | string | yes | - | `host:port` |
+| `addr` | string | yes, without Sentinel | - | `host:port`; not used with `sentinel_addrs` |
 | `password` | string | no | `""` | AUTH; empty = no auth |
 | `db` | int | no | `0` | Logical database |
 | `prefix` | string | no | `""` | Per-dict key prefix, taken literally. A `%`-variable is refused at startup: the dict opens once per process, so nothing would expand it, and a per-user key already carries `priv/<user>/` |
 | `dial_timeout` | string | no | `5s` | Go duration |
+| `sentinel_addrs` | list | no | `[]` | Sentinels (`host:port`) to ask for the master; see [Redis high availability](/installation/deployment#redis-high-availability) |
+| `sentinel_master` | string | with `sentinel_addrs` | `""` | Master set name |
+| `sentinel_user` | string | no | `""` | Sentinel user; empty is their default user |
+| `sentinel_password` | string | no | `""` | `${YARILO_REDIS_SENTINEL_PASSWORD}` |
 
 ### sql
 
