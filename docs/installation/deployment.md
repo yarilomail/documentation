@@ -653,6 +653,49 @@ owner registry, Sieve vacation and duplicate) is the operator's, so add
 wins over one inside the URL. Do not put the password in the URL: the URL is
 rendered into the ConfigMap as written.
 
+#### Redis high availability
+
+yarilo speaks the Redis protocol to a Redis or Valkey server in one of two
+forms; both give automatic failover when the server side has it.
+
+- **One address.** The URL names one server. Behind that address there can be a
+  single server, or a proxy in front of a Sentinel setup (HAProxy following the
+  Sentinels to the master), which is full HA with no Sentinel keys in yarilo.
+- **Sentinel in the client.** yarilo asks the Sentinels for the master itself
+  and follows it when it moves. The URL keeps the db and the password; its host
+  is not used.
+
+The proxy is one more hop on every Redis call. Measured on the stand with
+Valkey (master and one replica, three Sentinels): through HAProxy, logins
+under imaptest fell 12-17 % on mdbox and sdbox against the same master reached
+directly; maildir barely moved. Replication with Sentinel cost at most about
+5 %, within the stand's run-to-run spread. A forced master kill stopped writes
+for about 8 s through HAProxy.
+
+In the chart, `redis.sentinel` turns the second form on for every component
+at once. The Sentinel password comes from its own Secret, as
+`YARILO_REDIS_SENTINEL_PASSWORD`, never the ConfigMap:
+
+```yaml
+redis:
+  bundled: false
+  externalUrl: "redis://valkey-haproxy.redis.svc:6379/0"   # db and password only
+  passwordSecret: {name: yarilo-redis-password}
+  sentinel:
+    addrs: [valkey-sentinel.redis.svc:26379]
+    master: mymaster
+    user: sentinel
+    passwordSecret: {name: yarilo-redis-sentinel-password, key: password}
+```
+
+<!-- @settings redis.sentinel -->
+
+The keys are the same in each block that opens a Redis client; `sentinel_addrs`
+without `sentinel_master`, or the other way round, is refused at startup. A
+dict with `driver: redis` takes them in its `settings`.
+
+<!-- @settings locks_service.sentinel_addrs locks_service.sentinel_master locks_service.sentinel_user locks_service.sentinel_password auth.token.sentinel_addrs auth.token.sentinel_master auth.token.sentinel_user auth.token.sentinel_password warden_service.sentinel_addrs warden_service.sentinel_master warden_service.sentinel_user warden_service.sentinel_password -->
+
 #### Server name of internal dials
 
 Every internal **client** dial (auth / warden / locks / backend-api / backend /

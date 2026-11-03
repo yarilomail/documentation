@@ -402,6 +402,112 @@ redis.passwordSecret:
     every process that opens Redis. The bundled Redis starts with the same
     password.
 
+auth.token.sentinel_addrs:
+  type: list
+  default: []
+  added: 2.4.6
+  see_also: [auth.token.sentinel_master, redis.sentinel]
+  description: |
+    Sentinels (`host:port`) that the session token store asks for the master instead of
+    using the host of its Redis URL; the URL's db and password still apply.
+    Empty: the URL's host, the single-address form.
+
+auth.token.sentinel_master:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The master set name the Sentinels know. Required with `sentinel_addrs`,
+    and refused without it.
+
+auth.token.sentinel_user:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The user to authenticate to the Sentinels as; empty is their default user.
+
+auth.token.sentinel_password:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The Sentinels' password. Set it to `${YARILO_REDIS_SENTINEL_PASSWORD}`.
+
+warden_service.sentinel_addrs:
+  type: list
+  default: []
+  added: 2.4.6
+  see_also: [warden_service.sentinel_master, redis.sentinel]
+  description: |
+    Sentinels (`host:port`) that warden's state asks for the master instead of
+    using the host of its Redis URL; the URL's db and password still apply.
+    Empty: the URL's host, the single-address form.
+
+warden_service.sentinel_master:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The master set name the Sentinels know. Required with `sentinel_addrs`,
+    and refused without it.
+
+warden_service.sentinel_user:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The user to authenticate to the Sentinels as; empty is their default user.
+
+warden_service.sentinel_password:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The Sentinels' password. Set it to `${YARILO_REDIS_SENTINEL_PASSWORD}`.
+
+locks_service.sentinel_addrs:
+  type: list
+  default: []
+  added: 2.4.6
+  see_also: [locks_service.sentinel_master, redis.sentinel]
+  description: |
+    Sentinels (`host:port`) that yarilo-locks asks for the master instead of
+    using the host of its Redis URL; the URL's db and password still apply.
+    Empty: the URL's host, the single-address form.
+
+locks_service.sentinel_master:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The master set name the Sentinels know. Required with `sentinel_addrs`,
+    and refused without it.
+
+locks_service.sentinel_user:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The user to authenticate to the Sentinels as; empty is their default user.
+
+locks_service.sentinel_password:
+  type: string
+  default: ""
+  added: 2.4.6
+  description: |
+    The Sentinels' password. Set it to `${YARILO_REDIS_SENTINEL_PASSWORD}`.
+
+redis.sentinel:
+  source: chart
+  type: map
+  default: {addrs: [], master: "", user: "", passwordSecret: {name: "", key: password}}
+  added: 2.4.6
+  description: |
+    Renders the `sentinel_*` keys into the auth, warden and locks blocks, and
+    puts the Secret (`passwordSecret`) into `YARILO_REDIS_SENTINEL_PASSWORD` of
+    every process that opens Redis. Empty `addrs` renders nothing.
+
 locks_service.mode:
   type: string
   default: ""
