@@ -1185,6 +1185,10 @@ There is one chart, `helm/`. Every component is switched on and sized under
 level. A backend tag is the same chart installed once per tag, with `backend_register.tag`
 set to the tag and its own NFS PV.
 
+No values file of the chart or of its examples holds a secret value: each
+password, token or key is a `${VAR}` reference filled from a Secret, or the
+name of a Secret, and a test refuses a values file that writes one.
+
 ### Director and login tier
 - `Deployment yarilo-director` - self-organizing ring: each replica dials only its
   right neighbor in `(ip, port)` sort order, never a full mesh, and every member count
