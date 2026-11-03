@@ -635,6 +635,22 @@ of that source would look them up in `yarilo_users`.
 
 ---
 
+## The username format
+
+<!-- @settings auth.auth_username_format -->
+
+`yarilo-auth` formats the name a client gives once, before the first passdb
+or userdb is asked, with `auth_username_format` (default `%Lu`, the whole
+name lowercased). The formatted name is the canonical user: the passdb and
+userdb queries see it, the answer's `user` carries it, and the auth cache is
+keyed by it, so `Bob@Example.com` and `bob@example.com` are one user and one
+cache entry. A delivery to `Bob@Example.com` reaches the same mailbox. When
+the given name differs from the canonical one, the answer carries it as
+`original_user`. With `%u` the name is passed as given and the passdb decides
+on case itself.
+
+---
+
 ## Attempts, delays and the auth cache
 
 Settings of `yarilo-auth` itself, under `auth:`.

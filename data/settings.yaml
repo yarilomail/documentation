@@ -927,6 +927,18 @@ auth.auth_max_attempts:
     Failed authentications one IMAP or POP3 connection may make before it is
     closed. Submission closes after the first.
 
+auth.auth_username_format:
+  type: string
+  default_text: "`%Lu`"
+  helm: components.auth.auth_username_format
+  added: 2.4.6
+  description: |
+    Template applied to the name a client gives before any passdb or userdb
+    is asked: logins, delivery and the master lookups. Supports `%u`,
+    `%{user}`, `%Lu`, `%n`, `%Ln`, `%d`, `%Ld`. The default lowercases the
+    whole name; `%u` keeps it as given. An unknown substitution fails at
+    startup.
+
 auth.auth_failure_delay:
   type: integer
   unit: seconds
