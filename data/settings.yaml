@@ -1903,6 +1903,23 @@ protocol.lmtp.proxy.lmtp_proxy_timeout:
     retries. A recipient's userdb field `proxy_timeout` replaces it for that
     recipient.
 
+jmap_login_service.client_ip_header:
+  type: string
+  default: ""
+  helm: components.jmapLogin.client_ip_header
+  added: 2.4.6
+  see_also: [general.haproxy.haproxy_trusted_networks]
+  description: |
+    The HTTP header a proxy in front puts the client address in:
+    `CF-Connecting-IP` behind Cloudflare, `X-Forwarded-For` behind a plain
+    proxy, of which the last address is used, the one the trusted hop
+    appended. Read only when the peer, after any PROXY header, is in
+    `general.haproxy.haproxy_trusted_networks`; from any other peer it is
+    ignored. A value that is not a bare IPv4 or IPv6 address leaves the peer
+    as the client address and is logged once per connection. The address goes
+    to the passdb, warden, the per-address limits and WebSocket tickets.
+    Empty reads no header.
+
 jmap_login_service.websocket_ticket_key:
   type: string
   default: ""

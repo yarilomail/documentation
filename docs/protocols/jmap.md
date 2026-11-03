@@ -90,6 +90,28 @@ Configuration for `yarilo-jmap-login` beyond its routing.
 
 <!-- @settings jmap_login_service -->
 
+### Behind a proxy
+
+`yarilo-jmap-login` terminates TLS itself, so a proxy in front passes the
+connection through and tells it who the client is in one of two ways.
+
+| Front | Client address from | Configure |
+|:---|:---|:---|
+| a TCP load balancer or ingress, DNS only | the PROXY header | `services.jmap_login.haproxy_protocol: true`; the balancer's addresses in `general.haproxy.haproxy_trusted_networks` |
+| Cloudflare, proxied, through that balancer | `CF-Connecting-IP` | as above, plus `jmap_login_service.client_ip_header: CF-Connecting-IP`; Cloudflare's published ranges in `general.haproxy.haproxy_trusted_networks` next to the balancer's |
+
+Behind Cloudflare the list holds both: the balancer's addresses, from which
+the PROXY header is taken, and Cloudflare's ranges, which the PROXY header then
+names as the peer and from which the HTTP header is taken. A header from any
+other peer is ignored, so a client cannot choose its own address.
+In the chart the list is `general.haproxy.trusted_nets` and the header
+`components.jmapLogin.client_ip_header`.
+
+Cloudflare closes a connection that carries no traffic for about 100 seconds.
+An EventSource stream needs a `ping` below that, and a WebSocket a
+`jmap_websocket_timeout` below twice that, or push ends and the client
+reconnects.
+
 ---
 
 ## Helm
