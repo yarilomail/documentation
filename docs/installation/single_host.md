@@ -192,6 +192,16 @@ before it goes into the ports tree. It builds the 2.4.6 release, the first
 that runs on FreeBSD with these accounts and the peer check. Once the port is
 accepted into the tree, this step becomes `pkg install yarilo`.
 
+The port builds with Go 1.27.3 or newer, the version `go.mod` names. The ports
+tree's `lang/go127` is 1.27.3; a `go127` package from the quarterly branch may
+still be 1.27.2, and the build then stops on the `go.mod` version. Check it
+first, and build `lang/go127` from the tree when it is older:
+
+```sh
+pkg info go127                                  # 1.27.3 or newer is enough
+cd /usr/ports/lang/go127 && make install clean  # only when it is older
+```
+
 Add the port's accounts to the ports tree, copy the port in and build it:
 
 ```sh
