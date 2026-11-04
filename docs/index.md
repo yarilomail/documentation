@@ -38,3 +38,7 @@ One set of binaries covers every shape, from a single node to a director ring in
 - [RFC support](/reference/rfcs) - the standards each service implements, and how far.
 
 Source code and issues live on [GitHub](https://github.com/yarilomail).
+
+Yarilo is independent open source, funded by the people and companies who use
+it. If it is useful to you, you can support it on the
+[Donate](https://yarilomail.org/donate.html) page: Ko-fi, thanks.dev or crypto.
