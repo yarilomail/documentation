@@ -211,7 +211,7 @@ Also implemented: `LOGIN` (draft) and `XOAUTH2` (Google). See [SCRAM](/auth/scra
 | [8446](https://www.rfc-editor.org/rfc/rfc8446) | TLS 1.3 | yes | TLS 1.2 is the default minimum |
 | [6066](https://www.rfc-editor.org/rfc/rfc6066) | TLS `server_name` (SNI) | partial | the name picks between `ssl_server_cert_file` and `ssl_server_alt_cert_file`, by the names each covers; there are no certificates per name. The policy server gets it as `%{local_name}` |
 
-Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`. A PROXY v2 header whose `PP2_TYPE_SSL` TLV carries `PP2_CLIENT_SSL` marks the client's connection as TLS for [`auth_allow_cleartext`](/architecture/services). Behind a PROXY header, the client it names is the connection's remote address, and the proxy itself is what the policy server gets as `%{real_remote_ip}` and `%{real_remote_port}`.
+Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`. A connection with an accepted PROXY header is secured for [`auth_allow_cleartext`](/architecture/services). Behind a PROXY header, the client it names is the connection's remote address, and the proxy itself is what the policy server gets as `%{real_remote_ip}` and `%{real_remote_port}`.
 
 ## Policy server
 
