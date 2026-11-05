@@ -20,7 +20,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
-| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages). `LOGINDISABLED` before STARTTLS while [`auth_allow_cleartext`](/architecture/services) refuses cleartext |
+| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages). `LOGINDISABLED` before STARTTLS while [`auth_allow_cleartext`](/architecture/services) refuses cleartext, and always under `ssl_mode: required` |
 | [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | `\Recent` held by the first session that selects the folder; see [Recent messages](/protocols/imap#recent-messages) |
 | [2180](https://www.rfc-editor.org/rfc/rfc2180) | IMAP4 multi-accessed mailbox practice | partial | a `COPY` that meets a message another session expunged copies nothing and answers `NO [EXPUNGEISSUED]` (§4.4.1) |
 | [2177](https://www.rfc-editor.org/rfc/rfc2177) | IDLE | yes | |
@@ -88,7 +88,7 @@ Served by `yarilo-submission`, through `yarilo-submission-login`, which answers 
 |:---|:---|:---|:---|
 | [5321](https://www.rfc-editor.org/rfc/rfc5321) | SMTP | yes | |
 | [6409](https://www.rfc-editor.org/rfc/rfc6409) | Message submission | yes | relayed to an external MTA |
-| [3207](https://www.rfc-editor.org/rfc/rfc3207) | STARTTLS | yes | port 587 |
+| [3207](https://www.rfc-editor.org/rfc/rfc3207) | STARTTLS | yes | port 587; with [`ssl_mode: required`](/architecture/services), `530 5.7.0` to every command but EHLO, STARTTLS, NOOP and QUIT before TLS (§4) |
 | [8314](https://www.rfc-editor.org/rfc/rfc8314) | Implicit TLS | yes | port 465 |
 | [4954](https://www.rfc-editor.org/rfc/rfc4954) | AUTH | yes | |
 | [6152](https://www.rfc-editor.org/rfc/rfc6152) | 8BITMIME | yes | |
