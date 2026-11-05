@@ -2847,10 +2847,27 @@ services.*.port:
 services.*.ssl_mode:
   type: string
   default: ""
-  values: [ssl, starttls, "no"]
+  values: [ssl, starttls, required, "no"]
   description: |
     TLS mode: `ssl` is implicit TLS; `starttls` is plain with a STARTTLS
-    upgrade; `no` is plain only.
+    upgrade; `required` is `starttls` with no authentication before TLS;
+    `no` is plain only. `required` applies to `imap_login`, `pop3_login`,
+    `submission_login` and `managesieve_login`, needs a certificate and
+    `auth_allow_cleartext: false`; the server refuses to start otherwise.
+    Under `required` a connection is secured by TLS, a local peer, or a PROXY
+    header whose `PP2_TYPE_SSL` TLV carries `PP2_CLIENT_SSL`; a peer in
+    `general.xclient.trusted_nets` and a plain PROXY header are not. Before
+    that no mechanism is offered, SCRAM included: IMAP advertises
+    `LOGINDISABLED` and no `AUTH=`, POP3 neither `USER` nor `SASL`,
+    ManageSieve no `SASL`, EHLO no `AUTH`. `AUTHENTICATE`/`AUTH` get
+    "Authentication disallowed on non-secure (SSL/TLS) connections." (IMAP
+    `NO [PRIVACYREQUIRED]`, POP3 `-ERR [AUTH]`, ManageSieve
+    `NO (ENCRYPT-NEEDED)`), logged as `Login failed: SSL required for
+    authentication`; `LOGIN` and `USER`/`PASS` get the
+    `auth_allow_cleartext` refusal. Submission answers every command but
+    EHLO, STARTTLS, NOOP and QUIT with `530 5.7.0 TLS required.` In the
+    chart: `components.<login>.listeners.<listener>.ssl_mode`, `starttls` by
+    default.
 
 services.*.haproxy_protocol:
   type: boolean
@@ -2859,6 +2876,10 @@ services.*.haproxy_protocol:
   description: |
     Extract the real client IP from the HAProxy PROXY header. Uses
     `general.haproxy` for the timeout and trusted nets.
+    yarilo-managesieve-login reads it and the general trusted networks like
+    the other login proxies; its pre-2.4.7 `managesieve_login_service.haproxy_protocol`
+    and `managesieve_login_service.haproxy_trusted_nets` are still accepted
+    with a warning, and when both nets keys are set the general one is used.
 
 services.*.xclient_protocol:
   type: boolean
@@ -2880,8 +2901,7 @@ services.*.auth_allow_cleartext:
     secured by TLS (implicit or after STARTTLS/STLS), by a local peer (same
     IP on both ends of the socket), by a peer in
     `general.xclient.trusted_nets`, or by a PROXY header accepted from
-    `general.haproxy.haproxy_trusted_networks` (ManageSieve:
-    `managesieve_login_service.haproxy_trusted_nets`). While refused, IMAP
+    `general.haproxy.haproxy_trusted_networks`. While refused, IMAP
     advertises `LOGINDISABLED` instead of `AUTH=PLAIN AUTH=LOGIN`, sends
     `* BAD [ALERT]` when the password was already sent, and answers
     `LOGIN`/`AUTHENTICATE` with `NO [PRIVACYREQUIRED]`; POP3 drops `USER` and
