@@ -1213,6 +1213,21 @@ sieve.sieve_submission_ssl:
   description: |
     Transport security towards that MTA.
 
+sieve.sieve_submission_ssl_verify:
+  type: boolean
+  default: true
+  helm: sieve.sieve_submission_ssl_verify
+  description: |
+    Verify the MTA's TLS certificate and its name, for `smtps` and `starttls`.
+
+sieve.sieve_submission_ssl_ca:
+  type: string
+  default: ""
+  helm: sieve.sieve_submission_ssl_ca
+  description: |
+    PEM file the MTA certificate is verified against. Empty means the system
+    roots. A file that cannot be read or holds no certificate fails the send.
+
 sieve.sieve_submission_timeout:
   type: integer
   unit: seconds

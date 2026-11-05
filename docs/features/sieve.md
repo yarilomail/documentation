@@ -35,7 +35,7 @@ RENAME, so a script keeps targeting the right folder after the user renames it.
 
 Settings live under `sieve:` and keep the `sieve_` prefix there, matching the config keys. The chart's values use the same names under `sieve:`.
 
-<!-- @settings sieve.sieve_enabled sieve.sieve_max_script_size sieve.sieve_max_redirects sieve.sieve_max_num_scripts sieve.sieve_max_storage sieve.sieve_max_actions sieve.sieve_global sieve.sieve_global_scripts sieve.sieve_vacation_enabled sieve.sieve_vacation_min_period sieve.sieve_vacation_max_period sieve.sieve_vacation_default_period sieve.sieve_vacation_default_subject sieve.sieve_vacation_default_subject_template sieve.sieve_vacation_use_original_recipient sieve.sieve_vacation_check_recipient sieve.sieve_vacation_send_from_recipient sieve.sieve_vacation_to_header_ignore_envelope sieve.sieve_spamtest_status_header sieve.sieve_spamtest_max_value sieve.sieve_virustest_status_header sieve.sieve_virustest_max_value sieve.sieve_submission_host sieve.sieve_submission_ssl sieve.sieve_submission_timeout sieve.sieve_submission_auth_secret sieve.sieve_default_name sieve.sieve_extensions sieve.sieve_global_extensions sieve.sieve_scripts_driver sieve.sieve_scripts_dict -->
+<!-- @settings sieve.sieve_enabled sieve.sieve_max_script_size sieve.sieve_max_redirects sieve.sieve_max_num_scripts sieve.sieve_max_storage sieve.sieve_max_actions sieve.sieve_global sieve.sieve_global_scripts sieve.sieve_vacation_enabled sieve.sieve_vacation_min_period sieve.sieve_vacation_max_period sieve.sieve_vacation_default_period sieve.sieve_vacation_default_subject sieve.sieve_vacation_default_subject_template sieve.sieve_vacation_use_original_recipient sieve.sieve_vacation_check_recipient sieve.sieve_vacation_send_from_recipient sieve.sieve_vacation_to_header_ignore_envelope sieve.sieve_spamtest_status_header sieve.sieve_spamtest_max_value sieve.sieve_virustest_status_header sieve.sieve_virustest_max_value sieve.sieve_submission_host sieve.sieve_submission_ssl sieve.sieve_submission_ssl_verify sieve.sieve_submission_ssl_ca sieve.sieve_submission_timeout sieve.sieve_submission_auth_secret sieve.sieve_default_name sieve.sieve_extensions sieve.sieve_global_extensions sieve.sieve_scripts_driver sieve.sieve_scripts_dict -->
 
 ## ManageSieve
 
@@ -237,6 +237,20 @@ sieve:
   sieve_submission_host: "relay.example.com:587"
   sieve_submission_ssl: "starttls"
   sieve_submission_auth_secret: "sieve-smtp-auth"
+```
+
+The login reaches the `yarilo-lmtp` and `yarilo-imap` containers as `YARILO_SIEVE_SUBMISSION_USER` and `YARILO_SIEVE_SUBMISSION_PASSWORD`, both in the single StatefulSet and in the per-protocol Deployments. The pre-beta key `sieve.submission.authSecret` stops the chart render; move the Secret name to `sieve_submission_auth_secret`.
+
+### Verifying the MTA
+
+With `smtps` or `starttls`, yarilo verifies the MTA certificate and its name (`sieve_submission_ssl_verify: true`). An MTA inside the cluster usually holds a certificate from an internal CA. Set `sieve_submission_ssl_ca` to that CA's PEM; with `internal_tls` on, the chart already mounts it at `/etc/yarilo/internal-tls/ca.crt`:
+
+```yaml
+sieve:
+  sieve_submission_host: "relay-fwd.relay.svc.cluster.local:587"
+  sieve_submission_ssl: "starttls"
+  sieve_submission_ssl_verify: true
+  sieve_submission_ssl_ca: "/etc/yarilo/internal-tls/ca.crt"
 ```
 
 ## Yarilo-specific extensions
