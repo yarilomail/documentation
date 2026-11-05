@@ -20,7 +20,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
-| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages) |
+| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages). `LOGINDISABLED` before STARTTLS while [`auth_allow_cleartext`](/architecture/services) refuses cleartext |
 | [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | `\Recent` held by the first session that selects the folder; see [Recent messages](/protocols/imap#recent-messages) |
 | [2180](https://www.rfc-editor.org/rfc/rfc2180) | IMAP4 multi-accessed mailbox practice | partial | a `COPY` that meets a message another session expunged copies nothing and answers `NO [EXPUNGEISSUED]` (§4.4.1) |
 | [2177](https://www.rfc-editor.org/rfc/rfc2177) | IDLE | yes | |
@@ -72,7 +72,7 @@ Served by `yarilo-pop3`, through `yarilo-pop3-login`.
 |:---|:---|:---|:---|
 | [1939](https://www.rfc-editor.org/rfc/rfc1939) | POP3 | yes | |
 | [2449](https://www.rfc-editor.org/rfc/rfc2449) | Extension mechanism | yes | `CAPA` with `TOP`, `UIDL`, `USER`, `RESP-CODES`, `PIPELINING`; `EXPIRE` and `LOGIN-DELAY` are not advertised |
-| [2595](https://www.rfc-editor.org/rfc/rfc2595) | STLS | yes | on a listener with STARTTLS |
+| [2595](https://www.rfc-editor.org/rfc/rfc2595) | STLS | yes | on a listener with STARTTLS; while [`auth_allow_cleartext`](/architecture/services) refuses cleartext, `USER` and `SASL PLAIN LOGIN` leave `CAPA` until STLS |
 | [3206](https://www.rfc-editor.org/rfc/rfc3206) | SYS and AUTH response codes | yes | `AUTH-RESP-CODE` |
 | [5034](https://www.rfc-editor.org/rfc/rfc5034) | SASL authentication | yes | |
 | [1460](https://www.rfc-editor.org/rfc/rfc1460) | `LAST` | yes | with `pop3_enable_last`; the command was dropped from POP3 by RFC 1725 |
@@ -211,7 +211,7 @@ Also implemented: `LOGIN` (draft) and `XOAUTH2` (Google). See [SCRAM](/auth/scra
 | [8446](https://www.rfc-editor.org/rfc/rfc8446) | TLS 1.3 | yes | TLS 1.2 is the default minimum |
 | [6066](https://www.rfc-editor.org/rfc/rfc6066) | TLS `server_name` (SNI) | partial | the name picks between `ssl_server_cert_file` and `ssl_server_alt_cert_file`, by the names each covers; there are no certificates per name. The policy server gets it as `%{local_name}` |
 
-Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`. Behind a PROXY header, the client it names is the connection's remote address, and the proxy itself is what the policy server gets as `%{real_remote_ip}` and `%{real_remote_port}`.
+Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`. A connection with an accepted PROXY header is secured for [`auth_allow_cleartext`](/architecture/services). Behind a PROXY header, the client it names is the connection's remote address, and the proxy itself is what the policy server gets as `%{real_remote_ip}` and `%{real_remote_port}`.
 
 ## Policy server
 
