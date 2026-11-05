@@ -41,8 +41,9 @@ fields and `nologin` apply as they do for IMAP:
 
 A `401` lists the schemes that can succeed: `Basic realm="jmap"`, and
 `Bearer realm="jmap"` only while `yarilo-auth` runs OAUTHBEARER. A refused
-token adds `error="invalid_token"`. With `auth_allow_cleartext: false` both
-schemes are refused over plain HTTP. A `503` means `yarilo-auth` could not
+token adds `error="invalid_token"`. With `auth_allow_cleartext: false` and a
+TLS certificate on the listener, both schemes are refused on a request that
+did not come over TLS; a listener without TLS keeps them. A `503` means `yarilo-auth` could not
 answer; the client retries the same credentials.
 
 ---

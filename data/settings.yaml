@@ -2870,14 +2870,24 @@ services.*.xclient_protocol:
 
 services.*.auth_allow_cleartext:
   type: boolean
-  default_text: "`true`"
+  default_text: "`false`"
+  helm: components.<login>.listeners.<listener>.auth_allow_cleartext
   description: |
-    When `false`, PLAIN and LOGIN are hidden and refused on a connection
-    that is not TLS, not behind HAProxy and not local: IMAP
-    `LOGIN`/`AUTHENTICATE` get `NO [PRIVACYREQUIRED]`, POP3
-    `USER`/`PASS`/`AUTH` `-ERR [AUTH]`, SMTP `AUTH` `523 5.7.10`,
-    ManageSieve `AUTHENTICATE` `NO "Cleartext authentication disallowed on
-    non-secure (SSL/TLS) connections."`. After STARTTLS they work as usual.
+    When `false`, cleartext mechanisms (PLAIN, LOGIN, OAUTHBEARER, XOAUTH2,
+    POP3 `USER`/`PASS`, HTTP Basic and Bearer) are hidden and refused on a
+    listener that offers STARTTLS/STLS, until the connection is secured. A
+    connection is secured by TLS, by a local peer (same IP on both ends), or
+    by a PROXY v2 header whose `PP2_TYPE_SSL` TLV carries `PP2_CLIENT_SSL`;
+    PROXY v1, or v2 without that TLV, is not, whatever `haproxy_protocol`
+    says. While refused, IMAP advertises `LOGINDISABLED` instead of
+    `AUTH=PLAIN AUTH=LOGIN` and answers `LOGIN`/`AUTHENTICATE` with
+    `NO [PRIVACYREQUIRED]`; POP3 drops `USER` and `SASL PLAIN LOGIN` from
+    `CAPA` and answers `-ERR [AUTH]`; SMTP `AUTH` gets `523 5.7.10`;
+    ManageSieve drops `PLAIN LOGIN` from `SASL` and answers `NO "Cleartext
+    authentication disallowed on non-secure (SSL/TLS) connections."`.
+    After STARTTLS everything works as usual. A listener with no TLS keeps
+    cleartext and logs one warning at start. In the chart, managesieve and
+    jmap carry the inverted `disablePlainAuth`, `true` by default.
 
 auth.oauth2[].oauth2_issuers:
   type: list
