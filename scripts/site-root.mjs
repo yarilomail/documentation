@@ -1,7 +1,7 @@
 // Root of the published site, outside the version directories.
 // Usage: register <site> <version> | root <site>
 
-import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const SITE = 'https://doc.yarilomail.org'
@@ -48,6 +48,8 @@ if (cmd === 'register') {
   writeFileSync(join(site, 'versions.json'), JSON.stringify(v, null, 2) + '\n')
   console.log(String(version === v.latest || (v.latest === null && version === 'main')))
 } else if (cmd === 'root') {
+  // Left from GitHub Pages; the run only adds root files, so it goes by name.
+  rmSync(join(site, 'CNAME'), { force: true })
   for (const f of readdirSync(SRC_ROOT)) {
     if (f !== 'legacy-pages.json') copyFileSync(join(SRC_ROOT, f), join(site, f))
   }
