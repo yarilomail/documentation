@@ -1031,8 +1031,15 @@ sieve.sieve_max_redirects:
   type: integer
   default: 32
   helm: sieve.sieve_max_redirects
+  changed:
+    - version: 2.4.7
+      text: "`:copy` and `:list` redirects count, a repeat of a target is merged, one over the limit fails the run, and `0` refuses a script with `redirect`."
   description: |
-    `redirect` actions per message (RFC 5228 §6.2).
+    `redirect` actions per message (RFC 5228 §6.2), over every script that runs on it. A `redirect :copy` and a `redirect :list` count; a second redirect to the same address is merged with the first and sends nothing more.
+
+    One redirect over the limit fails the run: nothing is sent and the message is delivered to INBOX (implicit keep).
+
+    `0` forbids `redirect`: ManageSieve and JMAP refuse a script that uses it, and a stored one is skipped at delivery.
 
 sieve.sieve_max_num_scripts:
   type: integer

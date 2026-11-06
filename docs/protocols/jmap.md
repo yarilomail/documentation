@@ -892,7 +892,7 @@ The account capability carries the [`sieve:` section](/features/sieve) limits th
 | `maxNumberRedirects` | `sieve_max_redirects` |
 | `sieveExtensions` | `sieve_extensions` |
 
-A limit set to `0` is sent as `null`, no limit. `notificationMethods` is `["mailto"]` while `enotify` is allowed; `externalLists` is `null`.
+A script or storage limit set to `0` is sent as `null`, no limit. `maxNumberRedirects` is sent as is: `0` forbids `redirect`, and a script that uses it gets `invalidSieve`. `notificationMethods` is `["mailto"]` while `enotify` is allowed; `externalLists` is `null`.
 
 A script over `sieve_max_script_size` gets `tooLarge`. A new script past `sieve_max_num_scripts`, or one that would take the user's scripts past `sieve_max_storage`, gets `overQuota`. A replaced script is charged for its new size only.
 

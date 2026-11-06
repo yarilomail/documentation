@@ -136,7 +136,7 @@ Served by `yarilo-jmap`, through `yarilo-jmap-login`.
 | [8621 §7](https://www.rfc-editor.org/rfc/rfc8621#section-7) | Submission | yes | when a relay is configured |
 | [8621 §8](https://www.rfc-editor.org/rfc/rfc8621#section-8) | Vacation response | yes | with Sieve vacation on |
 | [9425](https://www.rfc-editor.org/rfc/rfc9425) | JMAP for Quotas | yes | read-only |
-| [9661](https://www.rfc-editor.org/rfc/rfc9661) | JMAP for Sieve scripts | yes | |
+| [9661](https://www.rfc-editor.org/rfc/rfc9661) | JMAP for Sieve scripts | yes | `maxNumberRedirects` is `sieve_max_redirects` as is, `0` included |
 | [8620 §7.2](https://www.rfc-editor.org/rfc/rfc8620#section-7.2) | PushSubscription | no | not built until a client needs push while it is offline; an open EventSource or WebSocket gets every change |
 | [8887](https://www.rfc-editor.org/rfc/rfc8887) | JMAP over WebSocket | yes | with push; `pushState` resumes on any backend; a browser client may open it with a ticket. See [WebSocket](/protocols/jmap#websocket) |
 | [6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4) | 429 Too Many Requests | yes | a connection over `mail_max_userip_connections` is answered `429` with `Retry-After` (`jmap_limit_retry_after`). See [Limits](/protocols/jmap#connection-limit) |
@@ -150,7 +150,7 @@ Scripts run at delivery; `sieve_extensions` narrows the set a deployment offers.
 
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
-| [5804](https://www.rfc-editor.org/rfc/rfc5804) | ManageSieve | yes | |
+| [5804](https://www.rfc-editor.org/rfc/rfc5804) | ManageSieve | yes | `MAXREDIRECTS` after login, from `sieve_max_redirects`, when it is above 0 |
 | [5228](https://www.rfc-editor.org/rfc/rfc5228) | Sieve | yes | `fileinto`, `reject`, `envelope`, `encoded-character` |
 | [3894](https://www.rfc-editor.org/rfc/rfc3894) | `copy` | yes | |
 | [5173](https://www.rfc-editor.org/rfc/rfc5173) | `body` | yes | |
