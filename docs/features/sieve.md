@@ -102,6 +102,7 @@ Two sets, built from `sieve_extensions` (empty: every supported extension) and `
 | The administrator's | `sieve_global_before` / `sieve_global_after`, the `imapsieve_scripts` a mailbox binds and `imapsieve_global_before` / `imapsieve_global_after`, `include :global` | `sieve_extensions` and `sieve_global_extensions` |
 
 - **A user's script with a global-only extension** is refused at upload. At delivery it is skipped, as for any extension it may not have. Under `ihave` such an extension is false.
+- **A skipped script keeps the message.** A user's script skipped at delivery, because it does not compile or uses an extension it may not have, delivers the message to INBOX (implicit keep). When a `sieve_global_before` script ran, its outcome stands.
 - **The SIEVE capability** of ManageSieve, before login and after, and `sieveExtensions` in JMAP list a user's set. Global-only extensions are not advertised.
 - **An include takes its location's set,** whoever includes it. A `:personal` script included by a before script still has only the user's set, `ihave` included, and a `:global` script included by a user's script has the administrator's.
 - **Before/after scripts are checked at load.** `sieve_global_before` / `_after` and `imapsieve_global_before` / `_after` are held to the administrator's set when they load. One that uses an extension in neither list is logged (`global script uses a forbidden extension, skipping`) and left out. Before 2.4.4 they were not checked.
