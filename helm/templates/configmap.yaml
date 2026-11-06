@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "yarilo-docs.fullname" . }}
+  labels:
+    {{- include "yarilo-docs.labels" . | nindent 4 }}
+data:
+  # Pulls the published branch into /site/<commit> and points /site/current at
+  # it. The previous checkout stays until the next one lands, so a request
+  # that began on it still finds its files.
+  sync.sh: |
+    #!/bin/sh
+    set -u
+    # Without git the pod would never be ready: fail, and let it restart.
+    apk upgrade --no-cache >/dev/null && apk add --no-cache git >/dev/null || exit 1
+    cd /site
+    log() { printf '{"time":"%s","msg":"%s"}\n' "$(date -u +%FT%TZ)" "$*"; }
+    while :; do
+      head=$(git ls-remote "$SITE_REPO" "refs/heads/$SITE_BRANCH" | cut -f1)
+      cur=$(cat .head 2>/dev/null || true)
+      if [ -z "$head" ]; then
+        log "ls-remote of $SITE_BRANCH failed"
+      elif [ "$head" != "$cur" ]; then
+        rm -rf "$head.tmp"
+        if git clone -q --depth 1 --branch "$SITE_BRANCH" "$SITE_REPO" "$head.tmp"; then
+          rm -rf "$head.tmp/.git"
+          mv "$head.tmp" "$head"
+          ln -sfn "$head" current
+          prev=$(cat .prev 2>/dev/null || true)
+          [ -n "$prev" ] && [ "$prev" != "$head" ] && rm -rf "$prev"
+          [ -n "$cur" ] && echo "$cur" > .prev
+          echo "$head" > .head
+          log "serving $head"
+        else
+          rm -rf "$head.tmp"
+          log "clone of $head failed"
+        fi
+      fi
+      sleep "$SITE_PULL_INTERVAL"
+    done
+  default.conf: |
+    # The client's address, not Cloudflare's or the ingress controller's:
+    # CF-Connecting-IP is trusted only from the proxies listed in values.
+    log_format client escape=json '{"time":"$time_iso8601","remote_addr":"$remote_addr",'
+        '"host":"$host","method":"$request_method","path":"$uri","status":$status,'
+        '"bytes":$body_bytes_sent,"referer":"$http_referer","ua":"$http_user_agent",'
+        '"request_time":$request_time}';
+    server {
+        listen 80;
+        server_name _;
+        root /site/current;
+        index index.html;
+        absolute_redirect off;
+
+        {{- range .Values.realIp.trustedProxies }}
+        set_real_ip_from {{ . }};
+        {{- end }}
+        real_ip_header CF-Connecting-IP;
+        access_log /dev/stdout client;
+
+        gzip on;
+        gzip_comp_level 5;
+        gzip_min_length 1024;
+        gzip_types text/plain text/css application/javascript application/json image/svg+xml application/xml;
+
+        # A page is file.html, a directory is dir/index.html; a directory
+        # without its slash gets a relative 301 to dir/ (absolute_redirect off),
+        # so the scheme stays the one the client used at Cloudflare.
+        location / {
+            try_files $uri $uri/ @html;
+        }
+
+        # An extensionless page goes to its .html form; anything else is missing.
+        location @html {
+            if (-f $document_root$uri.html) {
+                return 301 $uri.html$is_args$args;
+            }
+            return 404;
+        }
+
+        # Content-hashed assets of every version: cache hard.
+        location ~ ^/[^/]+/assets/ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+
+        location ~ \.txt$ {
+            charset utf-8;
+            charset_types text/plain;
+        }
+
+        # Ready once a checkout is in place.
+        location = /healthz {
+            access_log off;
+            try_files /404.html =503;
+        }
+
+        error_page 404 /404.html;
+        error_page 403 =404 /404.html;
+    }

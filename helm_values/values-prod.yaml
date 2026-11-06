@@ -1,0 +1,11 @@
+# Production: doc.yarilomail.org on the cluster, namespace yarilomail.
+replicaCount: 2
+
+# The pod network, where the ingress controller runs.
+realIp:
+  trustedProxies:
+    - 10.1.0.0/16
+
+ingress:
+  host: doc.yarilomail.org
+  tlsSecretName: doc-yarilomail-org-tls
