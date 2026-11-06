@@ -78,7 +78,9 @@ mail._domainkey.example.com.   3600  IN  TXT  "v=DKIM1; k=rsa; p=MIIBIjANBg..."
 ```
 
 The selector (`mail` here) is chosen in the MTA's DKIM configuration. Rotate
-keys by publishing a new selector before switching the signer to it.
+keys by publishing a new selector before switching the signer to it. With
+yarilo's relays the signer is dkim-milter, and keys are rows in its key table;
+see [DKIM signing](/relay/dkim_milter).
 
 ### DMARC
 
