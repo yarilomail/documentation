@@ -1,0 +1,36 @@
+# doc.yarilomail.org on the cluster: the chart from main, which
+# serves the gh-pages branch; the Deploy docs workflow rewrites that branch,
+# and the pods pull it, so a merge needs no rollout.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yarilo-docs
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yarilomail/documentation.git
+    targetRevision: main
+    path: helm
+    helm:
+      valueFiles:
+        - ../helm_values/values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: yarilomail
+  # The cluster's cf-whitelist CronJob keeps this annotation current;
+  # selfHeal must not put the chart's starting list back.
+  ignoreDifferences:
+    - group: networking.k8s.io
+      kind: Ingress
+      jsonPointers:
+        - /metadata/annotations/nginx.ingress.kubernetes.io~1whitelist-source-range
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true

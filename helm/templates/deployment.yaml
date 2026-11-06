@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "yarilo-docs.fullname" . }}
+  labels:
+    {{- include "yarilo-docs.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "yarilo-docs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "yarilo-docs.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: web
+          image: {{ .Values.image.nginx }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources.nginx | nindent 12 }}
+          volumeMounts:
+            - name: site
+              mountPath: /site
+              readOnly: true
+            - name: config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+        - name: sync
+          image: {{ .Values.image.sync }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "/config/sync.sh"]
+          env:
+            - name: SITE_REPO
+              value: {{ .Values.site.repo | quote }}
+            - name: SITE_BRANCH
+              value: {{ .Values.site.branch | quote }}
+            - name: SITE_PULL_INTERVAL
+              value: {{ .Values.site.pullIntervalSeconds | quote }}
+          resources:
+            {{- toYaml .Values.resources.sync | nindent 12 }}
+          volumeMounts:
+            - name: site
+              mountPath: /site
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: site
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: config
+          configMap:
+            name: {{ include "yarilo-docs.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

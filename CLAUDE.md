@@ -84,7 +84,8 @@ blocked by branch protection:
 3. Push the branch and open a PR (title and description in English).
 4. The user reviews and merges. Never merge yourself.
 5. Merge to `main` triggers the `Deploy docs` GitHub Actions workflow, which
-   rebuilds https://doc.yarilomail.org/main/ - no manual deploy step exists.
+   rebuilds the `gh-pages` branch; the pods on the cluster pull it
+   within a minute (see README, Serving) - no manual deploy step exists.
 
 ## Versions
 
