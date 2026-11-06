@@ -313,6 +313,12 @@ export default defineConfig({
         ]
       },
       {
+        text: 'Mail relay',
+        items: [
+          { text: 'DKIM signing', link: '/relay/dkim_milter' }
+        ]
+      },
+      {
         text: 'Operations',
         items: [
           { text: 'yarilo-admin', link: '/operations/yarilo_admin' },
