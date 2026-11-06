@@ -3,8 +3,9 @@
 Extends the workspace-level `/CLAUDE.md`. All global rules apply.
 
 This repo (`yarilomail/documentation`) is the **source of truth for all public
-Yarilo documentation**, published at https://doc.yarilomail.org via GitHub
-Pages (VitePress 1.6, `srcDir: docs`, images in `docs/public/`). Never edit
+Yarilo documentation**, published at https://doc.yarilomail.org from the
+`gh-pages` branch by the cluster that also serves yarilomail.org (see README,
+Serving; VitePress 1.6, `srcDir: docs`, images in `docs/public/`). Never edit
 `docs/` in the yarilo repo - it no longer exists there.
 
 All documentation is written in **English only**.
@@ -123,7 +124,7 @@ branch. Never edit `gh-pages` by hand.
 - Renaming or moving a published page breaks its URL in every release
   already out. Avoid it; when unavoidable, keep the old path working.
 - `site-root/` - files served from the site root, outside any version
-  (`CNAME`, `robots.txt`, the IndexNow key, `legacy-pages.json`).
+  (`robots.txt`, the IndexNow key, `legacy-pages.json`).
 - `data/settings.yaml` - every documented `yarilo.yaml` setting, keyed by its
   full path (`general.ssl.ssl_min_protocol`). See "Settings" below.
 - `docs/index.md` - landing page; keep it `layout: doc` style (sidebar
