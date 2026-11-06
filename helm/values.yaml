@@ -5,6 +5,12 @@ site:
   branch: gh-pages
   # Seconds between pulls; a new commit shows within this.
   pullIntervalSeconds: 60
+  # The emptyDir holds up to three checkouts at once: the previous, the current
+  # and the one being cloned. Peak = 3 x the shallow clone of gh-pages, which
+  # was 70 MB with 2.4.5, 2.4.6, main and latest and grows by about 16 MB a
+  # released version (so about 48 MB here). Over the limit kubelet evicts the
+  # pod; 1Gi holds about 18 more releases.
+  sizeLimit: 1Gi
 
 image:
   nginx: nginx:1.28-alpine

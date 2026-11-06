@@ -65,7 +65,7 @@ spec:
       volumes:
         - name: site
           emptyDir:
-            sizeLimit: 256Mi
+            sizeLimit: {{ .Values.site.sizeLimit }}
         - name: config
           configMap:
             name: {{ include "yarilo-docs.fullname" . }}
