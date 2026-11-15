@@ -20,8 +20,8 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
-| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages). `LOGINDISABLED` before STARTTLS while [`auth_allow_cleartext`](/architecture/services) refuses cleartext, and always under `ssl_mode: required` |
-| [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | `\Recent` held by the first session that selects the folder; see [Recent messages](/protocols/imap#recent-messages) |
+| [9051](https://www.rfc-editor.org/rfc/rfc9051) | IMAP4rev2 | yes | after `ENABLE IMAP4rev2`, no `RECENT` response and no `\Recent` flag; see [Recent messages](/protocols/imap#recent-messages). `LOGINDISABLED` before STARTTLS while [`auth_allow_cleartext`](/architecture/services) refuses cleartext, and always under `ssl_mode: required`. A folder opened by `EXAMINE` is read-only (§6.3.3): `STORE`, `EXPUNGE`, `UID EXPUNGE` and `MOVE` answer `NO`, `CLOSE` expunges nothing, and `FETCH BODY[]` sets no `\Seen` |
+| [3501](https://www.rfc-editor.org/rfc/rfc3501) | IMAP4rev1 | yes | `\Recent` held by the first session that selects the folder; see [Recent messages](/protocols/imap#recent-messages). `LSUB` names an unsubscribed parent of a subscription the pattern does not reach with `\Noselect` (§6.3.9) |
 | [2180](https://www.rfc-editor.org/rfc/rfc2180) | IMAP4 multi-accessed mailbox practice | partial | a `COPY` that meets a message another session expunged copies nothing and answers `NO [EXPUNGEISSUED]` (§4.4.1) |
 | [2177](https://www.rfc-editor.org/rfc/rfc2177) | IDLE | yes | |
 | [2342](https://www.rfc-editor.org/rfc/rfc2342) | NAMESPACE | yes | after login; see [Namespaces](/storage/namespace) |
@@ -35,7 +35,7 @@ Served by `yarilo-imap`, through `yarilo-imap-login`. Extensions marked *after l
 | [5161](https://www.rfc-editor.org/rfc/rfc5161) | ENABLE | yes | after login |
 | [5182](https://www.rfc-editor.org/rfc/rfc5182) | SEARCHRES | yes | after login |
 | [5256](https://www.rfc-editor.org/rfc/rfc5256) | SORT, THREAD | yes | after login: `SORT`, `THREAD=REFERENCES`, `THREAD=ORDEREDSUBJECT` |
-| [5258](https://www.rfc-editor.org/rfc/rfc5258) | LIST-EXTENDED | yes | after login |
+| [5258](https://www.rfc-editor.org/rfc/rfc5258) | LIST-EXTENDED | yes | after login. The `SUBSCRIBED` selection implies `RETURN (SUBSCRIBED)`, so every row carries `\Subscribed` (§3.1); `RECURSIVEMATCH` gives `CHILDINFO ("SUBSCRIBED")` to every parent, subscribed or not, of a subscription the pattern does not reach (§3.5) |
 | [5464](https://www.rfc-editor.org/rfc/rfc5464) | METADATA | yes | after login, when a `metadata` dict is configured; a scope root (`/private`, `/shared`) with `DEPTH` reads the whole scope (§4.2.2) |
 | [5465](https://www.rfc-editor.org/rfc/rfc5465) | NOTIFY | partial | after login; annotation and metadata events are not reported |
 | [5530](https://www.rfc-editor.org/rfc/rfc5530) | IMAP response codes | partial | sent: `AUTHENTICATIONFAILED`, `CANNOT`, `CLIENTBUG`, `CORRUPTION`, `EXPUNGEISSUED`, `LIMIT`, `NONEXISTENT`, `NOPERM`, `OVERQUOTA`, `SERVERBUG`, `UNAVAILABLE`; the others are not |
