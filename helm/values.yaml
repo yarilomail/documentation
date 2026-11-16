@@ -13,7 +13,9 @@ site:
   sizeLimit: 1Gi
 
 image:
-  nginx: nginx:1.28-alpine
+  # The stable nginx line by digest: 1.28 carries five HIGH findings in nginx
+  # itself, which the image's apk upgrade cannot reach (nginx.org's packages).
+  nginx: nginx:1.30-alpine@sha256:901e593c95dc85f5a729f5765516321366ef4ac401821431d408897e95287d0a
   sync: alpine:3.24
   pullPolicy: IfNotPresent
 
