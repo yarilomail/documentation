@@ -90,7 +90,7 @@ PostgreSQL and MySQL.
 
 - A domain may have one row per selector; its newest row signs.
 - The selectors `arc` and `arc-*` (`arc-2027` after a rotation) belong to
-  [arc-milter](https://github.com/yarilomail/arc-milter), whose ARC keys sit
+  [arc-milter](/relay/arc_milter), whose ARC keys sit
   in the same table on the forwarder's domain. They never sign DKIM, however
   new, so a DKIM selector may not be named so.
 - The domain is compared without case and surrounding spaces.
