@@ -154,6 +154,33 @@ This sequence:
 
 In that order every signature a receiver sees has its key in DNS.
 
+### Upgrading an older key table
+
+The key query reads `created_at` and uses an index on `lower(trim(domain))`.
+A table made before 0.1.0 lacks them. For MySQL:
+
+```sql
+ALTER TABLE dkim
+  ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD KEY idx_domain_lookup ((lower(trim(domain))), created_at, id),
+  DROP KEY idx_domain;
+```
+
+For PostgreSQL:
+
+```sql
+ALTER TABLE dkim ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE INDEX IF NOT EXISTS dkim_domain_lookup ON dkim (lower(trim(domain)), created_at DESC, id DESC);
+DROP INDEX IF EXISTS dkim_domain;
+UPDATE dkim SET domain = lower(trim(domain)) WHERE domain <> lower(trim(domain));
+ALTER TABLE dkim ADD CONSTRAINT dkim_domain_normalized CHECK (domain = lower(trim(domain)));
+```
+
+::: warning
+Run it before deploying the new image. Until then the new pod's key query
+fails and it stays not ready, while the old pod keeps signing.
+:::
+
 ## Vault Transit
 
 Create the Transit key, a decrypt-only policy and the Kubernetes auth role:
@@ -184,33 +211,6 @@ milter_default_action = tempfail
 
 `tempfail` keeps mail queued while the signer is down instead of sending it
 unsigned. yarilo-postfix sets this through `dkimMilter.addr`.
-
-### Upgrading an older key table
-
-The key query reads `created_at` and uses an index on `lower(trim(domain))`.
-A table made before 0.1.0 lacks them. For MySQL:
-
-```sql
-ALTER TABLE dkim
-  ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  ADD KEY idx_domain_lookup ((lower(trim(domain))), created_at, id),
-  DROP KEY idx_domain;
-```
-
-For PostgreSQL:
-
-```sql
-ALTER TABLE dkim ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
-CREATE INDEX IF NOT EXISTS dkim_domain_lookup ON dkim (lower(trim(domain)), created_at DESC, id DESC);
-DROP INDEX IF EXISTS dkim_domain;
-UPDATE dkim SET domain = lower(trim(domain)) WHERE domain <> lower(trim(domain));
-ALTER TABLE dkim ADD CONSTRAINT dkim_domain_normalized CHECK (domain = lower(trim(domain)));
-```
-
-::: warning
-Run it before deploying the new image. Until then the new pod's key query
-fails and it stays not ready, while the old pod keeps signing.
-:::
 
 ## Readiness
 
