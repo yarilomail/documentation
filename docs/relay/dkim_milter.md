@@ -89,6 +89,10 @@ Keys are rows in the table `dkim`: `domain`, `selector`, `public_key`,
 PostgreSQL and MySQL.
 
 - A domain may have one row per selector; its newest row signs.
+- The selectors `arc` and `arc-*` (`arc-2027` after a rotation) belong to
+  [arc-milter](https://github.com/yarilomail/arc-milter), whose ARC keys sit
+  in the same table on the forwarder's domain. They never sign DKIM, however
+  new, so a DKIM selector may not be named so.
 - The domain is compared without case and surrounding spaces.
 - With `KEY_DECRYPT=vault`, `private_key_enc` is the PEM private key
   encrypted with the Vault Transit key `dkim`. The database, its dumps and
@@ -150,6 +154,33 @@ This sequence:
 
 In that order every signature a receiver sees has its key in DNS.
 
+### Upgrading an older key table
+
+The key query reads `created_at` and uses an index on `lower(trim(domain))`.
+A table made before 0.1.0 lacks them. For MySQL:
+
+```sql
+ALTER TABLE dkim
+  ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD KEY idx_domain_lookup ((lower(trim(domain))), created_at, id),
+  DROP KEY idx_domain;
+```
+
+For PostgreSQL:
+
+```sql
+ALTER TABLE dkim ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE INDEX IF NOT EXISTS dkim_domain_lookup ON dkim (lower(trim(domain)), created_at DESC, id DESC);
+DROP INDEX IF EXISTS dkim_domain;
+UPDATE dkim SET domain = lower(trim(domain)) WHERE domain <> lower(trim(domain));
+ALTER TABLE dkim ADD CONSTRAINT dkim_domain_normalized CHECK (domain = lower(trim(domain)));
+```
+
+::: warning
+Run it before deploying the new image. Until then the new pod's key query
+fails and it stays not ready, while the old pod keeps signing.
+:::
+
 ## Vault Transit
 
 Create the Transit key, a decrypt-only policy and the Kubernetes auth role:
@@ -184,9 +215,10 @@ unsigned. yarilo-postfix sets this through `dkimMilter.addr`.
 ## Readiness
 
 `/readyz` answers 200 once the key query has run and, with Vault, a login
-has succeeded and the token may decrypt with the Transit key. A wrong query,
-a missing table or column, or a policy without decrypt keep the pod not
-ready, with the reason logged.
+has succeeded and the token may decrypt with the Transit key. The query runs
+for the domain `readiness-probe.invalid`, which no row has. A wrong query, a
+missing table or column, or a policy without decrypt keep the pod not ready,
+with the reason logged. No key is loaded before the first message.
 
 ## Environment
 
@@ -197,7 +229,7 @@ ready, with the reason logged.
 | `DB_DRIVER` | `postgres` (or `mysql`) |
 | `DB_DSN` | none |
 | `DB_MAX_OPEN_CONNS` | `10` |
-| `DKIM_SQL_QUERY` | the newest row of one domain |
+| `DKIM_SQL_QUERY` | the newest row of one domain, `arc` and `arc-*` left out; a query of your own must leave them out too |
 | `SIGN_AUTH` | `aligned` |
 | `SIGN_DOMAIN` | none |
 | `SIGN_HOPS_BEFORE` | `0` |
@@ -213,8 +245,46 @@ ready, with the reason logged.
 | `MILTER_WRITE_TIMEOUT_SECONDS` | `60` |
 | `LOG_LEVEL` | none (`debug` for more) |
 
-The Helm chart in the repository sets each of these from its values; the
-repository's README lists them.
+## Helm chart
+
+The chart in the repository's `helm/` sets every variable above from its
+values; the chart's defaults are the code's.
+
+| Value | Default | Meaning |
+|:---|:---|:---|
+| `image.repository`, `.tag` | `docker.io/0kaba0/dkim-milter`, the chart's `appVersion` | the image |
+| `replicaCount` | `1` | stateless, any number |
+| `milterPort`, `metricsPort` | `8891`, `8081` | ports |
+| `milterReadTimeoutSeconds`, `milterWriteTimeoutSeconds` | `3600`, `60` | `MILTER_READ_TIMEOUT_SECONDS`, `MILTER_WRITE_TIMEOUT_SECONDS` |
+| `db.driver` | `postgres` | `postgres` or `mysql` |
+| `db.dsnSecret.name`, `.key` | none, `DB_DSN` | the Secret with the DSN |
+| `db.query` | the driver's default | `DKIM_SQL_QUERY` |
+| `db.maxOpenConns` | `10` | `DB_MAX_OPEN_CONNS` |
+| `signAuth`, `signDomain`, `signHopsBefore` | `aligned`, none, `0` | `SIGN_AUTH`, `SIGN_DOMAIN`, `SIGN_HOPS_BEFORE` |
+| `keyDecrypt` | `vault` | `KEY_DECRYPT` |
+| `keyCache.size`, `.ttlSeconds`, `.missTtlSeconds` | `10000`, `600`, `60` | the key cache |
+| `resources.limits.memory` | `128Mi` | room for `keyCache.size` keys |
+| `vault.addr`, `vault.role` | none | required with `vault` |
+| `vault.authPath`, `.transitPath`, `.transitKey` | `kubernetes`, `transit`, `dkim` | mounts and key |
+| `vault.caCertSecret` | none | a Secret with `ca.crt` for Vault's certificate |
+| `vault.caCertificate.issuerRef.name`, `.kind` | none, `Issuer` | with a name, a cert-manager Certificate writes `vault.caCertSecret` from that issuer's CA |
+| `networkPolicy.enabled` | `false` | the milter port only from the Postfix pods; the metrics port from anywhere |
+| `networkPolicy.postfix.podSelector`, `.namespaceSelector` | none, this namespace | the Postfix pods that run the milter |
+| `logLevel` | none | `debug` |
+
+Every resource is named after the release, so two releases (`dkim-milter`
+and `dkim-milter-fwd`) share a namespace; the ServiceAccount is the release's
+name, and the Vault role binds both. Its token is mounted only with
+`keyDecrypt: vault`.
+
+::: warning
+A NetworkPolicy is enforced only by a CNI that implements it, such as Calico,
+Cilium, or the kube-router built into k3s. With flannel alone it is accepted
+and silently ignored.
+:::
+
+Images: Docker Hub (`0kaba0/dkim-milter`) keeps the releases and `latest`;
+GHCR (`ghcr.io/yarilomail/dkim-milter`) also carries the `develop` builds.
 
 ## Logs and metrics
 
