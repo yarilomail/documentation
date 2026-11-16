@@ -119,11 +119,12 @@ openssl pkey -in arc.key -pubout -outform DER | base64 | tr -d '\n' > arc.pub
 { printf '{"plaintext":"'; base64 < arc.key | tr -d '\n'; printf '"}'; } | \
   curl -s --cacert "$VAULT_CACERT" -H "X-Vault-Token: $VAULT_TOKEN" -d @- \
   "$VAULT_ADDR/v1/transit/encrypt/arc" | jq -r '.data.ciphertext' > arc.enc
-rm -P arc.key
+shred -u arc.key
 ```
 
 The private key goes to `curl` on its standard input, never as an argument,
-and is deleted once encrypted. Then insert the row and publish the public
+and is overwritten and deleted once encrypted. On macOS, where there is no
+`shred`, the last line is `rm -P arc.key`. Then insert the row and publish the public
 key:
 
 ```sql
