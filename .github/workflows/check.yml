@@ -12,6 +12,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The served config against the chart's nginx image: a directive that
+      # image rejects fails here, not in the rollout.
+      - name: nginx -t on the chart's config
+        run: |
+          helm template docs helm -f helm_values/values-prod.yaml > "$RUNNER_TEMP/r.yaml"
+          python3 - "$RUNNER_TEMP" <<'PY'
+          import sys, yaml
+          d = sys.argv[1]
+          docs = [x for x in yaml.safe_load_all(open(d + "/r.yaml")) if x]
+          cm = next(x for x in docs if x["kind"] == "ConfigMap")
+          open(d + "/default.conf", "w").write(cm["data"]["default.conf"])
+          dep = next(x for x in docs if x["kind"] == "Deployment")
+          img = next(c["image"] for c in dep["spec"]["template"]["spec"]["containers"] if c["name"] == "web")
+          open(d + "/image", "w").write(img)
+          PY
+          docker run --rm -v "$RUNNER_TEMP/default.conf:/etc/nginx/conf.d/default.conf:ro" \
+            "$(cat "$RUNNER_TEMP/image")" nginx -t
       - uses: actions/setup-node@v4
         with:
           node-version: 24
