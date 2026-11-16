@@ -315,7 +315,8 @@ export default defineConfig({
       {
         text: 'Mail relay',
         items: [
-          { text: 'DKIM signing', link: '/relay/dkim_milter' }
+          { text: 'DKIM signing', link: '/relay/dkim_milter' },
+          { text: 'ARC sealing', link: '/relay/arc_milter' }
         ]
       },
       {

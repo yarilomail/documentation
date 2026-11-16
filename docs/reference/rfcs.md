@@ -213,6 +213,17 @@ Also implemented: `LOGIN` (draft) and `XOAUTH2` (Google). See [SCRAM](/auth/scra
 
 Also spoken: the HAProxy PROXY protocol on any listener with `haproxy_protocol`, and the Postfix policy delegation protocol in `yarilo-quota-status`. A connection with an accepted PROXY header is secured for [`auth_allow_cleartext`](/architecture/services). Behind a PROXY header, the client it names is the connection's remote address, and the proxy itself is what the policy server gets as `%{real_remote_ip}` and `%{real_remote_port}`.
 
+## Mail relay
+
+The relay milters beside [yarilo-postfix](https://github.com/yarilomail/yarilo-postfix).
+
+| RFC | Title | State | Notes |
+|:---|:---|:---|:---|
+| [6376](https://www.rfc-editor.org/rfc/rfc6376) | DomainKeys Identified Mail (DKIM) Signatures | yes | [dkim-milter](/relay/dkim_milter) signs with the key of the `From:` domain, or the forwarder's on a redirect; `relaxed/simple` |
+| [8463](https://www.rfc-editor.org/rfc/rfc8463) | Ed25519 for DKIM | yes | dkim-milter signs with Ed25519 when the domain's key is one |
+| [8617](https://www.rfc-editor.org/rfc/rfc8617) | Authenticated Received Chain (ARC) | yes | [arc-milter](/relay/arc_milter) seals mail the forwarding relay passes on to other domains: validates the chain (§5.2), adds the next set, stops after a `cv=fail` seal (§5.1), and seals a chain it found broken `cv=fail` over its own set only (§5.1.2); `rsa-sha256` only. A temporary DNS failure delays the message, and a key name failing for 4 hours counts as failed (§5.2.1) |
+| [8301](https://www.rfc-editor.org/rfc/rfc8301) | Cryptographic algorithm and key usage update to DKIM | yes | arc-milter fails a signature by an RSA key under 1024 bits and seals with none |
+
 ## Policy server
 
 `yarilo-auth` calls an HTTP [policy server](/auth/policy) before and after each login.
