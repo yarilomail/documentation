@@ -39,6 +39,8 @@ data:
       sleep "$SITE_PULL_INTERVAL"
     done
   default.conf: |
+    # No nginx version on error and redirect pages.
+    server_tokens off;
     # The client's address, not Cloudflare's or the ingress controller's:
     # CF-Connecting-IP is trusted only from the proxies listed in values.
     log_format client escape=json '{"time":"$time_iso8601","remote_addr":"$remote_addr",'
