@@ -845,6 +845,11 @@ first line a comment), and `-a -P` loads back as the same configuration. A
 section that is not set, such as a service without its own block, shows as
 `null`. A key or section that does not exist is an error, not an empty answer.
 
+The differences are what the file sets: an empty list or map is the same as
+one that is not set, and an entry the defaults do not have (a service, a
+passdb) shows only the fields it sets, without its `null` ones. `-a` shows
+every entry whole.
+
 **Secrets** (passwords, tokens, client secrets, connection strings, dict
 settings and the like) are shown as `<hidden>` unless `-P` is given.
 
@@ -869,6 +874,10 @@ each role whose section the file carries - a login service's backend or
 director address, the API tokens, the locks client, the tokenizer, the
 encryption keys of the roles that open mail. `-r ROLE` checks only that
 role, and may repeat; `yarctl config -r x check` lists the role names.
+Without `-r`, in a container of the chart, the role is that container's own,
+from `YARILO_COMPONENT`: the shared file carries every role's section, and
+each role's tokens are in its own container's environment only. An unknown
+`YARILO_COMPONENT` is an error that lists the known ones.
 Values written as `${VAR}` are expanded from the environment, as in the
 pod, so run `check` where the process runs, or with those variables set.
 
