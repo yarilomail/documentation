@@ -838,7 +838,9 @@ servers find it. Flags go before or after the keys.
 | `yarctl config check` | nothing on success; the reason and exit code 1 on refusal |
 
 The first line is `# yarilo <version> <file>`, written before the file is
-read, so it is there when the file does not load. The output is YAML (the
+read, so it is there when the file does not load. With `-h` it goes to
+stderr, so stdout carries the values alone and `$(yarctl config -h KEY)` is
+the value. The output is YAML (the
 first line a comment), and `-a -P` loads back as the same configuration. A
 section that is not set, such as a service without its own block, shows as
 `null`. A key or section that does not exist is an error, not an empty answer.
@@ -854,8 +856,9 @@ storage:
 director_service:
   ring_secret: <hidden>
 
-$ yarctl config -h storage.mail_driver
+$ driver=$(yarctl config -h storage.mail_driver)
 # yarilo 2.4.8 /etc/yarilo/yarilo.yaml
+$ echo "$driver"
 sdbox
 ```
 
