@@ -78,6 +78,19 @@ general:
 
 `${ENV_VAR}` substitution is supported in all path values - no secrets in config files.
 
+`ssl_min_protocol` is the lowest TLS version a listener accepts: `TLS1.2`
+(the default) or `TLS1.3`; `TLSv1.2` and `TLSv1.3` are read the same, in any
+case. The same values apply in a listener's own `ssl:`, where an empty value
+takes `general.ssl`'s.
+
+### Changed in 2.4.8
+
+Any other `ssl_min_protocol` stops the start and fails
+`yarctl config check`, naming the key. Before 2.4.8 every value but `TLS1.3`
+was read as `TLS1.2`, so `TLSv1.3` or a misspelt `TLS1.3` gave a TLS 1.2
+floor. Lower versions (`TLSv1`, `TLSv1.1`) and `ANY` are refused: the floor
+is TLS 1.2.
+
 ### Removed in 2.4.6
 
 `ssl_prefer_server_ciphers`, and its older name `prefer_server_ciphers`, in
