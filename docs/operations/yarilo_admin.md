@@ -128,8 +128,9 @@ that skip the prefix.
 | `auth` | auth-cache flush, SCRAM verifier generation | [below](#auth) |
 | `backend warden` | connection accounting dump | [below](#warden) |
 | `wait` | block until endpoints answer | [below](#wait) |
+| `config` | the configuration a process receives; a check without a start | [below](#config) |
 
-Three families answer without the plane prefix: `user` and `warden` are shorthands for their `backend` equivalents, and `wait` belongs to no plane. `subs` is an alias for `subscriptions` inside the `backend` plane. With `YARILO_ADMIN_TYPE=backend`, every backend family answers without the prefix.
+Four families answer without the plane prefix: `user` and `warden` are shorthands for their `backend` equivalents, and `wait` and `config` belong to no plane. `subs` is an alias for `subscriptions` inside the `backend` plane. With `YARILO_ADMIN_TYPE=backend`, every backend family answers without the prefix.
 
 Run any family with no command to get its usage; the text there is the same one
 this page documents.
@@ -811,6 +812,73 @@ and how the per-user and per-IP limits stand against them. This is the state
 `backend who` is rendered from, shown raw.
 
 **Effect:** none.
+
+### `config`
+
+The configuration as a process receives it, read from the file with the
+servers' own loader. Local: no call to any service, so it runs in any pod and
+on a workstation.
+
+```
+yarctl config [-c FILE] [-a | -d] [-h] [-P] [KEY ...]
+yarctl config [-c FILE] [-r ROLE ...] check
+```
+
+The file is `-c`, else `$CONFIG`, else `/etc/yarilo/yarilo.yaml`, as the
+servers find it. Flags go before or after the keys.
+
+| Call | Output |
+|:---|:---|
+| `yarctl config` | the keys that differ from the defaults |
+| `yarctl config -a` | every key with its effective value |
+| `yarctl config -d` | the defaults; the file is not read |
+| `yarctl config KEY ...` | those keys, or every key of a section, default or not, in the order named |
+| `-h` | values only, one per line, for scripts |
+| `-P` | show secrets |
+| `yarctl config check` | nothing on success; the reason and exit code 1 on refusal |
+
+The first line is `# yarilo <version> <file>`, written before the file is
+read, so it is there when the file does not load. The output is YAML (the
+first line a comment), and `-a -P` loads back as the same configuration. A
+section that is not set, such as a service without its own block, shows as
+`null`. A key or section that does not exist is an error, not an empty answer.
+
+**Secrets** (passwords, tokens, client secrets, connection strings, dict
+settings and the like) are shown as `<hidden>` unless `-P` is given.
+
+```sh
+$ yarctl config storage.mail_driver director_service.ring_secret
+# yarilo 2.4.8 /etc/yarilo/yarilo.yaml
+storage:
+  mail_driver: sdbox
+director_service:
+  ring_secret: <hidden>
+
+$ yarctl config -h storage.mail_driver
+# yarilo 2.4.8 /etc/yarilo/yarilo.yaml
+sdbox
+```
+
+**`check`** refuses what a start would refuse: everything the loader refuses
+(an [unknown key](/installation/general#unknown-keys), a value out of range,
+a `ssl_min_protocol` other than TLS1.2 or TLS1.3), and the start checks of
+each role whose section the file carries - a login service's backend or
+director address, the API tokens, the locks client, the tokenizer, the
+encryption keys of the roles that open mail. `-r ROLE` checks only that
+role, and may repeat; `yarctl config -r x check` lists the role names.
+Values written as `${VAR}` are expanded from the environment, as in the
+pod, so run `check` where the process runs, or with those variables set.
+
+```sh
+$ yarctl config check
+# yarilo 2.4.8 /etc/yarilo/yarilo.yaml
+config: yarilo-imap-login: imap_login_service: set either backend_addr (standalone) or director_addr (director mode)
+$ echo $?
+1
+```
+
+**Effect:** reads the file and, for `check`, the key files it names. Writes
+nothing.
 
 ### `wait`
 
