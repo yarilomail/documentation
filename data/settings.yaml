@@ -364,7 +364,7 @@ telemetry.telemetry_mutex_profile_fraction:
 
 warden_service.state_backend:
   type: string
-  default_text: "`memory`"
+  default: memory
   values: [memory, redis]
   helm: components.warden.service.state_backend
   description: |
@@ -1281,7 +1281,7 @@ sieve.sieve_global_extensions:
 
 sieve.sieve_scripts_driver:
   type: string
-  default_text: "`fs`"
+  default: fs
   values: [fs, redis]
   helm: sieve.sieve_scripts_driver
   see_also: [sieve.sieve_scripts_dict]
@@ -2494,7 +2494,7 @@ storage.mdbox_preallocate_space:
 
 storage.mdbox_map_format:
   type: string
-  default_text: "`v2`"
+  default: v2
   values: [v2, v1]
   helm: storage.mdbox_map_format
   description: |
@@ -2525,7 +2525,7 @@ storage.mail_index_log_rotate_max_size:
 
 storage.storage_lock_method:
   type: string
-  default_text: "`flock`"
+  default: flock
   values: [flock, fcntl, dotlock]
   helm: storage.storage_lock_method
   description: |
@@ -2561,7 +2561,7 @@ storage.mail_cache_purge_continued_percentage:
 
 storage.mail_cache_purge_min_size:
   type: string
-  default_text: "`32k`"
+  default: 32k
   helm: storage.mail_cache_purge_min_size
   description: |
     Below this size the cache file is never purged; `"0"` allows a purge at

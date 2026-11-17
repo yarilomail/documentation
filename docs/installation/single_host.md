@@ -480,7 +480,6 @@ storage:
   mail_driver: maildir
   maildir_root: /var/mail/vhosts
   mail_home: "%d/%u"
-  index: fileindex
 
 ## Submission and Sieve send through the local MTA.
 protocol:

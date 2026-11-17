@@ -495,3 +495,9 @@ it has to be set on the target **before** the mail arrives, not after.
 
 This is the only name that exists under one driver and cannot exist under
 another, which is why it is stated here rather than left to be discovered.
+
+## Removed in 2.4.8
+
+`storage.index` is no longer written by the chart, and nothing ever read it:
+the index is the file index, with no other to choose. A file that still
+carries the key starts, with a warning that names it. Delete the line.
