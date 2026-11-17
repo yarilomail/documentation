@@ -10,6 +10,30 @@ The defaults in these pages are the binary's, and the Helm chart's `values.yaml`
 - An explicit `0` turns a setting off (a cache, a delay, a limit, an interval that may stop), as each table says. Where off makes no sense (a timeout that must bound, a pool size, a poll interval), an explicit `0` stops the process at startup with the key's name.
 - A negative value is refused, except where a page says otherwise (`lmtp_user_concurrency_limit: -1` is unlimited).
 
+## Unknown keys
+
+### Changed in 2.4.8
+
+A key no setting reads stops the start, with every such key named:
+
+```text
+config: unknown key(s), read by nothing: storage.mail_drivr
+```
+
+Before 2.4.8 such a key was ignored without a word, so a misspelt setting
+ran at its default. The check covers every level: sections, a service's
+block, entries of `dicts` and of lists such as `auth.passdb`. The maps whose
+keys are yours (`settings` of a dict, `fields` of a passdb, the Sieve
+environment) take any key; a pre-2.4 spelling is still read.
+
+One exception keeps a rolling upgrade going: when the file's
+`config_schema_version` is higher than the one the binary knows, the file was
+rendered by a newer chart, and its new keys are that version's. A pod still on
+the older image then starts, and logs the keys it ignores.
+
+To see these keys before a rollout, run `yarctl config check` against the
+file; it refuses with the same message and exits non-zero.
+
 ---
 
 ## `hostname` (top level)
