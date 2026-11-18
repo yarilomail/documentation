@@ -151,7 +151,7 @@ Scripts run at delivery; `sieve_extensions` narrows the set a deployment offers.
 | RFC | Title | State | Notes |
 |:---|:---|:---|:---|
 | [5804](https://www.rfc-editor.org/rfc/rfc5804) | ManageSieve | yes | `MAXREDIRECTS` after login, from `sieve_max_redirects`, when it is above 0 |
-| [5228](https://www.rfc-editor.org/rfc/rfc5228) | Sieve | yes | `fileinto`, `reject`, `envelope`, `encoded-character` |
+| [5228](https://www.rfc-editor.org/rfc/rfc5228) | Sieve | yes | `fileinto`, `reject`, `envelope`, `encoded-character`; `redirect` (§4.2) keeps the envelope sender, adds `X-Sieve` and `X-Sieve-Redirected-From`, skips a message it already forwarded (`sieve_redirect_duplicate_period`) or one that loops back, since 2.4.8 |
 | [3894](https://www.rfc-editor.org/rfc/rfc3894) | `copy` | yes | |
 | [5173](https://www.rfc-editor.org/rfc/rfc5173) | `body` | yes | |
 | [5183](https://www.rfc-editor.org/rfc/rfc5183) | `environment` | yes | |

@@ -147,8 +147,22 @@ A failed run delivers the message to INBOX (implicit keep) and logs why.
 
 When `sieve_submission_host` is configured, yarilo dispatches outbound mail for:
 
-- **`redirect`** - forwards the original message verbatim to the redirect address, preserving the original envelope-from (RFC 5228 §4.2).
+- **`redirect`** - forwards the message to the redirect address with the original envelope-from (an empty one stays empty), RFC 5228 §4.2. See [Redirect](#redirect) for what it adds and when it does not send.
 - **`vacation`** - sends an RFC 5230 auto-reply to the original sender with a null envelope-from (`<>`) to prevent mail loops.
+
+### Redirect
+
+The forwarded message is the original with three changes: `X-Sieve: yarilo` and `X-Sieve-Redirected-From: <address>` are added at the top, where the address is the delivery's recipient (for an IMAP event, the user's address); `Return-Path` is removed; a `Message-ID` is added when the message has none. Every other header and the body are sent as they came.
+
+Before a redirect is sent, three checks run in this order:
+
+1. **Duplicate.** The same message forwarded by the same recipient to the same address within `sieve_redirect_duplicate_period` is not sent again. A message is the same when its Message-ID, its original recipient, the target, its `Resent-Message-ID` (or `Resent-From`) and its `List-ID` match. The record is kept where the [duplicate test](#duplicate-dedup-rfc-7352) keeps its state, and only after a successful send.
+2. **Loop.** A message whose `X-Sieve-Redirected-From` names this recipient or the user has been here before and is not sent.
+3. **[`sieve_send_rate_limit`](#sieve.sieve_send_rate_limit).** A redirect stopped by 1 or 2 does not count against it.
+
+A redirect that is not sent leaves the message where it is: in INBOX at delivery, in place for an IMAP event. This holds for a redirect stopped by a check and for one whose send failed, for example with the submission host down. One log line names the user and the reason.
+
+<!-- @settings sieve.sieve_redirect_duplicate_period -->
 
 ### Vacation replies
 
