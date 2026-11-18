@@ -1,3 +1,7 @@
+---
+description: "Dictionaries in yarilo: the key-value store behind per-user state, its YAML schema, the yarilo-dict service, file, redis and sql drivers, yarctl commands."
+---
+
 # Dictionaries
 
 `pkg/dict` is the general key-value store every yarilo feature that needs

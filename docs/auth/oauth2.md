@@ -1,3 +1,7 @@
+---
+description: "OAuth 2.0 logins in yarilo over SASL OAUTHBEARER and XOAUTH2: token validation settings, wire formats, worked provider examples, error mapping and client tests."
+---
+
 # OAuth 2.0 / OAUTHBEARER + XOAUTH2 Integration
 
 `yarilo-auth` validates OAuth 2.0 bearer tokens for the SASL

@@ -1,3 +1,7 @@
+---
+description: "How yarilo is built: login proxies and session backends, the director, auth and internal mTLS RPC, dicts, namespaces, storage and the Kubernetes workloads."
+---
+
 # Architecture
 
 This document is the **authoritative reference** for yarilo's architecture.

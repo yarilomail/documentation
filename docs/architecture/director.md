@@ -1,3 +1,7 @@
+---
+description: "How yarilo-director routes each user to a backend: lookups from the login pods, ports, director_service settings, mTLS, placement, sticky sessions and the ring."
+---
+
 # Director configuration
 
 `yarilo-director` keeps the routing state of a cluster: which backend serves each user. Login pods ask it with a `LOOKUP` before they open a session to a backend.

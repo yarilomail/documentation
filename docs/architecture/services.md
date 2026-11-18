@@ -1,3 +1,7 @@
+---
+description: "The services section of yarilo.yaml: which listeners start, the fields they share, ports and TLS modes of login proxies and backends, and internal services."
+---
+
 # Services configuration
 
 The `services` section controls which listeners are started and how each one behaves at the network level. Each entry is named after the process that reads it: the `*_login` entries are the login proxies', which alone terminate client TLS, and the bare names are the session backends', one plain listener each. A process reads its own entries only: one it needs that is missing stops its start, naming the key. `enabled: false` leaves the listener off.

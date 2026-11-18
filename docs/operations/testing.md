@@ -1,3 +1,7 @@
+---
+description: "Testing a yarilo deployment: the two smoke-test binaries and when to use each, what the deployment gate leaves out, tagged test runs and load tests."
+---
+
 # Testing
 
 ## Smoke tests

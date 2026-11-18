@@ -1,3 +1,7 @@
+---
+description: "Sending every login attempt from yarilo-auth to an external HTTP policy server that allows, rejects or delays it: settings, wire format, metrics and rollout."
+---
+
 # Auth Policy Server Integration
 
 `yarilo-auth` can POST every login attempt to an external HTTP policy

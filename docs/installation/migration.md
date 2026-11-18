@@ -1,3 +1,7 @@
+---
+description: "yarilo-migrate: converting an existing mail store to another format and backfilling stable message identifiers and conversations, with a dry run first."
+---
+
 # Migration and backfill
 
 `yarilo-migrate` is the operator tool for bringing an existing mail store under

@@ -1,3 +1,7 @@
+---
+description: "Master users in yarilo: an administrative identity logging in to another user's mailbox with its own password. Configuration, login syntax, isolation, audit."
+---
+
 # Master users
 
 A master user is an administrative identity allowed to log into another

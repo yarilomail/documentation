@@ -1,3 +1,7 @@
+---
+description: "LMTP delivery into yarilo from an MTA such as Postfix: the proxy and the backend, protocol.lmtp settings, message size, rate limits, ORCPT, Delivered-To."
+---
+
 # LMTP configuration
 
 LMTP (RFC 2033) is the Local Mail Transfer Protocol used for final delivery from an external MTA (Postfix, Exim, etc.) into the yarilo mailbox. It operates on port 24 and returns per-recipient status codes, making it a drop-in replacement for SMTP-based local delivery.

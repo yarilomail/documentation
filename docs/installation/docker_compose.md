@@ -1,3 +1,7 @@
+---
+description: "Running yarilo on one host with Docker Compose: services, prerequisites, a quickstart, ports, TLS, a fronting Postfix, verification and troubleshooting."
+---
+
 # Running yarilo with Docker Compose
 
 A single-host standalone deployment for local development, evaluation and

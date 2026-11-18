@@ -1,3 +1,7 @@
+---
+description: "Virtual mailboxes in yarilo: folders that show messages from other folders by a rule, such as all unread mail. Enabling them, the rule file, limits."
+---
+
 # Virtual Mailboxes
 
 A virtual mailbox holds no messages of its own. It shows messages that live in

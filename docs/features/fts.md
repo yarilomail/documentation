@@ -1,3 +1,7 @@
+---
+description: "Full-text search in yarilo for IMAP SEARCH and JMAP queries: how the yarilo-fts index works, its settings, prefix search and excluded folders."
+---
+
 # Full-text search
 
 Full-text search answers IMAP `SEARCH BODY`, `SEARCH TEXT` and `SEARCH HEADER`, and JMAP `Email/query` text filters, from a per-user index instead of reading every message.

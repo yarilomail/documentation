@@ -1,3 +1,7 @@
+---
+description: "Deploying yarilo on Kubernetes: components, write locking, standalone and co-located layouts, the Helm chart, sizing per backend pod, director routing and HA."
+---
+
 # Deployment
 
 Deployment topology, sizing, and high availability. This is a design-level

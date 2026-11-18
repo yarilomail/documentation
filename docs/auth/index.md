@@ -1,3 +1,7 @@
+---
+description: "Configuring yarilo authentication: the passdb chain with SQL, passwd-file and static drivers, password schemes, custom queries, the auth cache and Postfix SASL."
+---
+
 # Authentication configuration
 
 Yarilo authenticates IMAP/POP3/Submission credentials against an ordered chain of `passdb` entries. The first passdb that returns a definitive result (success or failure for a known user) wins. Unknown users fall through to the next entry. A temporary failure - a database that does not answer - stops the chain there: the login is answered as a temporary failure, not passed to the next entry.

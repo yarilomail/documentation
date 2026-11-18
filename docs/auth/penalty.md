@@ -1,3 +1,7 @@
+---
+description: "Per-IP exponential backoff on failed logins in yarilo, counted in yarilo-warden so it holds across auth pods: configuration, backoff curve and decay."
+---
+
 # Auth Penalty (cross-pod IP backoff)
 
 `yarilo-auth` can enforce a per-client-IP exponential backoff on

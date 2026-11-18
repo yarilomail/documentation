@@ -1,3 +1,7 @@
+---
+description: "SCRAM-SHA-256 and SCRAM-SHA-1 in yarilo, with channel binding (PLUS): verifier storage and generation, mechanism advertisement, binding policy and client tests."
+---
+
 # SCRAM family (SHA-256 and SHA-1, each with optional PLUS)
 
 `yarilo-auth` supports the Salted Challenge Response Authentication

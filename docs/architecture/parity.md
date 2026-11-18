@@ -1,3 +1,7 @@
+---
+description: "What yarilo implements, feature by feature - protocols, IMAP extensions, storage, authentication, Sieve, search, quota, clustering - to plan a migration."
+---
+
 # Feature coverage
 
 What yarilo implements, feature by feature, so that planning a migration is a
