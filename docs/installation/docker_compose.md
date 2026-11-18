@@ -1,3 +1,8 @@
+---
+title: "Self-hosted mail server with Docker Compose"
+description: "Run a self-hosted mail server on one host with Docker Compose: yarilo services, prerequisites, quickstart, ports, TLS, a fronting Postfix, troubleshooting."
+---
+
 # Running yarilo with Docker Compose
 
 A single-host standalone deployment for local development, evaluation and

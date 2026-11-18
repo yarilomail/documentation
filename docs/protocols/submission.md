@@ -1,3 +1,8 @@
+---
+title: "SMTP submission on ports 587 and 465"
+description: "SMTP mail submission in yarilo on ports 587 and 465: the login proxy and the backend, protocol.submission settings, authentication and relay to an outbound MTA."
+---
+
 # Submission configuration
 
 Yarilo runs two submission listeners. MX inbound (port 25) is handled by an external MTA (Postfix, Exim, etc.) which delivers to yarilo via LMTP (port 24).

@@ -1,5 +1,6 @@
 ---
-description: "Running weakforced as yarilo's auth policy server: deploying it on Kubernetes, a policy against password guessing, connecting yarilo-auth, and turning it on in stages."
+title: "wforce (weakforced) as a login policy server"
+description: "Run weakforced (wforce) as the auth policy server of yarilo: deploy it on Kubernetes, a policy against password guessing, connect yarilo-auth, staged rollout."
 ---
 
 # wforce Integration

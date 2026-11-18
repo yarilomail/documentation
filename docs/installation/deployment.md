@@ -1,3 +1,8 @@
+---
+title: "Deploying a mail server on Kubernetes"
+description: "Deploy a mail server on Kubernetes with the yarilo Helm chart: components, write locking, standalone and co-located layouts, pod sizing, high availability."
+---
+
 # Deployment
 
 Deployment topology, sizing, and high availability. This is a design-level

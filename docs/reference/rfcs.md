@@ -1,5 +1,6 @@
 ---
-description: "The RFCs yarilo implements, by service: IMAP, POP3, Submission, LMTP, JMAP, Sieve and ManageSieve, authentication, message format, the policy server and client autoconfiguration, each with its state."
+title: "Supported mail RFCs: IMAP, JMAP, Sieve, LMTP"
+description: "The RFCs yarilo implements, by service: IMAP, POP3, submission, LMTP, JMAP, Sieve and ManageSieve, authentication and message format, each with its state."
 ---
 
 # RFC support

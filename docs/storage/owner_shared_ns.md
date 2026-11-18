@@ -1,3 +1,8 @@
+---
+title: "Shared mailboxes: other users' folders in IMAP"
+description: "Shared mailboxes in yarilo: open another user's folders over IMAP under a namespace, with ACL. Configuration, how storage is found, listing and delivery."
+---
+
 # Other users' mailboxes
 
 A user can open another user's mailboxes under a namespace such as `user/alice/`, when alice's ACL allows it. The namespace is configured once, and yarilo resolves each owner's storage the first time a session names that owner.

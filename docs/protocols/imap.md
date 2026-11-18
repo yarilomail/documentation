@@ -1,4 +1,5 @@
 ---
+title: "IMAP server configuration (IMAP4rev2)"
 description: "IMAP configuration for yarilo: IMAP4rev2 (RFC 9051) with IMAP4rev1 compatibility, supported extensions, listener ports, TLS modes and protocol settings."
 ---
 

@@ -1,3 +1,8 @@
+---
+title: "IMAP director: routing users to backends"
+description: "An IMAP director for a mail cluster: yarilo-director keeps each user on one backend. Lookups from login pods, settings, mTLS, placement, sticky sessions."
+---
+
 # Director configuration
 
 `yarilo-director` keeps the routing state of a cluster: which backend serves each user. Login pods ask it with a `LOOKUP` before they open a session to a backend.

@@ -1,3 +1,8 @@
+---
+title: "mdbox alt storage: cold tier for old mail"
+description: "Move mdbox messages to a second, cheaper storage tier in yarilo: configuration, Helm values, triggering a move, operational notes and the on-disk format."
+---
+
 # mdbox Alt Storage (Cold Tiering)
 
 yarilo mdbox supports moving messages to a secondary (cold) storage

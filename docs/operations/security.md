@@ -1,5 +1,6 @@
 ---
-description: "How to report a security vulnerability in yarilo privately: supported versions, the GitHub reporting form or email, what to include, when you hear back, and no bounty program."
+title: "Security policy: reporting a vulnerability"
+description: "How to report a security vulnerability in yarilo privately: supported versions, the GitHub form or email, what to include and when you hear back."
 ---
 
 # Security policy

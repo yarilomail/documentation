@@ -1,3 +1,8 @@
+---
+title: "Testing a mail server deployment"
+description: "Testing a yarilo mail server deployment: the two smoke-test binaries and when to use each, what the deployment gate leaves out, tagged runs and load tests."
+---
+
 # Testing
 
 ## Smoke tests

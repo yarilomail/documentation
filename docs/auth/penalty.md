@@ -1,3 +1,8 @@
+---
+title: "Brute-force login backoff per client IP"
+description: "Slow down password guessing against a mail server: per-IP exponential backoff on failed logins, shared across auth pods. Configuration, backoff curve, decay."
+---
+
 # Auth Penalty (cross-pod IP backoff)
 
 `yarilo-auth` can enforce a per-client-IP exponential backoff on

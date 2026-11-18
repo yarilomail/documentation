@@ -1,3 +1,8 @@
+---
+title: "Master users: log in to another mailbox"
+description: "Master users in yarilo: an administrator logs in to another user's mailbox over IMAP with its own password. Configuration, login syntax, isolation and audit."
+---
+
 # Master users
 
 A master user is an administrative identity allowed to log into another

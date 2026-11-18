@@ -1,3 +1,8 @@
+---
+title: "Mail server architecture on Kubernetes"
+description: "Architecture of the yarilo mail server: login proxies and session backends, the director, auth and internal mTLS, dicts, namespaces, storage, Kubernetes."
+---
+
 # Architecture
 
 This document is the **authoritative reference** for yarilo's architecture.

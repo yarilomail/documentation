@@ -1,4 +1,5 @@
 ---
+title: "IMAP namespaces: personal, shared, other users"
 description: "How yarilo implements IMAP NAMESPACE (RFC 2342, RFC 9051): personal, other users' and shared namespaces, hierarchy separators, prefixes and config keys."
 ---
 

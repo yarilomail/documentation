@@ -1,3 +1,8 @@
+---
+title: "Sieve mail filtering and ManageSieve"
+description: "Sieve filter support in yarilo: supported extensions, configuration, ManageSieve on port 4190, included and global scripts, redirect and vacation mail."
+---
+
 # Sieve Mail Filtering
 
 Yarilo implements server-side mail filtering via the Sieve language (RFC 5228). Scripts are stored per-user and executed on every incoming LMTP delivery. Script management is available via the ManageSieve protocol (RFC 5804) on port 4190.

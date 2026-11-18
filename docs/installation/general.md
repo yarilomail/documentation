@@ -1,3 +1,8 @@
+---
+title: "General mail server settings: TLS, limits"
+description: "The general section of yarilo.yaml: how numeric settings and unknown keys are read, hostname, TLS, PROXY protocol, XCLIENT, connection limits, startup waits."
+---
+
 # General configuration
 
 The `general` section defines infrastructure settings shared across all listeners. Individual services can override `ssl` per-listener with their own `ssl:` block.

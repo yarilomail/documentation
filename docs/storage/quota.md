@@ -1,3 +1,8 @@
+---
+title: "IMAP quota (RFC 9208): storage and messages"
+description: "IMAP quota in yarilo (RFC 9208): storage and message-count limits per user, where they come from, enforcement, over-quota actions and the admin API."
+---
+
 # Quota (RFC 9208)
 
 yarilo implements per-user storage and message-count quota via the

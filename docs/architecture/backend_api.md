@@ -1,3 +1,8 @@
+---
+title: "Mail server admin HTTP API reference"
+description: "HTTP API of yarilo-backend-api for mail server administration: bearer auth, limits, and endpoints for folders, ACL, quota, users, index, mdbox and messages."
+---
+
 # Backend HTTP API
 
 `yarilo-backend-api` exposes the operator surface for per-account state over HTTP: dict, ACL, quota, folders, users, index, mdbox storage, messages, subscriptions, special-use, metadata, sessions and full-text search. One instance runs per backend pod in the co-located layout, or as its own Deployment otherwise.

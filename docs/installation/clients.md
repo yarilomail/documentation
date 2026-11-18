@@ -1,5 +1,6 @@
 ---
-description: "The mail applications tested against yarilo, with the versions, what was checked and what to know about each: Bulwark Mail and Twake Mail over JMAP, and any IMAP and Submission client."
+title: "Mail apps tested: JMAP and IMAP clients"
+description: "Mail applications tested against yarilo, with versions and notes on each: Bulwark Mail and Twake Mail over JMAP, and any IMAP and SMTP submission client."
 ---
 
 # Mail applications

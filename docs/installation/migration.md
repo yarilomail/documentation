@@ -1,3 +1,8 @@
+---
+title: "Migrate a mail store to sdbox or mdbox"
+description: "Migrate an existing mail store with yarilo-migrate: convert maildir or dbox mail to sdbox or mdbox, backfill message identifiers and threads, dry run first."
+---
+
 # Migration and backfill
 
 `yarilo-migrate` is the operator tool for bringing an existing mail store under

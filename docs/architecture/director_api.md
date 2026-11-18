@@ -1,3 +1,8 @@
+---
+title: "Director HTTP admin API for a mail cluster"
+description: "The yarilo-director HTTP admin API: bearer auth and IP allow-list, endpoints for the ring, backends and user assignments in a mail cluster, error responses."
+---
+
 # yarilo-director HTTP admin API
 
 Director-plane admin endpoints exposed by `yarilo-director` on port

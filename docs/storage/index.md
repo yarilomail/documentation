@@ -1,3 +1,8 @@
+---
+title: "Mailbox storage: maildir, sdbox and mdbox"
+description: "Mailbox storage in yarilo: maildir, sdbox and mdbox formats and the mailbox index, path templates, rebuilds, durability of a save, locking, folder names."
+---
+
 # Mailbox storage
 
 Mailbox backends (Maildir, sdbox, mdbox) and the FileIndex (binary mail-index v7.3 wire

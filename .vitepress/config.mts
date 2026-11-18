@@ -187,6 +187,8 @@ export default defineConfig({
     )
   },
   title: 'Yarilo',
+  // The product's name closes a page title; the nav keeps the short one.
+  titleTemplate: ':title | YariloMail',
   description: 'Yarilo mail server documentation',
   srcDir: 'docs',
   base: BASE,
