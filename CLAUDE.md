@@ -58,6 +58,121 @@ GitHub). Apply these conventions to every page:
   roadmap" tables in install/config guides). Status belongs in the relevant
   design page, if anywhere.
 
+## Search metadata
+
+What a search engine, a link preview and an AI crawler read from a page. Two
+fields are written by hand on every page; everything else is generated from
+them and from the page, and is never written by hand.
+
+### Written on every page: `title` and `description`
+
+Every page starts with both in its frontmatter, in double quotes:
+
+```yaml
+---
+title: "Deploying a mail server on Kubernetes"
+description: "Deploy a mail server on Kubernetes with the yarilo Helm chart: components, write locking, standalone and co-located layouts, pod sizing, high availability."
+---
+```
+
+**`title`** is the line a search result shows as its link.
+
+- It names the subject the way a person would search for it: "Deploying a
+  mail server on Kubernetes", "IMAP quota (RFC 9208): storage and messages",
+  not "Deployment" or "Quota". A word or two is never enough.
+- 25 to 47 characters. The site appends ` | YariloMail` (13 characters), and
+  a result page shows about 60.
+- Unique across the site.
+- No brand in it: the suffix carries the brand once. Two exceptions: the docs
+  home ("Yarilo mail server documentation"), and a page about a tool whose
+  name is what people search for ("yarctl: the mail server administration
+  CLI").
+- No version numbers, no issue numbers, no "configuration" as the only
+  noun: say what is configured.
+- It is not the heading. The `# H1` on the page stays a topic-named heading
+  for the reader (Writing style); the sidebar and the anchors come from the
+  headings, so a title can change without breaking a link.
+
+**`description`** is the text under that link.
+
+- 120 to 160 characters: shorter wastes the line, longer is cut.
+- It says what the page covers, subject first, then the things a reader will
+  find, as a sentence or a sentence and a list: "LMTP delivery from an MTA
+  such as Postfix into yarilo mailboxes: the proxy and the backend, settings,
+  message size, recipient rate limits, ORCPT, Delivered-To."
+- Unique across the site, and not a copy of the title.
+- No call to action ("Learn how", "Read more"), no "This page describes":
+  these are reference pages.
+- No double quote inside it; the value is one YAML string.
+
+### Choosing the words
+
+A term goes into a title or a description only when the page is about it.
+
+- Start from what people type, not from our names for things: "mail server on
+  Kubernetes", "Helm chart", "self-hosted", "Docker Compose", "IMAP
+  director", "JMAP server", "ManageSieve port", "mdbox", "IMAP quota",
+  "OAuth2 for IMAP". Search suggestions for the page's subject show the
+  wording; ask for them with the generic subject, never with the project's
+  name.
+- Use the category word the page belongs to once: mail server, IMAP, JMAP,
+  Sieve, Kubernetes.
+- One term once. Repeating a word to rank for it reads as spam to a search
+  engine and to a person.
+- The first paragraph of the page matters too: `llms.txt` lists every page by
+  its H1 and its first prose paragraph, so that paragraph says in one or two
+  sentences what the page is.
+
+### Generated: never write these by hand
+
+`.vitepress/config.mts` builds them for every page. Do not add a `head:` block
+to a page's frontmatter for any of them.
+
+| What | Built from |
+|:---|:---|
+| `<title>` | `title` + ` \| YariloMail` (`titleTemplate`) |
+| `<meta name="description">` | `description` |
+| `og:title`, `twitter:title` | `title`, without the suffix |
+| `og:description`, `twitter:description` | `description` |
+| `og:url` | the page's own URL in its version |
+| `og:type`, `og:site_name`, `og:image`, `twitter:card`, `twitter:image` | the same for every page; one shared card image |
+| `<link rel="canonical">` | the same page under `/latest/`, in every version |
+| `<meta name="robots" content="noindex">` | on `/main/` only |
+| JSON-LD | `TechArticle` (headline = `title`, `description`, last change) and a breadcrumb; the home page carries `WebSite` and `Organization` instead of the breadcrumb |
+| `sitemap.xml` | the pages of `/latest/` only |
+| `llms.txt`, `llms-full.txt` | every page: H1 and first paragraph, and the full text |
+| `rel="nofollow"` on external links | every link outside our own sites (VitePress build gotchas) |
+
+There is no `keywords` meta tag and none is to be added: search engines do
+not use it.
+
+The fallback for a page without a `description`, its first paragraph cut at
+155 characters, exists so that a build never ships an empty tag. It is not a
+way to skip writing one.
+
+### Other things search reads
+
+- One `# H1` per page, and headings in order (Writing style).
+- Every image has alt text that says what it shows; `scripts/check-img-alt.mjs`
+  fails without it.
+- A page's URL is permanent (Structure): a renamed page loses what it earned.
+- Internal links name their target in the link text ("See
+  [Deployment](/installation/deployment)"), not "here".
+
+### What is checked
+
+`scripts/check-meta.mjs`, run on every PR against the built site, fails when a
+page has no title or description of its own, a title longer than 60 characters
+with the suffix or without the suffix, a description outside 120 to 160
+characters, a title or a description that another page has too, or a
+`keywords` tag.
+
+### When a change reaches search
+
+Search engines index `/latest/` only. A change to a title or a description is
+visible under `/main/` at once and reaches `/latest/`, and so search, when the
+next release's docs tag is pushed (Versions).
+
 ## VitePress build gotchas
 
 - Placeholder tokens like `<tag>`, `<service>` in **prose** must be escaped
