@@ -1041,6 +1041,21 @@ sieve.sieve_max_redirects:
 
     `0` forbids `redirect`: ManageSieve and JMAP refuse a script that uses it, and a stored one is skipped at delivery.
 
+sieve.sieve_send_rate_limit:
+  type: integer
+  default: 0
+  helm: sieve.sieve_send_rate_limit
+  added: 2.4.8
+  see_also: [sieve.sieve_max_redirects]
+  description: |
+    Mail one mailbox's Sieve may send in a clock hour. Every recipient of `redirect`, `vacation` and `notify` counts. `0` is off.
+
+    Over the limit nothing is sent: a `redirect` that would have moved the message leaves it in INBOX, and a `vacation` reply not sent is not recorded as sent, so the sender is answered on a later message. A warning names the user, and `sieve_send_refused_total` counts the refusals by action.
+
+    `sieve_max_redirects` counts within one message; this key counts within an hour. Up to twice the limit can pass across the turn of an hour.
+
+    The count is kept where the duplicate test keeps its state, chosen by `sieve_duplicate_driver`: a file in the home directory, or the `sieve_duplicate` dict on the redis driver. A limit above `0` with the `memory` driver, or with a `sieve_duplicate` dict on another driver, is refused at start. If the count cannot be read, the mail is sent and `sieve_send_limit_unavailable_total` counts it.
+
 sieve.sieve_max_num_scripts:
   type: integer
   default: 0
