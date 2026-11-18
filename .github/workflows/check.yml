@@ -46,6 +46,8 @@ jobs:
         run: node scripts/check-nofollow.mjs site/main
       - name: Check images have alt text
         run: node scripts/check-img-alt.mjs site/main
+      - name: Check titles and descriptions
+        run: node scripts/check-meta.mjs site/main
       # main is noindex and points search engines at the same page in latest.
       - name: Check main is canonical to latest
         run: node scripts/check-canonical.mjs site/main
