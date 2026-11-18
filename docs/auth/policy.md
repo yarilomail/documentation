@@ -1,5 +1,6 @@
 ---
-description: "Sending every login attempt from yarilo-auth to an external HTTP policy server that allows, rejects or delays it: settings, wire format, metrics and rollout."
+title: "Login policy server for a mail server"
+description: "Send every mail login attempt to an external HTTP policy server that allows, rejects or delays it: yarilo-auth settings, wire format, metrics, staged rollout."
 ---
 
 # Auth Policy Server Integration

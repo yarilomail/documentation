@@ -1,5 +1,6 @@
 ---
-description: "Sieve mail filtering in yarilo: supported extensions, configuration, ManageSieve, included and global scripts, redirect and vacation mail, own extensions."
+title: "Sieve mail filtering and ManageSieve"
+description: "Sieve filter support in yarilo: supported extensions, configuration, ManageSieve on port 4190, included and global scripts, redirect and vacation mail."
 ---
 
 # Sieve Mail Filtering

@@ -1,5 +1,6 @@
 ---
-description: "The services section of yarilo.yaml: which listeners start, the fields they share, ports and TLS modes of login proxies and backends, and internal services."
+title: "Mail server listeners, ports and TLS modes"
+description: "The services section of yarilo.yaml: IMAP, POP3, SMTP submission, LMTP and JMAP listeners, their ports and TLS modes, login proxies, backends and internals."
 ---
 
 # Services configuration

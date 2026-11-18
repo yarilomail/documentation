@@ -1,5 +1,6 @@
 ---
-description: "The general section of yarilo.yaml: how numeric settings and unknown keys are read, hostname, TLS, PROXY protocol, XCLIENT, connection limits and startup waits."
+title: "General mail server settings: TLS, limits"
+description: "The general section of yarilo.yaml: how numeric settings and unknown keys are read, hostname, TLS, PROXY protocol, XCLIENT, connection limits, startup waits."
 ---
 
 # General configuration

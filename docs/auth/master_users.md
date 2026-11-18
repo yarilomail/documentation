@@ -1,5 +1,6 @@
 ---
-description: "Master users in yarilo: an administrative identity logging in to another user's mailbox with its own password. Configuration, login syntax, isolation, audit."
+title: "Master users: log in to another mailbox"
+description: "Master users in yarilo: an administrator logs in to another user's mailbox over IMAP with its own password. Configuration, login syntax, isolation and audit."
 ---
 
 # Master users

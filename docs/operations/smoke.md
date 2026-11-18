@@ -1,4 +1,5 @@
 ---
+title: "End-to-end smoke test for a mail server"
 description: "End-to-end smoke test for a live yarilo instance - authenticate, deliver over LMTP, read over IMAP and POP3: how to run it, what it checks, reading failures."
 ---
 

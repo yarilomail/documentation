@@ -1,5 +1,6 @@
 ---
-description: "Dictionaries in yarilo: the key-value store behind per-user state, its YAML schema, the yarilo-dict service, file, redis and sql drivers, yarctl commands."
+title: "Dictionaries: file, Redis and SQL key-value"
+description: "Dictionaries in yarilo: the key-value store behind per-user state, its YAML schema, the yarilo-dict service, file, Redis and SQL drivers, yarctl commands."
 ---
 
 # Dictionaries

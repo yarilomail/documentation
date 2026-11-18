@@ -1,5 +1,6 @@
 ---
-description: "OAuth 2.0 logins in yarilo over SASL OAUTHBEARER and XOAUTH2: token validation settings, wire formats, worked provider examples, error mapping and client tests."
+title: "OAuth2 for IMAP: OAUTHBEARER and XOAUTH2"
+description: "OAuth2 login for IMAP, POP3 and SMTP submission in yarilo, over SASL OAUTHBEARER and XOAUTH2: token validation, provider examples, error mapping, client tests."
 ---
 
 # OAuth 2.0 / OAUTHBEARER + XOAUTH2 Integration

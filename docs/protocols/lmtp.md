@@ -1,5 +1,6 @@
 ---
-description: "LMTP delivery into yarilo from an MTA such as Postfix: the proxy and the backend, protocol.lmtp settings, message size, rate limits, ORCPT, Delivered-To."
+title: "LMTP delivery from Postfix to mailboxes"
+description: "LMTP delivery from an MTA such as Postfix into yarilo mailboxes: the proxy and the backend, settings, message size, recipient rate limits, ORCPT, Delivered-To."
 ---
 
 # LMTP configuration

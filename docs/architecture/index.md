@@ -1,5 +1,6 @@
 ---
-description: "How yarilo is built: login proxies and session backends, the director, auth and internal mTLS RPC, dicts, namespaces, storage and the Kubernetes workloads."
+title: "Mail server architecture on Kubernetes"
+description: "Architecture of the yarilo mail server: login proxies and session backends, the director, auth and internal mTLS, dicts, namespaces, storage, Kubernetes."
 ---
 
 # Architecture

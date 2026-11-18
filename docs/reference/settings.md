@@ -1,5 +1,6 @@
 ---
-description: "Every documented yarilo.yaml setting on one page, grouped by section, with its type and default and a link to the full description."
+title: "All mail server settings (yarilo.yaml)"
+description: "Every documented yarilo.yaml mail server setting on one page, grouped by section, with its type, default and a link to the full description."
 ---
 
 # All settings

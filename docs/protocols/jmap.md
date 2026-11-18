@@ -1,5 +1,6 @@
 ---
-description: "JMAP in yarilo: the two binaries and their listeners, authentication, protocol.jmap settings, and Mail methods for mailboxes, emails, search and push."
+title: "JMAP server configuration (RFC 8620, 8621)"
+description: "JMAP server in yarilo: the two binaries and their listeners, authentication, protocol.jmap settings, and Mail methods for mailboxes, emails, search and push."
 ---
 
 # JMAP configuration

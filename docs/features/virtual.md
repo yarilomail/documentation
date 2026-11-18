@@ -1,5 +1,6 @@
 ---
-description: "Virtual mailboxes in yarilo: folders that show messages from other folders by a rule, such as all unread mail. Enabling them, the rule file, limits."
+title: "Virtual mailboxes: all mail, unread, flagged"
+description: "Virtual mailboxes over IMAP in yarilo: folders that show messages from other folders by a rule, such as all unread mail. Enabling them, the rule file, limits."
 ---
 
 # Virtual Mailboxes

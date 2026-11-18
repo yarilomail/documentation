@@ -1,5 +1,6 @@
 ---
-description: "Opening another user's mailboxes in yarilo under a shared namespace: configuring it, how the owner's storage is found, access control, listing and delivery."
+title: "Shared mailboxes: other users' folders in IMAP"
+description: "Shared mailboxes in yarilo: open another user's folders over IMAP under a namespace, with ACL. Configuration, how storage is found, listing and delivery."
 ---
 
 # Other users' mailboxes

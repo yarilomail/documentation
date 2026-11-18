@@ -1,5 +1,6 @@
 ---
-description: "What yarilo implements, feature by feature - protocols, IMAP extensions, storage, authentication, Sieve, search, quota, clustering - to plan a migration."
+title: "Feature coverage: IMAP, JMAP, Sieve, storage"
+description: "What the yarilo mail server implements, feature by feature - IMAP extensions, JMAP, storage formats, authentication, Sieve, search, quota - to plan a migration."
 ---
 
 # Feature coverage

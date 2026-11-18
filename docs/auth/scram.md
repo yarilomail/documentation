@@ -1,5 +1,6 @@
 ---
-description: "SCRAM-SHA-256 and SCRAM-SHA-1 in yarilo, with channel binding (PLUS): verifier storage and generation, mechanism advertisement, binding policy and client tests."
+title: "SCRAM-SHA-256 for IMAP with channel binding"
+description: "SCRAM-SHA-256 and SCRAM-SHA-1 authentication for IMAP, POP3 and submission, with channel binding (PLUS): verifier storage, generation, policy and client tests."
 ---
 
 # SCRAM family (SHA-256 and SHA-1, each with optional PLUS)

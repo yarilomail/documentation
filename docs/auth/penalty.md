@@ -1,5 +1,6 @@
 ---
-description: "Per-IP exponential backoff on failed logins in yarilo, counted in yarilo-warden so it holds across auth pods: configuration, backoff curve and decay."
+title: "Brute-force login backoff per client IP"
+description: "Slow down password guessing against a mail server: per-IP exponential backoff on failed logins, shared across auth pods. Configuration, backoff curve, decay."
 ---
 
 # Auth Penalty (cross-pod IP backoff)

@@ -1,5 +1,6 @@
 ---
-description: "yarilo-autoconfig tells Thunderbird and Outlook which hosts and ports to use for an address: what it serves, how to deploy it, the DNS records a domain publishes, and which clients still need manual setup."
+title: "Mail autoconfig for Thunderbird and Outlook"
+description: "yarilo-autoconfig tells Thunderbird and Outlook which hosts and ports an address uses: what it serves, deployment, DNS records, clients needing manual setup."
 ---
 
 # Mail client autoconfiguration

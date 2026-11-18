@@ -1,4 +1,5 @@
 ---
+title: "POP3 server configuration: STLS, UIDL, CAPA"
 description: "POP3 configuration for yarilo: RFC 1939 with STLS, UIDL, CAPA and XCLIENT, listener ports, TLS modes and the protocol-level settings behind them."
 ---
 

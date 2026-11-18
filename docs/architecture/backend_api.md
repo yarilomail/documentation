@@ -1,5 +1,6 @@
 ---
-description: "The yarilo-backend-api HTTP reference: transport, bearer auth and limits, then every endpoint for dicts, folders, ACL, quota, users, index, mdbox and messages."
+title: "Mail server admin HTTP API reference"
+description: "HTTP API of yarilo-backend-api for mail server administration: bearer auth, limits, and endpoints for folders, ACL, quota, users, index, mdbox and messages."
 ---
 
 # Backend HTTP API

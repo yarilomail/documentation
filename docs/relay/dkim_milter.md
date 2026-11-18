@@ -1,5 +1,6 @@
 ---
-description: "dkim-milter signs outgoing mail with the DKIM key of each From domain: keys per domain in a database table, private keys encrypted with Vault Transit, a bounded key cache, and who may have mail signed."
+title: "DKIM signing per domain with dkim-milter"
+description: "dkim-milter signs outgoing mail with the DKIM key of each From domain: keys in a database table, private keys encrypted with Vault Transit, a key cache."
 ---
 
 # DKIM signing with dkim-milter

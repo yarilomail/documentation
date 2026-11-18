@@ -1,5 +1,6 @@
 ---
-description: "Deploying yarilo on Kubernetes: components, write locking, standalone and co-located layouts, the Helm chart, sizing per backend pod, director routing and HA."
+title: "Deploying a mail server on Kubernetes"
+description: "Deploy a mail server on Kubernetes with the yarilo Helm chart: components, write locking, standalone and co-located layouts, pod sizing, high availability."
 ---
 
 # Deployment

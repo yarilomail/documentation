@@ -1,5 +1,6 @@
 ---
-description: "Configuring yarilo authentication: the passdb chain with SQL, passwd-file and static drivers, password schemes, custom queries, the auth cache and Postfix SASL."
+title: "Mail server authentication: SQL passdb, schemes"
+description: "Mail server authentication in yarilo: the passdb chain with SQL, passwd-file and static drivers, password schemes, custom queries, auth cache and Postfix SASL."
 ---
 
 # Authentication configuration

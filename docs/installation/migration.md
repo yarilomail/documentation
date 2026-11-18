@@ -1,5 +1,6 @@
 ---
-description: "yarilo-migrate: converting an existing mail store to another format and backfilling stable message identifiers and conversations, with a dry run first."
+title: "Migrate a mail store to sdbox or mdbox"
+description: "Migrate an existing mail store with yarilo-migrate: convert maildir or dbox mail to sdbox or mdbox, backfill message identifiers and threads, dry run first."
 ---
 
 # Migration and backfill

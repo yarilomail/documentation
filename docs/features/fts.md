@@ -1,5 +1,6 @@
 ---
-description: "Full-text search in yarilo for IMAP SEARCH and JMAP queries: how the yarilo-fts index works, its settings, prefix search and excluded folders."
+title: "IMAP full-text search with a per-user index"
+description: "Full-text search for IMAP SEARCH and JMAP queries in yarilo: how the per-user index works, its settings, prefix search, excluded folders, where the index lives."
 ---
 
 # Full-text search

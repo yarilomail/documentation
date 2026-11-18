@@ -1,5 +1,6 @@
 ---
-description: "One-host YariloMail install: login proxies on the mail ports, a session backend per protocol on loopback, auth, warden, locks and dict over Unix sockets, users and metadata in SQLite, MySQL or PostgreSQL, each process as its own account."
+title: "Mail server on one host without Kubernetes"
+description: "Install yarilo on one host without Kubernetes: login proxies on the mail ports, a backend per protocol on loopback, Unix sockets, users in SQLite or SQL."
 ---
 
 # One host

@@ -1,4 +1,5 @@
 ---
+title: "Install a mail server on Kubernetes with Helm"
 description: "Install yarilo on Kubernetes with Helm or run it with Docker Compose: prerequisites, DNS and TLS via cert-manager, first user, smoke test, troubleshooting."
 ---
 

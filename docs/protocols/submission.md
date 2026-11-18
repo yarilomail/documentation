@@ -1,5 +1,6 @@
 ---
-description: "Mail submission in yarilo on ports 587 and 465: the login proxy and the backend, protocol.submission settings, authentication and relaying to an outbound MTA."
+title: "SMTP submission on ports 587 and 465"
+description: "SMTP mail submission in yarilo on ports 587 and 465: the login proxy and the backend, protocol.submission settings, authentication and relay to an outbound MTA."
 ---
 
 # Submission configuration

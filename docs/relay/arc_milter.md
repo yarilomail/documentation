@@ -1,5 +1,6 @@
 ---
-description: "arc-milter adds an ARC set (RFC 8617) to mail the forwarding relay passes on to other domains: it checks the chain the message arrived with, copies the MX's Authentication-Results and seals it with the forwarder's own key."
+title: "ARC sealing for forwarded mail (arc-milter)"
+description: "arc-milter adds an ARC set (RFC 8617) to mail a forwarding relay passes to other domains: it checks the incoming chain and seals with the forwarder's key."
 ---
 
 # ARC sealing with arc-milter
