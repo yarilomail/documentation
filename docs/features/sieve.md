@@ -160,7 +160,7 @@ Before a redirect is sent, three checks run in this order:
 2. **Loop.** A message whose `X-Sieve-Redirected-From` names this recipient or the user has been here before and is not sent.
 3. **[`sieve_send_rate_limit`](#sieve.sieve_send_rate_limit).** A redirect stopped by 1 or 2 does not count against it.
 
-A redirect that is not sent leaves the message where it is: in INBOX at delivery, in place for an IMAP event. One log line names the user and the reason.
+A redirect that is not sent leaves the message where it is: in INBOX at delivery, in place for an IMAP event. This holds for a redirect stopped by a check and for one whose send failed, for example with the submission host down. One log line names the user and the reason.
 
 <!-- @settings sieve.sieve_redirect_duplicate_period -->
 

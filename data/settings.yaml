@@ -1064,7 +1064,7 @@ sieve.sieve_redirect_duplicate_period:
   added: 2.4.8
   see_also: [sieve.sieve_send_rate_limit]
   description: |
-    How long a `redirect` is remembered: the same message forwarded by the same recipient to the same address within this time is not sent again, and the message stays in INBOX. `0` remembers nothing. See [Redirect](#redirect).
+    How long a `redirect` is remembered: the same message forwarded by the same recipient to the same address within this time is not sent again, and the message stays in INBOX. `0` remembers nothing: no record is read or written. See [Redirect](#redirect).
 
 sieve.sieve_max_num_scripts:
   type: integer
