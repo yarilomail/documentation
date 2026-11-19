@@ -128,6 +128,10 @@ change, and the search index is not rebuilt.
 - A job runs in yarilo-backend-api, one per user at a time. A restart of that
   pod loses the job; run the command again, and it continues where the mail
   shows it was: every message is classified anew.
+- Run right after such a restart, the command waits up to 80 s for the lost
+  job's hold to lapse, then starts. While a job for the same user still runs on
+  another backend, it is refused: `a crypt job for <user> is already running on
+  another backend`.
 - Ctrl-C cancels the running jobs; a second Ctrl-C leaves at once.
 
 `reencrypt` needs the lock service (`yarilo-locks`): without it the command is
