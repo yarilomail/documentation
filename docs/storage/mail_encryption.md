@@ -130,9 +130,10 @@ change, and the search index is not rebuilt.
   shows it was: every message is classified anew.
 - Ctrl-C cancels the running jobs; a second Ctrl-C leaves at once.
 
-`reencrypt` needs the lock service (`yarilo-locks`) and, for maildir, `flock`
-on the mail volume; without either it refuses to start, and `status` and
-`--dry-run` still work.
+`reencrypt` needs the lock service (`yarilo-locks`): without it the command is
+refused at once. On maildir it also needs `flock` on the mail volume: without
+it the job stops at its first message with the reason `nolock` and writes
+nothing. `status` and `--dry-run` need neither.
 
 ### Back to plaintext
 
@@ -207,6 +208,5 @@ the growth hides in the filesystem's block rounding.
 
 - There are no folder or user keys: every user's mail is sealed to the same
   global keys.
-- A public namespace kept in sdbox or mdbox is not re-encrypted; a maildir one is.
 - Encryption covers maildir, sdbox and mdbox; other storage formats store
   plaintext.
