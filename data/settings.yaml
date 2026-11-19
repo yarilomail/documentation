@@ -3322,3 +3322,75 @@ warden_service.socket_group:
   description: |
     Group name of a `unix:/path` warden listener; empty keeps the process's
     group.
+
+storage.mail_crypt.write:
+  type: string
+  default: "off"
+  values: ["off", age]
+  helm: storage.mail_crypt.write
+  added: 2.4.8
+  see_also: [storage.mail_crypt.public_key, storage.mail_crypt.private_keys]
+  description: |
+    How new message bodies are stored: `off` as given, `age` encrypted to the
+    recipients in `public_key`. A key file that cannot be read stops the
+    process at start; it never falls back to plaintext. Mail already on disk
+    keeps its form until it is re-encrypted.
+
+storage.mail_crypt.public_key:
+  type: string
+  default: /etc/yarilo/mail-crypt/public
+  helm: storage.mail_crypt.public_key
+  added: 2.4.8
+  description: |
+    File of age recipients new mail is sealed to, read only with
+    `write: age`: X25519 or hybrid post-quantum, one type per file.
+
+storage.mail_crypt.private_keys:
+  type: string
+  default: /etc/yarilo/mail-crypt/private
+  helm: storage.mail_crypt.private_keys
+  added: 2.4.8
+  description: |
+    File of age identities that open stored mail, one per line; during a key
+    rotation it holds the old key and the new one. Read when it exists, so a
+    deployment that stopped writing encrypted mail still reads it.
+
+storage.mail_crypt.reference_keys:
+  type: list
+  default: []
+  helm: storage.mail_crypt.reference_keys
+  added: 2.4.8
+  description: |
+    PEM private keys (P-256) that open bodies of a store taken over from
+    another server in the elliptic-curve encrypted stream format. Every file
+    listed is required at start.
+
+storage.mail_crypt.reference_cache_size:
+  type: string
+  default: 256M
+  helm: storage.mail_crypt.reference_cache_size
+  added: 2.4.8
+  see_also: [storage.mail_temp_dir]
+  description: |
+    Decrypted bodies in that format kept in `mail_temp_dir`, summed per
+    process; past it a body is read as a stream. `0` keeps none.
+
+storage.mail_temp_dir:
+  type: string
+  default: /tmp/yarilo-mail
+  helm: storage.mail_temp_dir
+  added: 2.4.8
+  description: |
+    Where a process puts plaintext it must spill, such as decrypted bodies
+    of the cache above. Never on the mail volume.
+
+mailCrypt.secretName:
+  source: chart
+  type: string
+  default: ""
+  added: 2.4.8
+  description: |
+    An existing Secret with the keys, mounted read-only at
+    `/etc/yarilo/mail-crypt` in every container that opens mail: key
+    `public` (age recipients), key `private` (age identities), and any other
+    key a PEM reference key listed in `reference_keys`. Empty mounts nothing.
