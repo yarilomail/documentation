@@ -126,6 +126,7 @@ that skip the prefix.
 | `backend who` | active sessions | [below](#backend-who) |
 | `backend sessions` | kick a session by id | [below](#backend-sessions) |
 | `backend fts` | search index status, rescan, optimize, lookup | [below](#backend-fts) |
+| `backend crypt` | mail encryption at rest: status, re-encryption, keys | [below](#backend-crypt) |
 | `auth` | auth-cache flush, SCRAM verifier generation | [below](#auth) |
 | `backend warden` | connection accounting dump | [below](#warden) |
 | `wait` | block until endpoints answer | [below](#wait) |
@@ -767,6 +768,39 @@ yarctl backend fts lookup   <user> [--folder NAME] [--header NAME:VALUE] [--body
 All four answer `501` when `yarilo-backend-api` has no `fts_addr`. See [FTS](/features/fts) for the index itself.
 
 **Effect:** `rescan` and `optimize` write. The rest read.
+
+### `backend crypt`
+
+Mail encryption at rest: where stored mail stands, re-encryption to the current
+key or back to plaintext, and the keys. See
+[Mail encryption at rest](/storage/mail_encryption) for keys, rotation and
+limits.
+
+```
+yarctl backend crypt status    <user> [folder...] [--namespace NS] [--detach]
+yarctl backend crypt status    --all [--jobs N] [--public NAME]
+yarctl backend crypt reencrypt <user> [folder...] [--dry-run] [--to age|plain] [--namespace NS] [--rate N] [--detach]
+yarctl backend crypt reencrypt --all [--dry-run] [--to age|plain] [--jobs N] [--rate N] [--public NAME]
+yarctl backend crypt job       <user>
+yarctl backend crypt cancel    <user>
+yarctl backend crypt keys
+yarctl backend crypt keygen    --type x25519|hybrid --out FILE
+```
+
+`status` and `reencrypt` run as a job on the backend-api of the user's pod and
+print a table per folder when it ends; `--detach` returns at once, and `job`
+reads it later. A failed or cancelled job, or a message left as it was, exits
+non-zero. `keygen` runs locally and prints only the public key.
+
+To rotate to a new key once both private keys are loaded, run:
+
+```sh
+yarctl backend crypt reencrypt --all --jobs 2 --rate 100
+yarctl backend crypt status --all
+```
+
+**Effect:** `reencrypt` rewrites message files; `status`, `keys` and `--dry-run`
+read only.
 
 ### `auth`
 

@@ -300,6 +300,7 @@ export default defineConfig({
         items: [
           { text: 'Mailbox Storage', link: '/storage/' },
           { text: 'mdbox Alt Storage', link: '/storage/mdbox_alt' },
+          { text: 'Mail Encryption at Rest', link: '/storage/mail_encryption' },
           { text: 'Namespaces', link: '/storage/namespace' },
           { text: "Other Users' Mailboxes", link: "/storage/owner_shared_ns" },
           { text: 'Quota', link: '/storage/quota' },
