@@ -1010,6 +1010,27 @@ threading.threading_cache_idle:
     How long a process keeps an account's folded sidecar after its last
     delivery. `0` never caches, and every delivery then pays the fold.
 
+threading.threading_tail_size:
+  type: string
+  default: 128k
+  helm: components.backend.threading.tail_size
+  see_also: [threading.threading_max_thread]
+  description: |
+    How large an account's thread log grows before it is merged into the
+    sorted base beside it. The merge runs in the background after the
+    delivery that crossed the size; deliveries do not wait for it.
+
+threading.threading_max_thread:
+  type: integer
+  default: 1000
+  helm: components.backend.threading.max_thread
+  see_also: [threading.threading_tail_size]
+  description: |
+    How many messages one conversation holds. A reply to a full conversation
+    goes into the one that continues it, started when the last one filled;
+    two conversations that together would pass the limit are not joined.
+    At most 2047; a larger value refuses the start.
+
 sieve.sieve_enabled:
   type: boolean
   default: false
@@ -2591,6 +2612,16 @@ storage.mail_cache_purge_min_size:
   description: |
     Below this size the cache file is never purged; `"0"` allows a purge at
     any size.
+
+storage.mail_index_idle_cache_size:
+  type: string
+  default: 64M
+  helm: storage.mail_index_idle_cache_size
+  description: |
+    What a process keeps of folder indexes no session has open, for the next
+    open of the same folder. Each one stays 10 seconds after its last close;
+    over this size the oldest goes at once. An index in use is never dropped.
+    `"0"` drops each one on its last close.
 
 storage.max_concurrent_writes:
   type: integer

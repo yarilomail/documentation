@@ -444,7 +444,7 @@ doing eleven full storage scans to get the effect of eleven folds.
 
 All under `storage:`.
 
-<!-- @settings storage.storage_lock_method storage.storage_lock_stale_timeout storage.mail_cache_purge_delete_percentage storage.mail_cache_purge_continued_percentage storage.mail_cache_purge_min_size storage.max_concurrent_writes -->
+<!-- @settings storage.storage_lock_method storage.storage_lock_stale_timeout storage.mail_cache_purge_delete_percentage storage.mail_cache_purge_continued_percentage storage.mail_cache_purge_min_size storage.mail_index_idle_cache_size storage.max_concurrent_writes -->
 
 ## Folder names on disk
 
