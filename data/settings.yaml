@@ -2592,6 +2592,16 @@ storage.mail_cache_purge_min_size:
     Below this size the cache file is never purged; `"0"` allows a purge at
     any size.
 
+storage.mail_index_idle_cache_size:
+  type: string
+  default: 64M
+  helm: storage.mail_index_idle_cache_size
+  description: |
+    What a process keeps of folder indexes no session has open, for the next
+    open of the same folder. Each one stays 10 seconds after its last close;
+    over this size the oldest goes at once. An index in use is never dropped.
+    `"0"` drops each one on its last close.
+
 storage.max_concurrent_writes:
   type: integer
   default: 0
