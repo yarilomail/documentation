@@ -2580,8 +2580,12 @@ storage.mail_index_log2_max_age:
     How long a folder keeps the log its last fold folded, as `.log.2` beside
     the index. Its expunges still answer what vanished since a client's state
     issued before that fold, for QRESYNC and for JMAP `Email/changes`; past
-    this age the file is removed and such a state needs a full resync. `0`
-    keeps none.
+    this age the file is removed, and such a state is answered from the
+    folder itself instead: VANISHED names every message the client may hold
+    that the folder no longer has, and JMAP answers `cannotCalculateChanges`.
+    The age counts from the last write into that log before the fold, not from
+    the fold itself, which for a setting in days is close enough. `0` keeps
+    none.
 
 storage.storage_lock_method:
   type: string
