@@ -79,9 +79,11 @@ The times of `cur/` and `new/` that the last walk found are kept in the folder's
 so a walk by any process serves all of them: another
 IMAP pod, the indexer and delivery do not walk the folder again until it changes. The
 server's own writes (deliveries, flag changes, expunges, moves) carry those times
-forward, so they cost no walk by themselves. A directory that changed within the
-same second as its last check is walked once more, two seconds after the change, so a
-file put into the folder from outside in that second is still found.
+forward, so no process walks the folder because of them at once. Each of them still
+costs one walk, two seconds after the change and shared by every process: a
+directory's time is trusted only to the second, so a file put into the folder from
+outside in the same second as the write is found by that walk. On a folder that is
+written to without pause this is about one walk every two seconds.
 
 Within one process a folder is walked once at a time; sessions that arrive during the
 walk take its result. Walks of several folders at once share a memory budget, weighed
