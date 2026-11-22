@@ -592,22 +592,26 @@ yarctl backend index optimize alice@example.com --all
 The two mdbox-specific storage operations.
 
 ```
-yarctl backend mdbox purge   <user> [--namespace NS]
+yarctl backend mdbox purge   <user> | --all | --user-file PATH [--jobs N] [--namespace NS]
 yarctl backend mdbox altmove <user> [--namespace NS] [--before RFC3339] [--reverse]
 ```
 
 `purge` compacts the storage tree: every `m.<N>` file holding at least one
 zero-reference record is rewritten without those records, or unlinked when all
 of them are dead. The map is rewritten atomically, and folder indexes pointing
-at live records keep working without per-folder I/O.
+at live records keep working without per-folder I/O. `--all` purges every user
+the userdb lists and `--user-file` the users a file lists, one a line, each on
+its own backend, `--jobs` at a time; a store other than mdbox is skipped, and
+the run ends non-zero naming the users whose purge failed. The server never
+purges on its own ([mdbox purge](/storage/#mdbox-purge)).
 
-`altmove` moves messages to the alt (cold) tier, or back with `--reverse`.
-`--before` limits it to messages whose internal date precedes an RFC 3339
-timestamp. Requires `storage.mdbox_alt_storage_path`.
+`altmove` moves messages to the alt (cold) tier, or back with `--reverse`, and
+ends with a purge. `--before` limits it to messages whose internal date
+precedes an RFC 3339 timestamp. Requires `storage.mdbox_alt_storage_path`.
 
 ```sh
 yarctl backend mdbox altmove alice@example.com --before 2025-01-01T00:00:00Z
-yarctl backend mdbox purge alice@example.com
+yarctl backend mdbox purge --all --jobs 4
 ```
 
 **Effect:** both rewrite storage. `purge` is what actually reclaims the space an

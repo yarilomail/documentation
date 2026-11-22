@@ -105,13 +105,11 @@ atomically.
 
 ### Interplay with Purge
 
-Run `purge` before `altmove` to avoid compacting zero-ref records
-into the alt tier unnecessarily:
-
-```sh
-yarctl backend mdbox purge alice@example.com
-yarctl backend mdbox altmove alice@example.com --before 2025-01-01T00:00:00Z
-```
+`altmove` ends with a purge: the move copies only live
+records, and the records that stay are rewritten with any dead ones among them,
+so the purge after it gives that space back in the same call. Its numbers come
+back under `purge` in the answer. A separate purge before the move is not
+needed.
 
 ### Running it on a schedule
 
