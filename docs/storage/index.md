@@ -412,6 +412,18 @@ account, cheapest just after a fold. That range is the price of a cheap open:
 lowering the floor to flatten it would lengthen every open instead, at the rate
 above.
 
+### The history a fold keeps
+
+A fold moves the log it folded aside as `.log.2` instead of dropping it. A
+client that resynchronises with a state from before the fold - QRESYNC, or
+JMAP `Email/changes` - is then answered from that file rather than told to
+start over. Only the last fold is kept: a state from before two folds still
+needs a full resync. Ordinary reads and deliveries never open `.log.2`; a
+folder rename carries it, a delete removes it, and a rebuild drops it, since
+its expunges are not the rebuilt folder's.
+
+<!-- @settings storage.mail_index_log2_max_age -->
+
 ## Folding indexes before a measurement
 
 `yarctl backend index optimize <user> --all` folds every folder index of the

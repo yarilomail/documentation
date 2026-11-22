@@ -2569,6 +2569,20 @@ storage.mail_index_log_rotate_max_size:
   description: |
     Fold regardless of age.
 
+storage.mail_index_log2_max_age:
+  type: integer
+  unit: seconds
+  default: 172800
+  helm: storage.mail_index_log2_max_age
+  added: 2.4.8
+  see_also: [storage.mail_index_log_rotate_min_age]
+  description: |
+    How long a folder keeps the log its last fold folded, as `.log.2` beside
+    the index. Its expunges still answer what vanished since a client's state
+    issued before that fold, for QRESYNC and for JMAP `Email/changes`; past
+    this age the file is removed and such a state needs a full resync. `0`
+    keeps none.
+
 storage.storage_lock_method:
   type: string
   default: flock
