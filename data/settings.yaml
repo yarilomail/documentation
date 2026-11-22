@@ -2587,6 +2587,17 @@ storage.mail_index_log2_max_age:
     the fold itself, which for a setting in days is close enough. `0` keeps
     none.
 
+storage.mail_sync_walk_memory:
+  type: string
+  default: 64M
+  helm: storage.mail_sync_walk_memory
+  added: 2.4.8
+  description: |
+    The memory the whole-folder walks of one process may hold together. A walk
+    weighs its folder's message count times about 800 bytes, known before it
+    starts; one that finds no room waits for it, and a folder heavier than the
+    whole budget is walked alone. `"0"` leaves walks unbounded.
+
 storage.storage_lock_method:
   type: string
   default: flock
