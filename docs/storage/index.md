@@ -417,8 +417,10 @@ above.
 A fold moves the log it folded aside as `.log.2` instead of dropping it. A
 client that resynchronises with a state from before the fold - QRESYNC, or
 JMAP `Email/changes` - is then answered from that file rather than told to
-start over. Only the last fold is kept: a state from before two folds still
-needs a full resync. Ordinary reads and deliveries never open `.log.2`; a
+start over. Only the last fold is kept. For a state from before two folds,
+VANISHED is answered from the folder itself, naming every message in the
+client's range that the folder no longer holds, and JMAP answers
+`cannotCalculateChanges`. Ordinary reads and deliveries never open `.log.2`; a
 folder rename carries it, a delete removes it, and a rebuild drops it, since
 its expunges are not the rebuilt folder's.
 
