@@ -170,6 +170,34 @@ documents are invalidated immediately instead of lingering as ghost entries unti
 the next rescan). One accepted gap remains: the reset still loses per-UID VANISHED tombstone
 fidelity for dropped records, since it rewrites the whole set.
 
+## mdbox purge
+
+An expunge in an mdbox store drops a message's last reference; the bytes stay in
+its `m.<N>` file until a **purge** rewrites that file without them. Nothing in
+the server purges on its own: scheduling it is the operator's. A store other than mdbox has nothing to purge.
+
+```sh
+yarctl backend mdbox purge alice@example.com          # one user
+yarctl backend mdbox purge --all --jobs 4             # every user the userdb lists
+yarctl backend mdbox purge --user-file users.txt      # one user a line
+```
+
+`--all` takes the users from the userdb's iteration; `--user-file` serves a
+userdb that does not iterate. Each user is purged on the backend that serves
+it, `--jobs` at a time. The run prints one line per user and a summary of users
+purged, skipped (not mdbox) and failed, with the files rewritten and unlinked,
+records expunged and bytes reclaimed; it ends non-zero and names the users whose
+purge failed. `altmove` ends with a purge of its own
+([mdbox alt storage](/storage/mdbox_alt#interplay-with-purge)).
+
+A nightly schedule from a backend pod's container, where `yarctl` is already
+configured ([yarctl configuration](/operations/yarilo_admin#configuration)):
+
+```sh
+# crontab: 03:30 every night
+30 3 * * * kubectl exec <backend-pod> -c yarilo-backend-api -- yarctl backend mdbox purge --all --jobs 4
+```
+
 ## mdbox on-disk layout & rotation
 
 On-disk `m.<N>` files follow the **dbox v2 layout**: the ASCII file-header line
