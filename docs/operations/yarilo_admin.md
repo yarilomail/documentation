@@ -601,8 +601,9 @@ zero-reference record is rewritten without those records, or unlinked when all
 of them are dead. The map is rewritten atomically, and folder indexes pointing
 at live records keep working without per-folder I/O. `--all` purges every user
 the userdb lists and `--user-file` the users a file lists, one a line, each on
-its own backend, `--jobs` at a time; a store other than mdbox is skipped, and
-the run ends non-zero naming the users whose purge failed. The server never
+its own backend, `--jobs` at a time; a store other than mdbox and an account
+with no mail home yet are skipped, and the run ends non-zero naming the users
+whose purge failed. The server never
 purges on its own ([mdbox purge](/storage/#mdbox-purge)).
 
 `altmove` moves messages to the alt (cold) tier, or back with `--reverse`, and
