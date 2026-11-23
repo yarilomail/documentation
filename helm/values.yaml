@@ -27,7 +27,9 @@ service:
 
 ingress:
   enabled: true
-  className: "public"
+  # Traefik's own class (k8s_traefik), served by its ingress-nginx provider,
+  # so the nginx annotations keep working; "public" goes with the addon.
+  className: "edge"
   host: doc.yarilomail.org
   tls: true
   certIssuer: letsencrypt-prod
