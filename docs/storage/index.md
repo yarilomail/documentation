@@ -185,7 +185,8 @@ yarctl backend mdbox purge --user-file users.txt      # one user a line
 `--all` takes the users from the userdb's iteration; `--user-file` serves a
 userdb that does not iterate. Each user is purged on the backend that serves
 it, `--jobs` at a time. The run prints one line per user and a summary of users
-purged, skipped (not mdbox) and failed, with the files rewritten and unlinked,
+purged, skipped (not mdbox), without a mail home yet and failed, with the
+files rewritten and unlinked,
 records expunged and bytes reclaimed; it ends non-zero and names the users whose
 purge failed. `altmove` ends with a purge of its own
 ([mdbox alt storage](/storage/mdbox_alt#interplay-with-purge)).

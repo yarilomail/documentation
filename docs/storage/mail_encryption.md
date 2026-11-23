@@ -122,7 +122,9 @@ change, and the search index is not rebuilt.
 - `--all` takes every user from the user database, `--jobs` at a time, each on
   the backend that keeps the user, then the public namespace once
   (`--public NAME`, default `public`). The summary sums every state over all of
-  them and exits non-zero when anything failed.
+  them and exits non-zero when anything failed. An account that has no mail
+  home yet, one that never logged in or received mail, is skipped and counted
+  apart; a home that exists but cannot be read is a failure.
 - An mdbox store is rewritten whole, one storage file at a time, so a run on it
   names no folders.
 - A job runs in yarilo-backend-api, one per user at a time. A restart of that
