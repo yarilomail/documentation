@@ -63,8 +63,9 @@ standard list entirely.
 
 The milter does not start, and names the setting and its value, when
 `signHeaders` is empty, when a field in `oversignHeaders` is not signed or is
-in `omitHeaders`, and when `canonicalization` is empty or has a word other
-than `relaxed` and `simple`. A lone word sets the header canonicalization; the
+in `omitHeaders`, when an entry of any of the three lists is not a header
+field name (it has a space or a colon), and when `canonicalization` is empty
+or has a word other than `relaxed` and `simple`. A lone word sets the header canonicalization; the
 body is then `simple`.
 
 `relaxed` for the body forgives changed whitespace at the ends of lines on
