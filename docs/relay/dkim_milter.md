@@ -19,18 +19,56 @@ envelope sender.
 
 The signing domain is the domain of the first address in `From:`.
 
-- Canonicalization is `relaxed/simple`; the algorithm is RSA or Ed25519, by the key.
-- `From` is signed twice, so a `From` added later breaks the signature.
-- The other signed fields: `Reply-To`, `Subject`, `Date`, `To`, `Cc`,
-  `Message-ID`, `In-Reply-To`, `References`, `MIME-Version`, `Content-Type`,
-  `Content-Transfer-Encoding`, `List-Id`, `List-Unsubscribe`,
-  `List-Unsubscribe-Post`.
+- The algorithm is RSA or Ed25519, by the key.
+- A field is signed only when the message has it: once per time it is there.
+  A field the message does not have stays out of the signature, so a mailing
+  list that adds `List-Id` later leaves the signature valid.
+- `From` is always signed and guarded: it is listed in the signature once more
+  than the message has it, so a `From` added later breaks the signature.
+- Which fields are signed, never signed and guarded, and the canonicalization,
+  are [settings](#signed-header-fields).
 - The `DKIM-Signature` field goes at the top of the header.
 
 The body is streamed into the signature and never held, so memory does not
 grow with the message size. A message it cannot sign (no `From` domain, no
 key, a signing error) is accepted unsigned with one log line; the milter
 never refuses mail.
+
+### Signed header fields
+
+| Value | Variable | Default | What |
+|:---|:---|:---|:---|
+| `signHeaders` | `SIGN_HEADERS` | `*,+Message-ID,+MIME-Version,+Content-Type,+Content-Transfer-Encoding` | fields signed when the message has them |
+| `omitHeaders` | `OMIT_HEADERS` | `*` | fields never signed; wins over `signHeaders` |
+| `oversignHeaders` | `OVERSIGN_HEADERS` | `From` | fields listed once more than the message has them, once when it has none, so one added later breaks the signature |
+| `canonicalization` | `CANONICALIZATION` | `relaxed/simple` | header/body, each `relaxed` or `simple` |
+
+`*` stands for a standard list:
+
+- in `signHeaders`: `From`, `Reply-To`, `Subject`, `Date`, `To`, `Cc`,
+  `Resent-Date`, `Resent-From`, `Resent-Sender`, `Resent-To`, `Resent-Cc`,
+  `In-Reply-To`, `References`, `List-Id`, `List-Help`, `List-Unsubscribe`,
+  `List-Subscribe`, `List-Post`, `List-Owner`, `List-Archive` (the fields
+  RFC 6376 section 5.4 says should be signed);
+- in `omitHeaders`: `Return-Path`, `Received`, `Comments`, `Keywords`, `Bcc`,
+  `Resent-Bcc`, `DKIM-Signature`.
+
+The lists are comma-separated names, compared without case. A list with `*`
+is a change to the standard list: `+Name` adds a field, `-Name` removes one,
+so `*,-Cc` is the standard list without `Cc`. A list without `*` replaces the
+standard list entirely.
+
+`From` is always signed and guarded: `-From` in `signHeaders` and `From` in
+`omitHeaders` are ignored, and an empty `oversignHeaders` means `From` only.
+
+The milter does not start, and names the setting and its value, when
+`signHeaders` is empty, when a field in `oversignHeaders` is not signed or is
+in `omitHeaders`, and when `canonicalization` is empty or has a word other
+than `relaxed` and `simple`. A lone word sets the header canonicalization; the
+body is then `simple`.
+
+`relaxed` for the body forgives changed whitespace at the ends of lines on
+the way, but not a change to the content.
 
 ## Who may have mail signed
 
@@ -234,6 +272,8 @@ with the reason logged. No key is loaded before the first message.
 | `SIGN_AUTH` | `aligned` |
 | `SIGN_DOMAIN` | none |
 | `SIGN_HOPS_BEFORE` | `0` |
+| `SIGN_HEADERS`, `OMIT_HEADERS`, `OVERSIGN_HEADERS` | `*,+Message-ID,+MIME-Version,+Content-Type,+Content-Transfer-Encoding`, `*`, `From` ([signed header fields](#signed-header-fields)) |
+| `CANONICALIZATION` | `relaxed/simple` |
 | `KEY_DECRYPT` | `vault` (or `none` for PEM in the column) |
 | `KEY_CACHE_SIZE` | `10000` |
 | `KEY_CACHE_TTL_SECONDS` | `600` |
@@ -262,6 +302,7 @@ values; the chart's defaults are the code's.
 | `db.query` | the driver's default | `DKIM_SQL_QUERY` |
 | `db.maxOpenConns` | `10` | `DB_MAX_OPEN_CONNS` |
 | `signAuth`, `signDomain`, `signHopsBefore` | `aligned`, none, `0` | `SIGN_AUTH`, `SIGN_DOMAIN`, `SIGN_HOPS_BEFORE` |
+| `signHeaders`, `omitHeaders`, `oversignHeaders`, `canonicalization` | see [signed header fields](#signed-header-fields) | `SIGN_HEADERS`, `OMIT_HEADERS`, `OVERSIGN_HEADERS`, `CANONICALIZATION` |
 | `keyDecrypt` | `vault` | `KEY_DECRYPT` |
 | `keyCache.size`, `.ttlSeconds`, `.missTtlSeconds` | `10000`, `600`, `60` | the key cache |
 | `resources.limits.memory` | `128Mi` | room for `keyCache.size` keys |
