@@ -3454,3 +3454,114 @@ mailCrypt.secretName:
     `/etc/yarilo/mail-crypt` in every container that opens mail: key
     `public` (age recipients), key `private` (age identities), and any other
     key a PEM reference key listed in `reference_keys`. Empty mounts nothing.
+
+master.master_components:
+  type: list
+  default: [locks, auth, warden, dict, imap, pop3, lmtp, submission, managesieve, imap-login, pop3-login, lmtp-login, submission-login, managesieve-login]
+  added: 2.4.8
+  description: |
+    The processes yarilo-master runs, in start order; they stop in reverse.
+    Each is `yarilo-<name>` in `master_libexec_dir`. `fts`, `jmap`,
+    `jmap-login`, `quota-status`, `sasl-login` and `backend-api` join when
+    listed. An unknown name or a missing binary stops the start, and nothing
+    runs. A change takes `service yarilo restart`.
+
+master.master_libexec_dir:
+  type: string
+  default: /usr/local/libexec/yarilo
+  added: 2.4.8
+  description: |
+    Where the component binaries are. It and each binary must be root's and
+    not writable by group or others, or yarilo-master does not start.
+
+master.master_run_dir:
+  type: string
+  default: /var/run/yarilo
+  added: 2.4.8
+  description: |
+    The components' sockets and pid files, and yarilo-master's lock and
+    control socket.
+
+master.master_env_dir:
+  type: string
+  default: /usr/local/etc/yarilo
+  added: 2.4.8
+  description: |
+    Where `auth.env` and `dict.env` are, the database passwords as
+    `NAME=value` lines. Each must be root's with mode 0600 and reaches only
+    its own component.
+
+master.master_log_path:
+  type: string
+  default: /var/log/yarilo
+  added: 2.4.8
+  see_also: [master.master_syslog_facility]
+  description: |
+    A directory, which then holds `<component>.log` and `master.log`, or
+    `syslog`. The directory must be root's and not writable by group or
+    others. With `syslog` each line goes to the local syslog under the tag
+    `yarilo-<component>`, at the priority of its level, and
+    `service yarilo reopen` has nothing to do.
+
+master.master_syslog_facility:
+  type: string
+  default: mail
+  added: 2.4.8
+  description: |
+    The syslog facility with `master_log_path: syslog`.
+
+master.master_stop_timeout:
+  type: integer
+  unit: seconds
+  default: 60
+  added: 2.4.8
+  description: |
+    How long a component has to exit on SIGTERM before it is killed.
+
+master.master_user:
+  type: string
+  default: yarilo
+  added: 2.4.8
+  description: |
+    The account of the internal components: locks, dict and the sessions.
+    No component runs as root, so an account that is root stops the start.
+
+master.master_auth_user:
+  type: string
+  default: yarilo-auth
+  added: 2.4.8
+  description: |
+    The account of `auth` and `warden`.
+
+master.master_login_user:
+  type: string
+  default: yarilo-login
+  added: 2.4.8
+  description: |
+    The account of the login proxies other than `lmtp-login`. The mac_portacl
+    rules name this account's uid.
+
+master.master_delivery_user:
+  type: string
+  default: yarilo-delivery
+  added: 2.4.8
+  description: |
+    The account of `lmtp-login`.
+
+master.master_telemetry_port:
+  type: integer
+  default: 18079
+  added: 2.4.8
+  description: |
+    yarilo-master's own telemetry port on loopback. Each component's is this
+    plus a fixed offset: `locks` 18080 to `backend-api` 18099 with the
+    default.
+
+master.master_environment:
+  type: map
+  default: {}
+  added: 2.4.8
+  description: |
+    Variables added to every component's environment, such as `GOMAXPROCS`.
+    A component gets these, `PATH`, `CONFIG`, `LOG_LEVEL` and its
+    `TELEMETRY_LISTEN`, and nothing else of yarilo-master's environment.

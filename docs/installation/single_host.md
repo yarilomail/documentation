@@ -232,25 +232,57 @@ sysrc yarilo_enable=YES
 service yarilo start
 ```
 
-The script starts the processes in the order of `yarilo_components` and stops
-them in reverse. It waits for the lock, auth, warden and dict sockets before
-it starts what follows them.
+`service yarilo start` starts yarilo-master, and yarilo-master starts the
+components. It is the one process that runs as root. Each component runs
+under its own account, and an account that is root stops the start.
 
-| rc.conf variable | Default |
+- **Order.** It starts the components of `master_components` in order and
+  stops them in reverse. Before it starts what follows the lock, auth,
+  warden and dict services, it waits until their sockets accept a
+  connection.
+- **Restart.** A component that exits is started again. One that had run a
+  minute or more comes back at once. One that dies sooner waits 2 seconds,
+  doubling up to a minute, and keeps being tried. Every exit is a warning in
+  `master.log` naming the component, its status and the wait.
+- **Environment.** A component gets `PATH`, `CONFIG`, `LOG_LEVEL` (from
+  `log.level`), its telemetry address, and the variables of
+  `master_environment`. Nothing else of root's environment reaches it, and
+  `auth.env` and `dict.env` reach only their own component.
+- **What stops the start.** yarilo-master starts nothing when:
+  - a name in the list is unknown, or its binary is missing;
+  - the configuration or a binary can be written by anyone but root.
+
+  `service yarilo configtest` checks the same without starting.
+- **Telemetry.** Each component gets a fixed telemetry port on loopback,
+  from `127.0.0.1:18080` for `locks` to `18099` for `backend-api`, whatever
+  the list holds. yarilo-master serves its own on `18079`.
+
+| Command | Does |
 |:---|:---|
-| `yarilo_enable` | `NO` |
-| `yarilo_config` | `/usr/local/etc/yarilo/yarilo.yaml` |
-| `yarilo_components` | `locks auth warden dict imap pop3 lmtp submission managesieve imap-login pop3-login lmtp-login submission-login managesieve-login` |
-| `yarilo_log_level` | `info` |
-| `yarilo_stop_timeout` | `60` seconds |
+| `service yarilo status` | one line per component: state, pid, uptime, restarts |
+| `service yarilo stop imap` | stops `imap` and keeps it down |
+| `service yarilo start imap` | starts it again |
+| `service yarilo restart imap` | stops it and starts it at once |
+| `service yarilo restart` | restarts yarilo-master and every component; a changed list needs this |
+| `service yarilo reopen` | reopens the log files, for newsyslog |
 
-- `service yarilo restart imap` restarts one component, and `service yarilo
-  status` lists each.
-- `fts`, `jmap`, `jmap-login`, `quota-status`, `sasl-login` and
-  `backend-api` join the set when added to `yarilo_components`.
-- Each component gets a fixed telemetry port on loopback, from
-  `127.0.0.1:18080` for `locks` to `18099` for `backend-api`, whatever the
-  list holds.
+`/etc/rc.conf` keeps `yarilo_enable` and `yarilo_config`, the configuration
+file's path. Everything else is in the `master` section of `yarilo.yaml`:
+
+```yaml
+master:
+  master_components: [locks, auth, warden, dict, imap, pop3, lmtp, submission,
+                      managesieve, imap-login, pop3-login, lmtp-login,
+                      submission-login, managesieve-login, jmap, jmap-login]
+```
+
+The `yarilo_components`, `yarilo_log_level` and `yarilo_stop_timeout`
+variables of 2.4.7 are gone. A host that still sets one does not start, and
+the message names the key it moved to.
+
+#### `master`
+
+<!-- @settings master -->
 
 ### Accounts on FreeBSD
 
@@ -285,8 +317,8 @@ are members of the `yarilo-auth` group.
 ### Ports below 1024
 
 FreeBSD has no per-process capability for low ports. The login proxies bind
-them as `yarilo-login` and `yarilo-delivery` through mac_portacl(4), and
-nothing runs as root.
+them as `yarilo-login` and `yarilo-delivery` through mac_portacl(4). Only
+yarilo-master runs as root.
 
 Load the module and grant each account its ports:
 
@@ -308,14 +340,26 @@ This sequence:
 - lets `yarilo-delivery` (809) bind 24, and `yarilo-login` (805) bind 110,
   143, 465, 587, 993 and 995.
 
-Without the rules, `service yarilo start` names the missing piece and does not
-start the login proxy.
+Without the rules, yarilo-master names the missing piece in `master.log` and
+does not start that login proxy. The other components start, and
+`service yarilo start imap-login` tries again once the rules are in.
 
 ### Logs
 
-Each process writes `/var/log/yarilo/<component>.log`. newsyslog rotates them
-daily and keeps seven, from `/usr/local/etc/newsyslog.conf.d/yarilo.conf`, and
-`service yarilo reopen` makes the processes write to the new files.
+Each component's output goes to `/var/log/yarilo/<component>.log`, and
+yarilo-master's own to `master.log`. newsyslog rotates them daily and keeps
+seven, from `/usr/local/etc/newsyslog.conf.d/yarilo.conf`. The rotation has
+yarilo-master reopen the files; the components are not touched.
+
+With `master_log_path: syslog` the lines go to the local syslog instead,
+under the tag `yarilo-<component>` and the facility `master_syslog_facility`.
+Each goes at the priority of its level. A line longer than one syslog
+message is cut, and its end says how many bytes went. The newsyslog entry
+then has no files to rotate.
+
+A full disk or a syslog that is gone does not stop mail. yarilo-master drops
+the lines it cannot write, counts them in `yarilo_master_log_dropped_total`,
+and says in its own log when dropping starts and when it stops.
 
 ### Delivery from Postfix
 
