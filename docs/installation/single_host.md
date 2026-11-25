@@ -250,7 +250,10 @@ under its own account, and an account that is root stops the start.
   `auth.env` and `dict.env` reach only their own component.
 - **What stops the start.** yarilo-master starts nothing when:
   - a name in the list is unknown, or its binary is missing;
-  - the configuration or a binary can be written by anyone but root.
+  - an account in the `master` section is root;
+  - the configuration, `master_libexec_dir`, a binary, the log directory or
+    an existing `master_run_dir` can be written by anyone but root;
+  - its own telemetry port cannot be bound.
 
   `service yarilo configtest` checks the same without starting.
 - **Telemetry.** Each component gets a fixed telemetry port on loopback,
@@ -259,7 +262,8 @@ under its own account, and an account that is root stops the start.
 
 | Command | Does |
 |:---|:---|
-| `service yarilo status` | one line per component: state, pid, uptime, restarts |
+| `service yarilo status` | one line per component: state, pid, uptime, restarts; exits 1 when one is not running |
+| `service yarilo status imap` | the same for the components named |
 | `service yarilo stop imap` | stops `imap` and keeps it down |
 | `service yarilo start imap` | starts it again |
 | `service yarilo restart imap` | stops it and starts it at once |
