@@ -7,7 +7,8 @@ description: "JMAP server in yarilo: the two binaries and their listeners, authe
 
 The session resource, the request envelope and the Mail and Quota methods listed
 under [Capabilities](#capabilities) are served, reading and writing. Push is
-served over EventSource ([Push](#push)); WebSocket and Web Push are not yet.
+served over EventSource ([Push](#push)) and over [WebSocket](#websocket); Web
+Push subscriptions are not implemented.
 
 JMAP runs as two binaries, not one. `yarilo-jmap-login` faces clients and
 `yarilo-jmap` owns the user's state; see
