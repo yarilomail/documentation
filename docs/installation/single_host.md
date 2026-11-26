@@ -246,7 +246,13 @@ under its own account, and an account that is root stops the start.
   `master.log` naming the component, its status and the wait.
 - **Environment.** A component gets `PATH`, `CONFIG`, `LOG_LEVEL` (from
   `log.level`), its telemetry address, and the variables of
-  `master_environment`. Nothing else of root's environment reaches it, and
+  `master_environment`. `GOMAXPROCS` is 2 unless `master_environment`
+  names another value, and `service yarilo configtest` says which one the
+  components will get. In our test on a 6-core FreeBSD virtual machine
+  under a full IMAP load, 2 gave the most logins and no stalls. 3 lost
+  two thirds of the logins and stalled, and 4 and 6 were worse still.
+  Raise it only after measuring your own host under load: more cores is no
+  reason by itself. Nothing else of root's environment reaches it, and
   `auth.env` and `dict.env` reach only their own component.
 - **What stops the start.** yarilo-master starts nothing when:
   - a name in the list is unknown, or its binary is missing;
@@ -255,7 +261,8 @@ under its own account, and an account that is root stops the start.
     an existing `master_run_dir` can be written by anyone but root;
   - its own telemetry port cannot be bound.
 
-  `service yarilo configtest` checks the same without starting.
+  `service yarilo configtest` checks the list, the accounts and the paths
+  without starting; whether the telemetry port is free shows only at start.
 - **Telemetry.** Each component gets a fixed telemetry port on loopback,
   from `127.0.0.1:18080` for `locks` to `18099` for `backend-api`, whatever
   the list holds. yarilo-master serves its own on `18079`.
@@ -283,6 +290,16 @@ master:
 The `yarilo_components`, `yarilo_log_level` and `yarilo_stop_timeout`
 variables of 2.4.7 are gone. A host that still sets one does not start, and
 the message names the key it moved to.
+
+Variables exported in `/etc/rc.conf.d/yarilo` no longer reach the
+components either: yarilo-master gives each one an environment of its own.
+The script does not start while `GOMAXPROCS`, `GOGC`, `GOMEMLIMIT` or
+`GODEBUG` is exported there. Move them to `master_environment`:
+
+```yaml
+master:
+  master_environment: {GOMAXPROCS: "2"}
+```
 
 #### `master`
 
