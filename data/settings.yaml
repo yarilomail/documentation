@@ -3562,6 +3562,8 @@ master.master_environment:
   default: {}
   added: 2.4.8
   description: |
-    Variables added to every component's environment, such as `GOMAXPROCS`.
+    Variables added to every component's environment. `GOMAXPROCS` is 2
+    when this names none: on the FreeBSD host that is the value with no
+    stall and the most logins.
     A component gets these, `PATH`, `CONFIG`, `LOG_LEVEL` and its
     `TELEMETRY_LISTEN`, and nothing else of yarilo-master's environment.

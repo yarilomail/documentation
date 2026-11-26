@@ -246,7 +246,9 @@ under its own account, and an account that is root stops the start.
   `master.log` naming the component, its status and the wait.
 - **Environment.** A component gets `PATH`, `CONFIG`, `LOG_LEVEL` (from
   `log.level`), its telemetry address, and the variables of
-  `master_environment`. Nothing else of root's environment reaches it, and
+  `master_environment`. `GOMAXPROCS` is 2 unless `master_environment`
+  names another value; `service yarilo configtest` says which one the
+  components will get. Nothing else of root's environment reaches it, and
   `auth.env` and `dict.env` reach only their own component.
 - **What stops the start.** yarilo-master starts nothing when:
   - a name in the list is unknown, or its binary is missing;
