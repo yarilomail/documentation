@@ -265,7 +265,8 @@ under its own account, and an account that is root stops the start.
   without starting; whether the telemetry port is free shows only at start.
 - **Telemetry.** Each component gets a fixed telemetry port on loopback,
   from `127.0.0.1:18080` for `locks` to `18099` for `backend-api`, whatever
-  the list holds. yarilo-master serves its own on `18079`.
+  the list holds. yarilo-master serves its own on `18079`, and the log
+  process on `18100`.
 
 | Command | Does |
 |:---|:---|
@@ -316,6 +317,7 @@ port:
 | `yarilo-auth` | 804 | 804 |
 | `yarilo-login` | 805 | 805 |
 | `yarilo-delivery` | 809 | 809 |
+| `yarilo-log` | 811 | 811 |
 
 `yarilo-master` is a group alone, GID 810, with `yarilo`, `yarilo-delivery`
 and `yarilo-auth` as members. `yarilo`, `yarilo-login` and `yarilo-delivery`
@@ -367,10 +369,34 @@ does not start that login proxy. The other components start, and
 
 ### Logs
 
-Each component's output goes to `/var/log/yarilo/<component>.log`, and
-yarilo-master's own to `master.log`. newsyslog rotates them daily and keeps
+Every component's output goes through a pipe that yarilo-master holds to a
+log process of its own: the same binary in the role `log`, running as
+`yarilo-log`. It writes `/var/log/yarilo/<component>.log`, and yarilo-master's
+own lines to `master.log`.
+- **The directory** belongs to `yarilo-log`, and `yarilo.yaml` is closed to
+  it (`root:yarilo-auth`, mode 0640).
+- **The log process starts first and stops last.** If it dies, no component
+  sees an error: yarilo-master starts it again at once and hands it the same
+  pipes.
+- **A log process that cannot start** is tried with the usual backoff, and
+  meanwhile yarilo-master drops the output rather than let a component block.
+- **yarilo-master's own lines** that cannot reach the log process go to
+  syslog under the tag `yarilo-master`, off the log disk.
+- **`service yarilo stop log` and `start log`** are refused; `restart log`
+  is allowed.
+
+newsyslog rotates the files daily, and also once one passes 100 MB. It keeps
 seven, from `/usr/local/etc/newsyslog.conf.d/yarilo.conf`. The rotation has
-yarilo-master reopen the files; the components are not touched.
+the log process reopen the files; the components are not touched.
+
+`log.level: debug` is for a short diagnosis. Under load it writes megabytes
+a second, and newsyslog checks the size once an hour, so a file can grow by
+gigabytes between two rotations.
+
+The log process takes `GOMAXPROCS` like the components, and so does
+yarilo-master itself. Its counters, `yarilo_master_log_dropped_total` and
+`yarilo_master_log_truncated_total`, are on its own telemetry port,
+`127.0.0.1:18100` with the default `master_telemetry_port`.
 
 With `master_log_path: syslog` the lines go to the local syslog instead,
 under the tag `yarilo-<component>` and the facility `master_syslog_facility`.
@@ -378,9 +404,13 @@ Each goes at the priority of its level. A line longer than one syslog
 message is cut, and its end says how many bytes went. The newsyslog entry
 then has no files to rotate.
 
-A full disk or a syslog that is gone does not stop mail. yarilo-master drops
-the lines it cannot write, counts them in `yarilo_master_log_dropped_total`,
-and says in its own log when dropping starts and when it stops.
+A full disk or a syslog that is gone does not stop mail. The log process
+drops the lines it cannot write, counts them in
+`yarilo_master_log_dropped_total`, and says in its own log when dropping
+starts and when it stops. A file that could not open is tried again at the
+next rotation; a syslog that came back is dialled again. A syslog datagram,
+header and all, stays within 8191 bytes, the limit of FreeBSD's local
+socket, and a longer line is cut and marked.
 
 ### Delivery from Postfix
 
