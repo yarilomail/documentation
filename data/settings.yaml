@@ -3548,6 +3548,16 @@ master.master_delivery_user:
   description: |
     The account of `lmtp-login`.
 
+master.master_log_user:
+  type: string
+  default: yarilo-log
+  added: 2.4.8
+  description: |
+    The account of the log process, which owns the log directory and writes
+    every component's log. It is not root, cannot read `yarilo.yaml`, and no
+    process that handles mail can rewrite the logs. An account that does
+    not exist, or is root, stops the start.
+
 master.master_telemetry_port:
   type: integer
   default: 18079
