@@ -247,8 +247,12 @@ under its own account, and an account that is root stops the start.
 - **Environment.** A component gets `PATH`, `CONFIG`, `LOG_LEVEL` (from
   `log.level`), its telemetry address, and the variables of
   `master_environment`. `GOMAXPROCS` is 2 unless `master_environment`
-  names another value; `service yarilo configtest` says which one the
-  components will get. Nothing else of root's environment reaches it, and
+  names another value, and `service yarilo configtest` says which one the
+  components will get. In our test on a 6-core FreeBSD virtual machine
+  under a full IMAP load, 2 gave the most logins and no stalls. 3 lost
+  two thirds of the logins and stalled, and 4 and 6 were worse still.
+  Raise it only after measuring your own host under load: more cores is no
+  reason by itself. Nothing else of root's environment reaches it, and
   `auth.env` and `dict.env` reach only their own component.
 - **What stops the start.** yarilo-master starts nothing when:
   - a name in the list is unknown, or its binary is missing;

@@ -3563,7 +3563,10 @@ master.master_environment:
   added: 2.4.8
   description: |
     Variables added to every component's environment. `GOMAXPROCS` is 2
-    when this names none: on the FreeBSD host that is the value with no
-    stall and the most logins.
+    when this names none. In our test on a 6-core FreeBSD virtual machine
+    under a full IMAP load, 2 gave the most logins and no stalls, while 3
+    lost two thirds of the logins and stalled, and 4 and 6 were worse
+    still. Raise it only after measuring your own host under load: more
+    cores is no reason by itself.
     A component gets these, `PATH`, `CONFIG`, `LOG_LEVEL` and its
     `TELEMETRY_LISTEN`, and nothing else of yarilo-master's environment.
