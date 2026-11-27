@@ -316,11 +316,11 @@ port:
 
 | Account | UID | GID |
 |:---|:---|:---|
+| `yarilo-log` | 801 | 801 |
 | `yarilo` | 803 | 803 |
 | `yarilo-auth` | 804 | 804 |
 | `yarilo-login` | 805 | 805 |
 | `yarilo-delivery` | 809 | 809 |
-| `yarilo-log` | 811 | 811 |
 
 `yarilo-master` is a group alone, GID 810, with `yarilo`, `yarilo-delivery`
 and `yarilo-auth` as members. `yarilo`, `yarilo-login` and `yarilo-delivery`
