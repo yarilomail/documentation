@@ -189,17 +189,20 @@ alone.
 
 The port is developed in
 [yarilomail/freebsd-ports](https://github.com/yarilomail/freebsd-ports)
-before it goes into the ports tree. It builds the 2.4.6 release, the first
-that runs on FreeBSD with these accounts and the peer check. Once the port is
+before it goes into the ports tree. It builds the 2.4.8 release, the first
+in which `yarilo-master` supervises the components. Once the port is
 accepted into the tree, this step becomes `pkg install yarilo`.
 
-The port builds with Go 1.27.3 or newer, the version `go.mod` names. The ports
-tree's `lang/go127` is 1.27.3; a `go127` package from the quarterly branch may
-still be 1.27.2, and the build then stops on the `go.mod` version. Check it
-first, and build `lang/go127` from the tree when it is older:
+The port needs Go 1.27.4, the version `go.mod` names. The ports tree's
+`lang/go127` 1.27.3 is enough: it reads `go.mod`, and `make fetch` downloads
+the 1.27.4 toolchain into the port's distfiles with the modules, checked
+against `sum.golang.org`. The build itself then runs with no network and uses
+1.27.4. Only `make fetch` needs to reach `proxy.golang.org`. A `go127`
+package from the quarterly branch may still be 1.27.2, which was not tried;
+build `lang/go127` from the tree then:
 
 ```sh
-pkg info go127                                  # 1.27.3 or newer is enough
+pkg info go127                                  # 1.27.3 or newer
 cd /usr/ports/lang/go127 && make install clean  # only when it is older
 ```
 
