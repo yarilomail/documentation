@@ -114,10 +114,14 @@ other peer is ignored, so a client cannot choose its own address.
 In the chart the list is `general.haproxy.trusted_nets` and the header
 `components.jmapLogin.client_ip_header`.
 
-Cloudflare closes a connection that carries no traffic for about 100 seconds.
-An EventSource stream needs a `ping` below that, and a WebSocket a
-`jmap_websocket_timeout` below twice that, or push ends and the client
-reconnects.
+A proxied connection that carries no traffic is closed. Cloudflare lists a
+Proxy Read Timeout of 125 seconds in its
+[connection limits](https://developers.cloudflare.com/fundamentals/reference/connection-limits/),
+and closes a [WebSocket](https://developers.cloudflare.com/network/websockets/)
+that passes no data for a period it does not name. Keep traffic well inside
+that: an EventSource stream needs a `ping` below 100 seconds, and a WebSocket a
+`jmap_websocket_timeout` below 200, since the server pings every half of it.
+Otherwise push ends and the client reconnects.
 
 ---
 
